@@ -6,7 +6,7 @@ export default function BtnMore() {
       className="
         group
         flex w-[31px] h-[24px] p-[14px_8px] justify-center items-center gap-[3px] flex-shrink-0
-        rounded-[4px] hover:bg-[#222]
+        rounded-[4px] bg-transparent hover:bg-[#222]
       "
     >
       {[...Array(3)].map((_, idx) => (
