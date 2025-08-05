@@ -71,3 +71,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@layer base {
+  html, body, #root {
+    @apply bg-brand-background min-h-screen w-full h-full;
+  }
+}
