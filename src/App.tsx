@@ -7,6 +7,8 @@ import BtnAdd from './components/btn-add';
 import BtnLink from './components/btn-link';
 import BtnMore from './components/btn-more';
 import BtnMoreText from './components/btn-more-text';
+import BtnSmallArrow from './components/btn-small-arrow';
+import BtnBigArrow from './components/btn-big-arrow';
 
 export default function App() {
   const [disabled, setDisabled] = useState(false);
@@ -18,7 +20,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 p-10 min-h-screen">
+    <div className="flex flex-col items-center gap-4 p-10 min-h-screen bg-brand-background text-white font-suit">
       {/* 기본 로그인 버튼 */}
       <BtnSign disabled={disabled} onClick={handleClick}>
         로그인
@@ -29,28 +31,39 @@ export default function App() {
         GitHub 로그인
       </BtnSnsLogin>
 
-       {/* 포인트 버튼 (추가/저장 버튼) */}
+      {/* 포인트 버튼 */}
       <BtnPoint>
         추가/저장 버튼
       </BtnPoint>
-       {/* 설정 버튼 미완성임*/}
-      <BtnSetting>
-      </BtnSetting>
+
+      {/* 설정 버튼 */}
+      <BtnSetting />
+
       {/* 추가 버튼 */}
-      <BtnAdd>
-      </BtnAdd>
+      <BtnAdd />
+
       {/* 링크 버튼 */}
       <BtnLink>
         http://google.com
       </BtnLink>
+
       {/* 더보기 버튼 */}
-      <BtnMore>
-      </BtnMore>
-      
-      {/* 더보기-텍스트 버튼  */}
+      <BtnMore />
+
+      {/* 더보기-텍스트 버튼 */}
       <BtnMoreText>
         옵션창 내용
       </BtnMoreText>
+
+      {/* 화살표 표시 버튼 */}
+      <BtnBigArrow />
+
+      {/* 화살표 표시 버튼 2 */}
+      <BtnBigArrow variant="variant2" /> 
+
+      {/* 화살표 표시 버튼 */}
+      <BtnSmallArrow direction="up" />
+      <BtnSmallArrow direction="down" />
     </div>
   );
 }
