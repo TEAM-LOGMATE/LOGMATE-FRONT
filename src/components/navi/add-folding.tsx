@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import BtnAdd from '../btn/btn-add';
-import BtnSmallArrow from '../btn/btn-small-arrow';
+import BtnBigArrow from '../btn/btn-big-arrow';
 
 export default function AddFolding() {
   const [selected, setSelected] = useState(false);
@@ -23,7 +23,7 @@ export default function AddFolding() {
       {/* 아이콘 그룹 */}
       <div className="flex items-center gap-[4px] pt-[2px]">
         <BtnAdd />
-        <BtnSmallArrow direction="right" />
+        <BtnBigArrow direction="down"/>
       </div>
     </div>
   );
