@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import AddFolding from './add-folding';
+import MyPage from './my-page'; 
+import SpaceNameG from './spacename-g';
+import SpaceNameS from './spacename-S';
+
+export default function Bar() {
+  return (
+    <div
+      className="
+        w-[220px] h-[958px] flex-shrink-0
+        aspect-[17/74]
+        border-r border-[#222]
+        bg-[#171717]
+        flex flex-col
+      "
+    >
+      {/* 로고 및 유저 정보 영역  */}
+      <div className="flex flex-col px-[16px] pt-[24px]">
+        {/* 아이콘 */}
+        <div className="inline-flex items-center gap-[6px]">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <circle cx="10" cy="10" r="9.5" stroke="#6E6E6E" strokeWidth="1" />
+          </svg>
+          <span
+            className="
+              text-[#6E6E6E]
+              font-geist text-[16px] font-normal
+              leading-[16px] tracking-[-0.8px]
+            "
+          >
+            Log Mate
+          </span>
+        </div>
+
+        {/* 사용자 이름 */}
+        <div className="pt-[12px]">
+          <span
+            className="
+              text-[#D8D8D8]
+              font-geist text-[16px] font-normal
+              leading-[145%]
+            "
+          >
+            kangchanwookk
+          </span>
+        </div>
+
+        {/* 로그아웃 */}
+        <div className="pt-[8px]">
+          <span
+            className="
+              text-[#6E6E6E]
+              font-suit text-[14px] font-bold
+              leading-[150%] tracking-[-0.4px]
+            "
+          >
+            로그아웃
+          </span>
+        </div>
+      </div>
+
+      {/* 메뉴 - my-page */}
+      <MyPage />
+
+      {/* 메뉴 - Add Folding */}
+      <AddFolding />
+
+      {/* SpaceNameG */}
+      <SpaceNameG />
+
+      {/* SpaceNameG */}
+      <SpaceNameG />
+
+      {/* 메뉴 - Add Folding */}
+      <AddFolding />
+
+      {/* SpaceNameS */}
+      <SpaceNameS />
+      {/* SpaceNameS */}
+      <SpaceNameS />
+      {/* SpaceNameS */}
+      <SpaceNameS />
+      {/* SpaceNameS */}
+      <SpaceNameS />
+      {/* SpaceNameS */}
+      <SpaceNameS />
+    </div>
+  );
+}

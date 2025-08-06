@@ -8,6 +8,11 @@ export default {
       fontFamily: {
         suit: ['"SUIT"', 'sans-serif'],  // SUIT 폰트 등록
       },
+      colors: {
+        brand: {
+          background: '#091104', 
+        },
+      },
     },
   },
   plugins: [],
