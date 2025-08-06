@@ -1,6 +1,10 @@
 import React from 'react';
 
-export default function IconSign() {
+interface IconSignProps {
+  fill?: string;
+}
+
+export default function IconSign({ fill = '#AEAEAE' }: IconSignProps) {
   return (
     <div className="w-[24px] h-[24px] flex-shrink-0">
       <svg
@@ -12,11 +16,11 @@ export default function IconSign() {
       >
         <path
           d="M15.125 15.5C15.125 13.9467 13.7259 12.6875 12 12.6875C10.2741 12.6875 8.875 13.9467 8.875 15.5C8.875 17.0533 10.2741 18.3125 12 18.3125V20C9.23858 20 7 17.9853 7 15.5C7 13.0147 9.23858 11 12 11C14.7614 11 17 13.0147 17 15.5C17 17.9853 14.7614 20 12 20V18.3125C13.7259 18.3125 15.125 17.0533 15.125 15.5Z"
-          fill="#AEAEAE"
+          fill={fill}
         />
         <path
           d="M19.4571 14.2059C19.4571 10.6473 16.2184 7.58824 12 7.58824C7.78155 7.58824 4.54286 10.6473 4.54286 14.2059C4.54286 14.6445 4.19748 15 3.77143 15C3.34538 15 3 14.6445 3 14.2059C3 9.57761 7.12942 6 12 6C16.8706 6 21 9.57761 21 14.2059C21 14.6445 20.6546 15 20.2286 15C19.8025 15 19.4571 14.6445 19.4571 14.2059Z"
-          fill="#AEAEAE"
+          fill={fill}
         />
       </svg>
     </div>
