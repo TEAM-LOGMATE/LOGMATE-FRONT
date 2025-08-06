@@ -20,8 +20,13 @@ import AgentStatusCollecting from './components/text/agent-status-collecting';
 import AgentStatusBefore from './components/text/agent-status-before';
 import AgentStatusStop from './components/text/agent-status-stop';
 import ErrorToast from './components/text/error-toast';
-import FrmFolder from './components/frm/frm-foler';
-import NaviBar from './components/navi/bar';
+import FrmFolder from './components/frm/frm-folder';
+import MyPage from './components/navi/my-page';
+import AddFolding from './components/navi/add-folding';
+import SpaceNameG from './components/navi/spacename-g';
+import SpaceNameS from './components/navi/spacename-S';
+import Bar from './components/navi/bar';
+import FrmThumbnailBoard from './components/frm/frm-thumbnail-board';
 
 export default function App() {
   const [disabled, setDisabled] = useState(false);
@@ -119,10 +124,26 @@ export default function App() {
       {/* 오류 텍스트 */}
       <ErrorToast/>
 
+      {/* my mage */}
+      <MyPage/>
+
+      {/* 개인/팀 스페이스 */}
+      <AddFolding/>
+
+      {/* spacename-s */}
+      <SpaceNameG/>
+
+      {/* spacename-g */}
+      <SpaceNameS/>
+
+      {/* navi-bar */}
+      <Bar/>
+
       {/* frm-folder -----미완성 */}
       <FrmFolder/>
 
-      <NaviBar/>
+      {/* thumbnail */}
+      <FrmThumbnailBoard/>
     </div>
   );
 }
