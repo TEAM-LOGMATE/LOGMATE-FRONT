@@ -24,7 +24,7 @@ import FrmFolder from './components/frm/frm-folder';
 import MyPage from './components/navi/my-page';
 import AddFolding from './components/navi/add-folding';
 import SpaceNameG from './components/navi/spacename-g';
-import SpaceNameS from './components/navi/spacename-S';
+import SpaceNameS from './components/navi/spacename-s';
 import Bar from './components/navi/bar';
 import FrmThumbnailBoard from './components/frm/frm-thumbnail-board';
 
@@ -49,7 +49,11 @@ export default function App() {
 
       {/* GitHub SNS 로그인 버튼 */}
       <BtnSnsLogin type="github" onClick={() => console.log('GitHub 로그인')}>
-        GitHub 로그인
+        GitHub
+      </BtnSnsLogin>
+
+      <BtnSnsLogin type="google" onClick={() => console.log('google 로그인')}>
+        Google
       </BtnSnsLogin>
 
       {/* 포인트 버튼 */}
@@ -92,12 +96,13 @@ export default function App() {
 
       {/* 입력창 */}
       <Input54
-        value={text}
+      value={text}
         onChange={(e) => setText54(e.target.value)}
-        placeholder="글자 입력하고 엔터누르면 색 바꾸기"
+        placeholder="글자 입력하고 아이콘 누르기"
         done={done}
-        onDone={() => setDone(true)}
+        onDone={setDone}
       />
+
 
       {/* 입력창2 */}
       <Input48
