@@ -19,8 +19,9 @@ export default function FrmFolder() {
           <span className="text-[16px] font-[700] leading-[24px] tracking-[-0.4px] text-[#D8D8D8]">
             새 폴더
           </span>
-          <span className="text-[14px] font-light leading-[21px] tracking-[-0.4px] text-[#AEAEAE] font-[Geist_Mono]">
-            Edited 0000.00.00
+          <span className="text-[14px] leading-[21px] tracking-[-0.4px] text-[#AEAEAE]">
+            <span className="font-[Geist] font-light">Edited </span>
+            <span className="font-['Geist_Mono'] font-light">0000.00.00</span>
           </span>
         </div>
         <BtnMore />
