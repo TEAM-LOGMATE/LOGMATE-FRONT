@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import BtnSign from '../components/btn/btn-sign';
 import BtnSnsLogin from '../components/btn/btn-sns-login';
 import BtnPoint from '../components/btn/btn-point';
@@ -34,6 +35,8 @@ export default function ComponentTest() {
   const [done, setDone] = useState(false);
   const [code, setText48] = useState('');
   const [errorMessage] = useState('오류 메시지 ');
+  const location = useLocation();
+  const username = location.state?.username || 'Guest';
   
 
   const handleClick = () => {
@@ -135,8 +138,8 @@ export default function ComponentTest() {
       {/* my mage */}
       <MyPage/>
 
-      {/* 개인/팀 스페이스 */}
-      <AddFolding/>
+      {/* 개인/팀 스페이스 -- test 코드에서 삭제 */}
+      
 
       {/* spacename-s */}
       <SpaceNameG/>
@@ -145,7 +148,7 @@ export default function ComponentTest() {
       <SpaceNameS/>
 
       {/* navi-bar */}
-      <Bar/>
+      <Bar username={username} />
 
       {/* frm-folder -----미완성 */}
       <FrmFolder/>
