@@ -2,7 +2,7 @@ import { useState } from 'react';
 import AddFolding from './add-folding';
 import MyPage from './my-page'; 
 import SpaceNameG from './spacename-g';
-import SpaceNameS from './spacename-S';
+import SpaceNameS from './spacename-s';
 
 export default function Bar() {
   return (

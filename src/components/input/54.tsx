@@ -3,19 +3,23 @@ import IconBlind from '../icon/icon-blind';
 import IconSign from '../icon/icon-sign';
 
 interface Input54Props {
+  type?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   done?: boolean;
   onDone?: (state: boolean) => void;
+  showIcon?: boolean; 
 }
 
 export default function Input54({
+  type = 'text',
   value,
   onChange,
   placeholder,
   done = false,
   onDone,
+  showIcon = false, 
 }: Input54Props) {
   const textColor = done ? '#F2F2F2' : '#888888';
   const iconColor = done ? '#F2F2F2' : '#535353';
@@ -34,7 +38,7 @@ export default function Input54({
       "
     >
       <input
-        type="text"
+        type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
@@ -42,15 +46,18 @@ export default function Input54({
         style={{ color: textColor }}
       />
 
-      <button
-        type="button"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
-        className="w-[24px] h-[24px] flex items-center justify-center bg-transparent"
-      >
-        {done ? <IconSign fill={iconColor} /> : <IconBlind fill={iconColor} />}
-      </button>
+      {/* 이 부분이 조건부 렌더링 */}
+      {showIcon && (
+        <button
+          type="button"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className="w-[24px] h-[24px] flex items-center justify-center bg-transparent"
+        >
+          {done ? <IconSign fill={iconColor} /> : <IconBlind fill={iconColor} />}
+        </button>
+      )}
     </div>
   );
 }
