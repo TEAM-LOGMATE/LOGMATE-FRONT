@@ -1,17 +1,36 @@
 import React from 'react';
 
 interface BtnBigArrowProps {
+  direction?: 'up' | 'down' | 'right' | 'left';
   variant?: 'default' | 'variant2';
 }
 
-export default function BtnBigArrow({ variant = 'default' }: BtnBigArrowProps) {
+export default function BtnBigArrow({ direction = 'left', variant = 'default' }: BtnBigArrowProps) {
   const isVariant2 = variant === 'variant2';
+
+  let rotationClass = '';
+  switch (direction) {
+    case 'up':
+      rotationClass = 'rotate-[-90deg]';
+      break;
+    case 'down':
+      rotationClass = 'rotate-90';
+      break;
+    case 'right':
+      rotationClass = 'rotate-180';
+      break;
+    case 'left':
+    default:
+      rotationClass = 'rotate-0';
+      break;
+  }
 
   return (
     <button
       className={`
         flex w-[32px] h-[32px] flex-shrink-0 items-center justify-center
         ${isVariant2 ? 'bg-[#353535] rounded-[4px]' : 'bg-transparent'}
+        transition-transform ${rotationClass}
       `}
     >
       <svg

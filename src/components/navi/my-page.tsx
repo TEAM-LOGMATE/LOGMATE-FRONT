@@ -28,11 +28,6 @@ export default function MyPage() {
       >
         기본 정보
       </span>
-
-      {/* 화살표 */}
-      <div className="w-[32px] h-[32px] flex items-center justify-center">
-        <BtnSmallArrow direction="right" selected={selected || hovered} />
-      </div>
     </div>
   );
 }

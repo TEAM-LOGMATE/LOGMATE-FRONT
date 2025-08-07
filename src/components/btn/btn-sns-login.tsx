@@ -14,7 +14,7 @@ export default function BtnSnsLogin({ type, children, onClick }: SnsLoginButtonP
           className="inline-block align-middle"
           xmlns="http://www.w3.org/2000/svg"
           width="25"
-          height="24"
+          height="25"
           viewBox="0 0 25 24"
           fill="none"
         >
@@ -27,22 +27,30 @@ export default function BtnSnsLogin({ type, children, onClick }: SnsLoginButtonP
     }
 
     if (type === 'google') {
-      return (
-        <svg
-          className="inline-block align-middle"
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="24"
-          viewBox="0 0 25 24"
-          fill="none"
-        >
-          <path
-            d="M12 2C6.48 2 2 6.48 ..." //path넣기 
-            fill="#AEAEAE"
-          />
-        </svg>
-      );
-    }
+  return (
+    <svg
+      className="inline-block align-middle"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="19"
+      viewBox="0 0 16 19"
+      fill="none"
+    >
+      <g clipPath="url(#clip0_748_1517)">
+        <path d="M15.9891 8.64946C15.9891 7.99394 15.9347 7.51559 15.8169 7.01953H8.1593V9.97819H12.6541C12.5636 10.7135 12.0742 11.8208 10.9867 12.5648L10.9715 12.6639L13.3927 14.4973L13.5604 14.5137C15.101 13.1229 15.9891 11.0766 15.9891 8.64946Z" fill="#4285F4"/>
+        <path d="M8.1593 16.445C10.3614 16.445 12.2101 15.7363 13.5604 14.5139L10.9867 12.565C10.298 13.0345 9.37362 13.3623 8.1593 13.3623C6.0025 13.3623 4.17194 11.9716 3.51939 10.0493L3.42375 10.0573L0.906154 11.9618L0.87323 12.0513C2.21443 14.6556 4.96936 16.445 8.1593 16.445Z" fill="#34A853"/>
+        <path d="M3.51942 10.0494C3.34724 9.5533 3.24759 9.02176 3.24759 8.47257C3.24759 7.92332 3.34724 7.39184 3.51036 6.89578L3.5058 6.79013L0.956655 4.85498L0.873252 4.89376C0.320478 5.97449 0.0032959 7.18811 0.0032959 8.47257C0.0032959 9.75703 0.320478 10.9706 0.873252 12.0513L3.51942 10.0494Z" fill="#FBBC05"/>
+        <path d="M8.15931 3.58269C9.6908 3.58269 10.7239 4.22934 11.313 4.76974L13.6148 2.57285C12.2011 1.2884 10.3614 0.5 8.15931 0.5C4.96936 0.5 2.21443 2.28937 0.87323 4.89371L3.51034 6.89573C4.17194 4.97347 6.0025 3.58269 8.15931 3.58269Z" fill="#EB4335"/>
+      </g>
+      <defs>
+        <clipPath id="clip0_748_1517">
+          <rect width="16" height="16" fill="white" transform="translate(0 0.5)" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
 
     return null;
   };
@@ -52,7 +60,7 @@ export default function BtnSnsLogin({ type, children, onClick }: SnsLoginButtonP
       onClick={onClick}
       className="
         flex items-center justify-center
-        w-[254px] h-[54px]
+        w-[234px] h-[48px]
         px-[24px] py-[12px]
         gap-[6px]
         rounded-[12px]
@@ -61,7 +69,7 @@ export default function BtnSnsLogin({ type, children, onClick }: SnsLoginButtonP
         text-[#AEAEAE]
 
         hover:bg-[#1c1c1c]                
-        hover:border-[#AEAEAE]            
+        hover:border-[#222]            
         hover:text-[#F2F2F2]                 
         transition-colors duration-200   
 
