@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Input54 from '../../components/input/54';
 import BtnSign from '../../components/btn/btn-sign';
 import BtnSnsLogin from '../../components/btn/btn-sns-login';
@@ -10,9 +10,18 @@ import {
   isValidUsername,
   doPasswordsMatch,
 } from '../../utils/validate';
+import { motion } from 'framer-motion';
 
 export default function SignupPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -32,24 +41,27 @@ export default function SignupPage() {
     isValidPassword(password) &&
     doPasswordsMatch(password, passwordConfirm);
 
-
   const handleClick = () => {
     if (!isFormValid) {
-        setErrorMessage('모든 정보를 올바르게 입력해 주세요.');
-        setTimeout(() => setErrorMessage(''), 3000);
-        return;
+      setErrorMessage('모든 정보를 올바르게 입력해 주세요.');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
     }
 
     console.log('회원가입 시도');
     // TODO: API 요청 추가
-    };
-
+  };
 
   return (
-    <div className="w-screen min-h-screen flex justify-center bg-[#091104] relative">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -30 }}
+      transition={{ duration: 0.4 }}
+      className="w-screen h-screen flex justify-center items-center bg-[#091104]"
+    >
       <div className="w-[1920px] flex justify-center items-center py-[80px]">
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">
-          
           {/* 로고 + 제목 */}
           <div className="flex flex-col items-center gap-[20px]">
             <div
@@ -79,7 +91,7 @@ export default function SignupPage() {
               <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
                 {username.length > 0 && !isValidUsername(username)
                   ? '사용자 이름이 유효하지 않습니다.'
-                  : ' '}
+                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
 
@@ -97,7 +109,7 @@ export default function SignupPage() {
               <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
                 {email.length > 0 && !isValidEmail(email)
                   ? '이메일 형식이 올바르지 않습니다.'
-                  : ' '}
+                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
 
@@ -137,7 +149,7 @@ export default function SignupPage() {
               <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
                 {passwordConfirm.length > 0 && !doPasswordsMatch(password, passwordConfirm)
                   ? '비밀번호가 일치하지 않습니다.'
-                  : ' '}
+                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
           </div>
@@ -149,7 +161,9 @@ export default function SignupPage() {
                 <ErrorToast message={errorMessage} />
               </div>
             )}
-            <BtnSign onClick={handleClick} isActive={isFormValid}>계정 만들기</BtnSign>
+            <BtnSign onClick={handleClick} isActive={isFormValid}>
+              계정 만들기
+            </BtnSign>
           </div>
 
           {/* SNS 로그인 */}
@@ -180,6 +194,6 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
