@@ -10,7 +10,9 @@ export default function ErrorToast({ message }: ErrorToastProps) {
       className="inline-flex items-center justify-center gap-[4px] px-[16px] py-[6px]
                  text-center border border-[#D46F6F] bg-[#111] rounded-[8px]
                  text-[#D46F6F] font-suit text-[16px] font-bold leading-[24px] tracking-[-0.4px]
-                 animate-pop-fade [animation-fill-mode:forwards]" // 애니메이션 추가
+                 animate-pop-fade [animation-fill-mode:forwards]
+                 whitespace-nowrap" // 애니메이션 추가
+                 
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
