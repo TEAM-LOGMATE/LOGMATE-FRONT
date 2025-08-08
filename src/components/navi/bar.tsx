@@ -6,9 +6,11 @@ import SpaceNameS from './spacename-s';
 
 interface BarProps {
   username: string;
+  onAddFolder: () => void;
+  onRemoveFolder: () => void; 
 }
 
-export default function Bar({ username }: BarProps) {
+export default function Bar({ username, onAddFolder, onRemoveFolder }: BarProps) {
   const [spaceNameGList, setSpaceNameGList] = useState<number[]>([]);
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
@@ -21,6 +23,7 @@ export default function Bar({ username }: BarProps) {
     if (!isOpenG) setIsOpenG(true);
     const newId = Date.now() + Math.random();
     setSpaceNameGList((prev) => [...prev, newId]);
+    onAddFolder();
   };
 
   const handleAddSpaceNameS = () => {
@@ -28,10 +31,11 @@ export default function Bar({ username }: BarProps) {
     if (!isOpenS) setIsOpenS(true);
     const newId = Date.now() + Math.random();
     setSpaceNameSList((prev) => [...prev, newId]);
-};
+  };
 
   const handleCancelSpaceNameG = (id: number) => {
     setSpaceNameGList((prev) => prev.filter((item) => item !== id));
+    onRemoveFolder(); 
   };
 
   const handleCancelSpaceNameS = (id: number) => {
