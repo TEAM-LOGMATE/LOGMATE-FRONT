@@ -5,32 +5,55 @@ import BtnSort from '../../components/btn/btn-sort';
 import BtnPoint from '../../components/btn/btn-point';
 import FrmFolder from '../../components/frm/frm-folder';
 
+interface Folder {
+  id: number;
+  name: string;
+}
+
 export default function P_SpacePage() {
   const username = localStorage.getItem('username') || 'Guest';
-  const [folderCount, setFolderCount] = useState(0);
 
-  // ✅ body overflow hidden 적용
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [pendingFolder, setPendingFolder] = useState<boolean>(false);
+
   useEffect(() => {
-    // 페이지 진입 시 overflow 숨김
     document.body.style.overflow = 'hidden';
-
     const timeout = setTimeout(() => {
-      // 애니메이션 끝나고 스크롤 허용
       document.body.style.overflow = '';
-    }, 400); // transition.duration 과 동일하게 설정
-
+    }, 400);
     return () => {
       clearTimeout(timeout);
       document.body.style.overflow = '';
     };
   }, []);
 
+  const handleConfirmAdd = (newName: string) => {
+    setFolders((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), name: newName },
+    ]);
+    setPendingFolder(false);
+  };
+
+  const handleCancelAdd = () => {
+    setPendingFolder(false);
+  };
+
   const handleAddFolder = () => {
-    setFolderCount((prev) => prev + 1);
+    if (pendingFolder) return;
+    setPendingFolder(true);
   };
 
   const handleRemoveFolder = () => {
-    setFolderCount((prev) => Math.max(prev - 1, 0));
+    setFolders((prev) => prev.slice(0, -1));
+  };
+
+  const handleRenameFolder = (id: number, newName: string) => {
+    setFolders((prev) =>
+      prev.map((folder) =>
+        folder.id === id ? { ...folder, name: newName } : folder
+      )
+    );
   };
 
   return (
@@ -44,6 +67,7 @@ export default function P_SpacePage() {
       {/* 왼쪽 사이드바 */}
       <Bar
         username={username}
+        folders={folders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
       />
@@ -56,7 +80,7 @@ export default function P_SpacePage() {
             개인 스페이스
           </h1>
           <span className="absolute left-[calc(100%+16px)] top-[7px] text-[16px] font-normal leading-[135%] tracking-[-0.4px] text-[#888888] whitespace-nowrap">
-            {folderCount}개 폴더
+            {folders.length}개 폴더
           </span>
         </div>
 
@@ -76,9 +100,21 @@ export default function P_SpacePage() {
             mt-[28px]
           "
         >
-          {Array.from({ length: folderCount }).map((_, idx) => (
-            <FrmFolder key={idx} />
+          {folders.map((folder) => (
+            <FrmFolder
+              key={folder.id}
+              name={folder.name}
+              onRename={(newName) => handleRenameFolder(folder.id, newName)}
+            />
           ))}
+
+          {pendingFolder && (
+            <FrmFolder
+              name="새 폴더"
+              onRename={handleConfirmAdd}
+              onCancel={handleCancelAdd}
+            />
+          )}
         </div>
       </div>
     </motion.div>
