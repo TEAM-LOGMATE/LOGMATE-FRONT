@@ -1,29 +1,34 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AddFolding from './add-folding';
 import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
 import SpaceNameS from './spacename-s';
 
-interface BarProps {
-  username: string;
-  onAddFolder: () => void;
-  onRemoveFolder: () => void; 
+interface Folder {
+  id: number;
+  name: string;
 }
 
-export default function Bar({ username, onAddFolder, onRemoveFolder }: BarProps) {
-  const [spaceNameGList, setSpaceNameGList] = useState<number[]>([]);
+interface BarProps {
+  username: string;
+  folders: Folder[];
+  onAddFolder: () => void;
+  onRemoveFolder: () => void;
+}
+
+export default function Bar({ username, folders, onAddFolder, onRemoveFolder }: BarProps) {
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
   const [isOpenS, setIsOpenS] = useState(true);
+  const navigate = useNavigate();
 
   const MAX_SPACES = 9;
 
   const handleAddSpaceNameG = () => {
-    if (spaceNameGList.length >= MAX_SPACES) return;
+    if (folders.length >= MAX_SPACES) return;
     if (!isOpenG) setIsOpenG(true);
-    const newId = Date.now() + Math.random();
-    setSpaceNameGList((prev) => [...prev, newId]);
-    onAddFolder();
+    onAddFolder(); 
   };
 
   const handleAddSpaceNameS = () => {
@@ -31,11 +36,6 @@ export default function Bar({ username, onAddFolder, onRemoveFolder }: BarProps)
     if (!isOpenS) setIsOpenS(true);
     const newId = Date.now() + Math.random();
     setSpaceNameSList((prev) => [...prev, newId]);
-  };
-
-  const handleCancelSpaceNameG = (id: number) => {
-    setSpaceNameGList((prev) => prev.filter((item) => item !== id));
-    onRemoveFolder(); 
   };
 
   const handleCancelSpaceNameS = (id: number) => {
@@ -67,8 +67,7 @@ export default function Bar({ username, onAddFolder, onRemoveFolder }: BarProps)
             {username}
           </span>
         </div>
-
-        <div className="pt-[8px] mb-[4px]">
+        <div className="mb-[4px]">
           <span className="text-[#6E6E6E] font-suit text-[14px] font-bold leading-[150%] tracking-[-0.4px] hover:text-[#D8D8D8] cursor-pointer transition-colors">
             로그아웃
           </span>
@@ -86,8 +85,8 @@ export default function Bar({ username, onAddFolder, onRemoveFolder }: BarProps)
         toggleOpen={() => setIsOpenG((prev) => !prev)}
       />
       <div className={isOpenG ? '' : 'hidden'}>
-        {spaceNameGList.map((id) => (
-          <SpaceNameG key={id} onCancel={() => handleCancelSpaceNameG(id)} />
+        {folders.map((folder) => (
+          <SpaceNameG key={folder.id} name={folder.name} />
         ))}
       </div>
 
