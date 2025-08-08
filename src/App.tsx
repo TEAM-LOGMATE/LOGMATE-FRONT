@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import LoginPage from './pages/login/LoginPage';
 import ComponentTest from './pages/component-test';
 import SignupPage from './pages/signup/SignupPage';
-import MainPage from './pages/home/MainPage';
+import PSpacePage from './pages/home/P-SpacePage';
 
 
 function AnimatedRoutes() {
@@ -15,7 +15,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/component-test" element={<ComponentTest />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/main" element={<MainPage />} /> 
+        <Route path="/personal" element={<PSpacePage />} />
       </Routes>
     </AnimatePresence>
   );

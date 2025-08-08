@@ -37,7 +37,7 @@ export default function LoginPage() {
       setErrorMessage(null);
       console.log('로그인 성공');
       localStorage.setItem('username', 'admin');
-      navigate('/main'); 
+      navigate('/personal'); 
     } else {
       setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
