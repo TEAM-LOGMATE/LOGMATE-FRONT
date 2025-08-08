@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface SpaceNameGProps {
+  name: string;
   onCancel?: () => void;
 }
 
-export default function SpaceNameG({ onCancel }: SpaceNameGProps) {
+export default function SpaceNameG({ name, onCancel }: SpaceNameGProps) {
   const [pressed, setPressed] = useState(false);
-  const [isEditing, setIsEditing] = useState(true);
-  const [name, setName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(name);
+
+  useEffect(() => {
+    // name prop이 바뀔 때 내부 inputValue도 갱신
+    setInputValue(name);
+  }, [name]);
 
   const handleBlur = () => {
-    if (name.trim() === '') {
-      onCancel?.(); // 이름이 없으면 삭제
+    if (inputValue.trim() === '') {
+      onCancel?.();
     } else {
-      setIsEditing(false); // 이름이 있으면 편집 종료
+      setIsEditing(false);
     }
   };
 
@@ -41,8 +47,8 @@ export default function SpaceNameG({ onCancel }: SpaceNameGProps) {
         <input
           autoFocus
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           maxLength={24}
@@ -55,8 +61,11 @@ export default function SpaceNameG({ onCancel }: SpaceNameGProps) {
           placeholder="새 폴더"
         />
       ) : (
-        <span className="truncate w-full whitespace-nowrap overflow-hidden">
-          {name}
+        <span
+          className="truncate w-full whitespace-nowrap overflow-hidden"
+          onDoubleClick={() => setIsEditing(true)} // 더블 클릭 시 이름 수정 가능
+        >
+          {inputValue}
         </span>
       )}
     </div>
