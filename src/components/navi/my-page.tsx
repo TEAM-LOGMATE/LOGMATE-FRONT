@@ -1,11 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function MyPage() {
   const [selected, setSelected] = useState(false);
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    setSelected(true);        
+    navigate('/myinfo');       
+  };
 
   return (
     <div
-      onClick={() => setSelected(!selected)}
+      onClick={handleClick}
       className={`
         w-[220px] h-[56px] border-t border-[#222] px-[12px]
         flex items-center justify-between flex-shrink-0
@@ -13,7 +20,6 @@ export default function MyPage() {
         ${selected ? 'text-[#4FE75E] bg-[#222]' : 'text-[#888] hover:bg-[#222]'}
       `}
     >
-      {/* 텍스트 */}
       <span
         className={`
           pt-[2px]
