@@ -1,34 +1,65 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddFolding from './add-folding';
 import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
 import SpaceNameS from './spacename-s';
 
-interface Folder {
-  id: number;
-  name: string;
-}
+// ✅ storage 유틸
+import { loadFolders, foldersKey, type Folder } from '../../utils/storage';
+// ✅ 전역 제한값 사용
+import { MAX_SPACES } from '../../utils/validate';
 
 interface BarProps {
   username: string;
-  folders: Folder[];
-  onAddFolder: () => void;
-  onRemoveFolder: () => void;
+  folders?: Folder[];
+  onAddFolder?: () => void;
+  onRemoveFolder?: () => void;
 }
 
-export default function Bar({ username, folders, onAddFolder, onRemoveFolder }: BarProps) {
+export default function Bar({
+  username,
+  folders,
+  onAddFolder,
+  onRemoveFolder,
+}: BarProps) {
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
   const [isOpenS, setIsOpenS] = useState(true);
+  const [localFolders, setLocalFolders] = useState<Folder[]>([]);
   const navigate = useNavigate();
 
-  const MAX_SPACES = 9;
+  // ✅ 전달 여부만 확인 (빈 배열도 유효)
+  const propHasFolders = folders !== undefined;
+
+  // props 없을 때만 로컬 로드
+  useEffect(() => {
+    if (propHasFolders) return;
+    setLocalFolders(loadFolders(username));
+  }, [username, propHasFolders]);
+
+  // props 없을 때만 로컬 동기화
+  useEffect(() => {
+    if (propHasFolders) return;
+    const key = foldersKey(username);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== key) return;
+      setLocalFolders(loadFolders(username));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [username, propHasFolders]);
+
+  const displayedFolders: Folder[] = propHasFolders ? (folders as Folder[]) : localFolders;
 
   const handleAddSpaceNameG = () => {
-    if (folders.length >= MAX_SPACES) return;
-    if (!isOpenG) setIsOpenG(true);
-    onAddFolder(); 
+    if (onAddFolder) {
+      if (displayedFolders.length >= MAX_SPACES) return;
+      if (!isOpenG) setIsOpenG(true);
+      onAddFolder();
+      return;
+    }
+    navigate('/personal');
   };
 
   const handleAddSpaceNameS = () => {
@@ -82,10 +113,11 @@ export default function Bar({ username, folders, onAddFolder, onRemoveFolder }: 
         onAdd={handleAddSpaceNameG}
         label="개인 스페이스"
         isOpen={isOpenG}
-        toggleOpen={() => setIsOpenG((prev) => !prev)}
+        toggleOpen={() => setIsOpenG((p) => !p)}
+        onLabelClick={() => navigate('/personal')}
       />
       <div className={isOpenG ? '' : 'hidden'}>
-        {folders.map((folder) => (
+        {displayedFolders.map((folder) => (
           <SpaceNameG key={folder.id} name={folder.name} />
         ))}
       </div>
