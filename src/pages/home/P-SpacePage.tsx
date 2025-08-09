@@ -102,10 +102,12 @@ export default function P_SpacePage() {
     >
       <Bar
         username={username}
-        folders={folders}            
+        folders={folders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
+        activePage="personal"
       />
+
 
       <div className="flex flex-col flex-1 px-10 pt-10">
         <div className="relative flex items-start w-fit">

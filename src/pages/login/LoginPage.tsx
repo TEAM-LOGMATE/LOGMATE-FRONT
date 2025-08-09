@@ -14,7 +14,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toastTrigger, setToastTrigger] = useState(0);
 
   // 배경 스크롤 잠금
   useEffect(() => {
@@ -33,19 +35,32 @@ export default function LoginPage() {
     }
   }, [errorMessage]);
 
-  // 컨텍스트 에러 연동
-  useEffect(() => {
-    if (authError) setErrorMessage(authError);
-  }, [authError]);
+  // 토스트 표시 헬퍼
+  const emitError = (msg: string) => {
+    setErrorMessage(null); // 먼저 초기화
+    requestAnimationFrame(() => {
+      setErrorMessage(msg);
+      setToastTrigger((t) => t + 1);
+    });
+  };
 
   const handleLogin = async () => {
+    const e = email.trim().toLowerCase();
+
+    // 클라이언트 선검증
+    if (!e || !password) {
+      emitError('이메일과 비밀번호를 입력하세요.');
+      return;
+    }
+
     try {
       setErrorMessage(null);
-      await login(email.trim().toLowerCase(), password); // AuthContext가 검증함
+      await login(e, password);
       navigate('/personal');
     } catch {
-      // 컨텍스트에서 에러 메시지 세팅됨(authError), 여기서는 별도 처리 불필요
-      if (!authError) setErrorMessage('로그인에 실패했습니다.');
+      if (authError) {
+        emitError(authError); // Context에서 설정한 에러 메시지 사용
+      }
     }
   };
 
@@ -61,11 +76,9 @@ export default function LoginPage() {
         {/* 로고 + 제목 */}
         <div className="flex flex-col items-center gap-[20px]">
           <div
-            className="
-              bg-white text-black text-[12px] font-bold leading-[150%] tracking-[-0.4px]
-              font-suit flex justify-center items-center 
-              px-[1px] py-[3px] aspect-square
-            "
+            className="bg-white text-black text-[12px] font-bold leading-[150%] tracking-[-0.4px]
+                       font-suit flex justify-center items-center 
+                       px-[1px] py-[3px] aspect-square"
             style={{ width: '30px' }}
           >
             로고
@@ -110,13 +123,13 @@ export default function LoginPage() {
         <div className="relative w-full flex flex-col items-center mt-[16px]">
           {errorMessage && (
             <div className="absolute bottom-[calc(100%+16px)]">
-              <ErrorToast message={errorMessage} />
+              <ErrorToast message={errorMessage} trigger={toastTrigger} />
             </div>
           )}
           <BtnSign onClick={handleLogin}>로그인</BtnSign>
         </div>
 
-        {/* SNS 로그인 (데모) */}
+        {/* SNS 로그인 */}
         <div className="flex flex-row justify-between items-center gap-[12px] w-full">
           <BtnSnsLogin type="google">Google</BtnSnsLogin>
           <BtnSnsLogin type="github">GitHub</BtnSnsLogin>
@@ -127,8 +140,8 @@ export default function LoginPage() {
           <div className="flex items-center gap-[14px]">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                        text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center
-                        cursor-pointer hover:text-white transition"
+                         text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center
+                         cursor-pointer hover:text-white transition"
               onClick={() => navigate('/signup')}
             >
               새 계정 만들기
@@ -140,10 +153,8 @@ export default function LoginPage() {
               </svg>
             </div>
 
-            <div
-              className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                        text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center"
-            >
+            <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
+                            text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center">
               비밀번호 찾기
             </div>
           </div>

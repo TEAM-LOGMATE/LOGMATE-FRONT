@@ -15,6 +15,7 @@ interface BarProps {
   folders?: Folder[];
   onAddFolder?: () => void;
   onRemoveFolder?: () => void;
+  activePage?: 'personal' | 'myinfo' | string; // 현재 활성 페이지
 }
 
 export default function Bar({
@@ -22,6 +23,7 @@ export default function Bar({
   folders,
   onAddFolder,
   onRemoveFolder,
+  activePage,
 }: BarProps) {
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
@@ -102,7 +104,9 @@ export default function Bar({
         isOpen={isOpenG}
         toggleOpen={() => setIsOpenG((p) => !p)}
         onLabelClick={() => navigate('/personal')}
+        labelClassName={activePage === 'personal' ? 'text-[#4FE75E]' : 'text-[#888]'}
       />
+
       <div className={isOpenG ? '' : 'hidden'}>
         {displayedFolders.map((folder) => (
           <SpaceNameG key={folder.id} name={folder.name} />
