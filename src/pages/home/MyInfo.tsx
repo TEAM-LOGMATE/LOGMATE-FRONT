@@ -1,4 +1,3 @@
-// src/pages/myinfo/MyInfoPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Bar from '../../components/navi/bar';
@@ -6,12 +5,12 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
+import { loadFolders, type Folder } from '../../utils/storage'; // ✅ 추가
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
   const { user, login, error: authError } = useAuth();
 
-  // 미인증 가드
   if (!user) return <Navigate to="/login" replace />;
 
   const username = user.username;
@@ -22,12 +21,17 @@ export default function MyInfoPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 컨텍스트 로그인 에러를 토스트로 반영
+  const [folders, setFolders] = useState<Folder[]>([]); // ✅ 폴더 상태 추가
+
+  // 폴더 로드
+  useEffect(() => {
+    setFolders(loadFolders(username));
+  }, [username]);
+
   useEffect(() => {
     if (authError) setErrorMessage(authError);
   }, [authError]);
 
-  // 에러 자동 숨김
   useEffect(() => {
     if (!errorMessage) return;
     const t = setTimeout(() => setErrorMessage(null), 3000);
@@ -43,12 +47,9 @@ export default function MyInfoPage() {
     try {
       setSubmitting(true);
       setErrorMessage(null);
-      // ✅ 현재 이메일 + 입력한 비밀번호로 재로그인 시도 (재인증)
       await login(email.toLowerCase(), pwd);
-      // 성공 시에만 이동
       navigate('/edit-info');
     } catch {
-      // 컨텍스트에서 에러 메시지를 설정하므로 여기선 보조 메시지만
       if (!authError) setErrorMessage('비밀번호가 올바르지 않습니다.');
     } finally {
       setSubmitting(false);
@@ -59,11 +60,12 @@ export default function MyInfoPage() {
 
   return (
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
-      <Bar 
+      <Bar
         username={username}
-        folders={[]} 
-        onAddFolder={() => {}} 
-        onRemoveFolder={() => {}} 
+        folders={folders} // ✅ 저장된 폴더 목록 전달
+        onAddFolder={() => {}}
+        onRemoveFolder={() => {}}
+        activePage="myinfo"
       />
 
       <div className="flex flex-1 justify-center items-center px-10">

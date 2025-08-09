@@ -1,13 +1,14 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function MyPage() {
-  const [selected, setSelected] = useState(false);
+interface MyPageProps {
+  active?: boolean; // 현재 페이지 활성화 여부
+}
+
+export default function MyPage({ active = false }: MyPageProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    setSelected(true);        
-    navigate('/myinfo');       
+    navigate('/myinfo');
   };
 
   return (
@@ -17,7 +18,7 @@ export default function MyPage() {
         w-[220px] h-[56px] border-t border-[#222] px-[12px]
         flex items-center justify-between flex-shrink-0
         cursor-pointer
-        ${selected ? 'text-[#4FE75E] bg-[#222]' : 'text-[#888] hover:bg-[#222]'}
+        ${active ? 'text-[#4FE75E] bg-[#222]' : 'text-[#888] hover:bg-[#222]'}
       `}
     >
       <span
@@ -25,7 +26,7 @@ export default function MyPage() {
           pt-[2px]
           text-center font-suit text-[14px] font-medium
           leading-[150%] tracking-[-0.4px]
-          ${selected ? 'text-[#4FE75E]' : 'hover:text-[#F2F2F2]'}
+          ${active ? 'text-[#4FE75E]' : 'hover:text-[#F2F2F2]'}
           ml-[5px]
         `}
       >

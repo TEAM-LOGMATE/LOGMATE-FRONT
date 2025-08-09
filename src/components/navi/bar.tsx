@@ -95,7 +95,7 @@ export default function Bar({
         </div>
       </div>
 
-      <MyPage />
+      <MyPage active={activePage === 'myinfo'} />
 
       {/* 개인 스페이스 */}
       <AddFolding
@@ -106,6 +106,7 @@ export default function Bar({
         onLabelClick={() => navigate('/personal')}
         labelClassName={activePage === 'personal' ? 'text-[#4FE75E]' : 'text-[#888]'}
       />
+
 
       <div className={isOpenG ? '' : 'hidden'}>
         {displayedFolders.map((folder) => (
