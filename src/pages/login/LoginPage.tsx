@@ -25,6 +25,7 @@ export default function LoginPage() {
     };
   }, []);
 
+  // 에러 토스트 자동 사라짐
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => setErrorMessage(null), 3000);
@@ -57,8 +58,7 @@ export default function LoginPage() {
       className="w-screen h-screen overflow-hidden flex justify-center items-center bg-[#091104]"
     >
       <div className="flex flex-col items-center w-[480px] gap-[55px] flex-shrink-0">
-
-        {/* 로고 + 제목 묶기 */}
+        {/* 로고 + 제목 */}
         <div className="flex flex-col items-center gap-[20px]">
           <div
             className="
@@ -106,7 +106,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* 로그인 버튼 */}
+        {/* 로그인 버튼 + 에러 토스트 */}
         <div className="relative w-full flex flex-col items-center mt-[16px]">
           {errorMessage && (
             <div className="absolute bottom-[calc(100%+16px)]">
@@ -116,7 +116,7 @@ export default function LoginPage() {
           <BtnSign onClick={handleLogin}>로그인</BtnSign>
         </div>
 
-        {/* SNS 로그인 버튼 */}
+        {/* SNS 로그인 (데모) */}
         <div className="flex flex-row justify-between items-center gap-[12px] w-full">
           <BtnSnsLogin type="google">Google</BtnSnsLogin>
           <BtnSnsLogin type="github">GitHub</BtnSnsLogin>
