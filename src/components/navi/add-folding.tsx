@@ -1,3 +1,4 @@
+// AddFolding.tsx
 import { useState } from 'react';
 import BtnAdd from '../btn/btn-add';
 import BtnBigArrow from '../btn/btn-big-arrow';
