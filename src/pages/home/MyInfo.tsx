@@ -60,13 +60,17 @@ export default function MyInfoPage() {
             </div>
           </div>
 
-          {/* 저장 버튼 */}
-          <BtnSign2 
-            onClick={handleUpdate} 
-            isActive={password.trim() !== ''}
-          >
-            내 정보 수정
-          </BtnSign2>
+          {/* 저장 버튼 + 에러 토스트 */}
+          <div className="relative w-full flex flex-col items-center gap-2">
+            {errorMessage && (
+              <div className="absolute -top-[52px]">
+                <ErrorToast message={errorMessage} />
+              </div>
+            )}
+            <BtnSign2 onClick={handleUpdate} isActive={canSubmit}>
+              내 정보 수정
+            </BtnSign2>
+          </div>
         </div>
       </div>
     </div>
