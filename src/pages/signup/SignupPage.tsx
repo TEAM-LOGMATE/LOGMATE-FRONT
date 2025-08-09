@@ -41,15 +41,27 @@ export default function SignupPage() {
     isValidPassword(password) &&
     doPasswordsMatch(password, passwordConfirm);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (!isFormValid) {
       setErrorMessage('모든 정보를 올바르게 입력해 주세요.');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
 
-    console.log('회원가입 시도');
-    // TODO: API 요청 추가
+    try {
+
+      await signup(username.trim(), email.trim().toLowerCase(), password);
+
+      const existing = loadFolders(username);
+      if (!Array.isArray(existing) || existing.length === 0) {
+        saveFolders(username, []);
+      }
+      navigate('/login');
+    } catch (e) {
+      console.error(e);
+      setErrorMessage('문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   return (
@@ -127,8 +139,21 @@ export default function SignupPage() {
                 onDone={setShowPassword}
                 showIcon={true}
               />
-              <span className="min-h-[16px] text-[12px] text-[#888888]">
-                영문, 숫자, 특수문자 포함 8자 이상
+              <span
+                aria-live="polite"
+                className={`min-h-[16px] text-[12px] mt-[4px] ${
+                  password.length === 0
+                    ? 'text-[#888888]'
+                    : !isValidPassword(password)
+                    ? 'text-[#FF6F6F]'
+                    : 'invisible'
+                }`}
+              >
+                {password.length === 0
+                  ? '영문, 숫자, 특수문자 포함 8자 이상 입력해 주세요'
+                  : !isValidPassword(password)
+                  ? '비밀번호는 영문과 숫자, 특수문자를 모두 포함해야 합니다'
+                  : 'placeholder'}
               </span>
             </div>
 
