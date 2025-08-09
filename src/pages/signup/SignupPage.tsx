@@ -12,8 +12,14 @@ import {
 } from '../../utils/validate';
 import { motion } from 'framer-motion';
 
+// 폴더 저장은 그대로 utils 사용
+import { loadFolders, saveFolders } from '../../utils/storage';
+// 사용자 상태는 AuthContext 사용
+import { useAuth } from '../../utils/AuthContext';
+
 export default function SignupPage() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   useEffect(() => {
     const originalStyle = document.body.style.overflow;
@@ -103,7 +109,7 @@ export default function SignupPage() {
               <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
                 {username.length > 0 && !isValidUsername(username)
                   ? '사용자 이름이 유효하지 않습니다.'
-                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
+                  : <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
 
@@ -121,7 +127,7 @@ export default function SignupPage() {
               <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
                 {email.length > 0 && !isValidEmail(email)
                   ? '이메일 형식이 올바르지 않습니다.'
-                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
+                  : <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
 
@@ -171,10 +177,13 @@ export default function SignupPage() {
                 onDone={setShowPasswordConfirm}
                 showIcon={true}
               />
-              <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
+              <span
+                aria-live="polite"
+                className="min-h-[16px] text-[12px] mt-[4px] text-[#FF6F6F]"
+              >
                 {passwordConfirm.length > 0 && !doPasswordsMatch(password, passwordConfirm)
                   ? '비밀번호가 일치하지 않습니다.'
-                  :  <span className="invisible">유효성 검사 메시지 자리</span>}
+                  : <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
           </div>
