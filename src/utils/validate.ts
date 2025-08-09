@@ -1,3 +1,6 @@
+// 폴더 최대 개수 제한
+export const MAX_SPACES = 8;
+
 // 이메일 유효성 검사
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
