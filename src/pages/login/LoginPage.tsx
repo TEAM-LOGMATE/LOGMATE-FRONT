@@ -1,19 +1,22 @@
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect } from 'react';
 import Input54 from '../../components/input/54';
 import BtnSign from '../../components/btn/btn-sign';
 import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion'; 
+import { motion } from 'framer-motion';
+import { useAuth } from '../../utils/AuthContext';
 
 export default function LoginPage() {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const { login, error: authError } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-
+  // 배경 스크롤 잠금
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -29,22 +32,24 @@ export default function LoginPage() {
     }
   }, [errorMessage]);
 
-  const handleLogin = () => {
-    const validEmail = 'admin';
-    const validPassword = 'admin';
+  // 컨텍스트 에러 연동
+  useEffect(() => {
+    if (authError) setErrorMessage(authError);
+  }, [authError]);
 
-    if (email === validEmail && password === validPassword) {
+  const handleLogin = async () => {
+    try {
       setErrorMessage(null);
-      console.log('로그인 성공');
-      localStorage.setItem('username', 'admin');
-      navigate('/personal'); 
-    } else {
-      setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
+      await login(email.trim().toLowerCase(), password); // AuthContext가 검증함
+      navigate('/personal');
+    } catch {
+      // 컨텍스트에서 에러 메시지 세팅됨(authError), 여기서는 별도 처리 불필요
+      if (!authError) setErrorMessage('로그인에 실패했습니다.');
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -30 }}
