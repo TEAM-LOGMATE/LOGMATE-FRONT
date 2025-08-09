@@ -33,3 +33,6 @@ export function loadFolders(username: string): Folder[] {
 export function saveFolders(username: string, folders: Folder[]): void {
   storage.set<Folder[]>(foldersKey(username), folders);
 }
+
+
+//localStorage.clear(); 이거로 로컬 스토리지 초기화 가능
