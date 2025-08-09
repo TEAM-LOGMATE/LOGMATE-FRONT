@@ -1,60 +1,96 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Navigate } from 'react-router-dom';
 import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
 import BtnPoint from '../../components/btn/btn-point';
 import FrmFolder from '../../components/frm/frm-folder';
-
-interface Folder {
-  id: number;
-  name: string;
-}
+import { loadFolders, saveFolders, type Folder } from '../../utils/storage';
+import { useAuth } from '../../utils/AuthContext';
+import { MAX_SPACES } from '../../utils/validate';
 
 export default function P_SpacePage() {
-  const username = localStorage.getItem('username') || 'Guest';
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+
+  const username = user.username;
 
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [pendingFolder, setPendingFolder] = useState<boolean>(false);
+  const [pendingFolder, setPendingFolder] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState('');
+  const pendingCardRef = useRef<HTMLDivElement | null>(null);
+
+  const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
+    setFolders((prev) => {
+      const candidate = updater(prev);
+      if (candidate.length > MAX_SPACES) return prev; 
+      saveFolders(username, candidate);
+      return candidate;
+    });
+  };
+
+  useEffect(() => {
+    setFolders(loadFolders(username));
+    setPendingFolder(false);
+    setPendingDraft('');
+  }, [username]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    const timeout = setTimeout(() => {
-      document.body.style.overflow = '';
-    }, 400);
-    return () => {
-      clearTimeout(timeout);
-      document.body.style.overflow = '';
-    };
+    const t = setTimeout(() => { document.body.style.overflow = ''; }, 400);
+    return () => { clearTimeout(t); document.body.style.overflow = ''; };
   }, []);
 
+  const isValidFolderName = (raw: string) => {
+    const name = (raw ?? '').trim();
+    return !!name && name !== '새 폴더';
+  };
+
+  const handleAddFolder = () => {
+    const effective = folders.length + (pendingFolder ? 1 : 0);
+    if (effective >= MAX_SPACES) return;
+    if (pendingFolder) return;
+    setPendingFolder(true);
+    setPendingDraft('');
+  };
+
   const handleConfirmAdd = (newName: string) => {
-    setFolders((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), name: newName },
-    ]);
+    if (!isValidFolderName(newName)) return;
+    updateFolders((prev) => {
+      if (prev.length >= MAX_SPACES) return prev;
+      const name = newName.trim();
+      return [...prev, { id: Date.now() + Math.random(), name }];
+    });
     setPendingFolder(false);
+    setPendingDraft('');
   };
 
   const handleCancelAdd = () => {
     setPendingFolder(false);
-  };
-
-  const handleAddFolder = () => {
-    if (pendingFolder) return;
-    setPendingFolder(true);
+    setPendingDraft('');
   };
 
   const handleRemoveFolder = () => {
-    setFolders((prev) => prev.slice(0, -1));
+    updateFolders((prev) => prev.slice(0, -1));
   };
 
   const handleRenameFolder = (id: number, newName: string) => {
-    setFolders((prev) =>
-      prev.map((folder) =>
-        folder.id === id ? { ...folder, name: newName } : folder
-      )
-    );
+    const name = (newName ?? '').trim();
+    if (!name) return;
+    updateFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
   };
+
+  useEffect(() => {
+    if (!pendingFolder) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const inside = pendingCardRef.current?.contains(target);
+      const empty = !pendingDraft.trim() || pendingDraft.trim() === '새 폴더';
+      if (!inside && empty) handleCancelAdd();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [pendingFolder, pendingDraft]);
 
   return (
     <motion.div
@@ -113,6 +149,8 @@ export default function P_SpacePage() {
               name="새 폴더"
               onRename={handleConfirmAdd}
               onCancel={handleCancelAdd}
+              onDraftChange={setPendingDraft}
+              containerRef={pendingCardRef}
             />
           )}
         </div>
