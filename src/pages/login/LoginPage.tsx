@@ -57,10 +57,8 @@ export default function LoginPage() {
       setErrorMessage(null);
       await login(e, password);
       navigate('/personal');
-    } catch {
-      if (authError) {
-        emitError(authError); // Context에서 설정한 에러 메시지 사용
-      }
+    } catch (err: any) {
+      emitError(err?.message ?? '');
     }
   };
 

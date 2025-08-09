@@ -42,7 +42,7 @@ function writeUserToStorage(u: User | null) {
   try {
     if (u) {
       localStorage.setItem(LS_KEY, JSON.stringify(u));
-      localStorage.setItem('username', u.username); // 구 코드 호환
+      localStorage.setItem('username', u.username);
     } else {
       localStorage.removeItem(LS_KEY);
       localStorage.removeItem('username');
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const ok = email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD;
       if (!ok) {
         setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-        throw new Error('Invalid credentials');
+        throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
       }
       const u: User = { username: DEMO_USERNAME, email: DEMO_EMAIL };
       setUser(u); writeUserToStorage(u);
