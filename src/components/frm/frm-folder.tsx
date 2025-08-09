@@ -85,11 +85,25 @@ export default function FrmFolder({
                 ref={inputRef}
                 className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] bg-transparent border-none focus:ring-0 focus:outline-none outline-none"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  onDraftChange?.(e.target.value);
+                }}
                 onBlur={handleBlur}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleBlur();
+                  if (e.key === 'Enter') tryConfirm();
+                  if (e.key === 'Escape') {
+                    // ESC는 '새 폴더' 추가 중일 때만 취소
+                    if (onCancel) {
+                      onCancel();
+                      setIsEditing(false);
+                    } else {
+                      setIsEditing(false);
+                    }
+                  }
                 }}
+                placeholder="폴더 이름을 입력하세요"
+                spellCheck={false}
               />
             ) : (
               <span
