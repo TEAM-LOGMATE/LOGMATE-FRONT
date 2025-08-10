@@ -5,9 +5,7 @@ import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
 import SpaceNameS from './spacename-s';
 
-// ✅ storage 유틸
 import { loadFolders, foldersKey, type Folder } from '../../utils/storage';
-// ✅ 전역 제한값 사용
 import { MAX_SPACES } from '../../utils/validate';
 
 interface BarProps {
@@ -31,7 +29,6 @@ export default function Bar({
   const [localFolders, setLocalFolders] = useState<Folder[]>([]);
   const navigate = useNavigate();
 
-  // ✅ 전달 여부만 확인 (빈 배열도 유효)
   const propHasFolders = folders !== undefined;
 
   // props 없을 때만 로컬 로드
