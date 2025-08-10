@@ -123,7 +123,7 @@ export default function P_SpacePage() {
         <div className="relative flex items-start w-fit">
           <h1 className="text-[28px] font-bold text-[#F2F2F2]">개인 스페이스</h1>
           <span className="absolute left-[calc(100%+16px)] top-[7px] text-[16px] text-[#888] whitespace-nowrap">
-            {folders.length + (pendingFolder ? 1 : 0)} / {MAX_SPACES} 폴더
+            {folders.length + (pendingFolder ? 1 : 0)}개 폴더
           </span>
         </div>
 
