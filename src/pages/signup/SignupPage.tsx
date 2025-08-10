@@ -4,17 +4,9 @@ import BtnSign from '../../components/btn/btn-sign';
 import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
-import {
-  isValidEmail,
-  isValidPassword,
-  isValidUsername,
-  doPasswordsMatch,
-} from '../../utils/validate';
+import { isValidEmail, isValidPassword, isValidUsername, doPasswordsMatch,} from '../../utils/validate';
 import { motion } from 'framer-motion';
-
-// 폴더 저장은 그대로 utils 사용
 import { loadFolders, saveFolders } from '../../utils/storage';
-// 사용자 상태는 AuthContext 사용
 import { useAuth } from '../../utils/AuthContext';
 
 export default function SignupPage() {
