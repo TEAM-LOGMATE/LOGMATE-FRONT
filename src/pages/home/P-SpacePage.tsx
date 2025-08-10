@@ -80,6 +80,16 @@ export default function P_SpacePage() {
     updateFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
   };
 
+  const barFolders: Folder[] = pendingFolder
+    ? [
+        ...folders,
+        {
+          id: -1,
+          name: (pendingDraft || '').trim() || '새 폴더',
+        },
+      ]
+    : folders;
+
   useEffect(() => {
     if (!pendingFolder) return;
     const onDown = (e: MouseEvent) => {
@@ -102,7 +112,7 @@ export default function P_SpacePage() {
     >
       <Bar
         username={username}
-        folders={folders}
+        folders={barFolders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
         activePage="personal"

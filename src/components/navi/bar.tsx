@@ -86,10 +86,14 @@ export default function Bar({
           <span className="text-[#D8D8D8] font-geist text-[16px]">{username}</span>
         </div>
         <div className="mb-[4px]">
-          <span className="text-[#6E6E6E] font-suit text-[14px] font-bold hover:text-[#D8D8D8] cursor-pointer transition-colors">
-            로그아웃
-          </span>
-        </div>
+      <span
+        className="text-[#6E6E6E] font-suit text-[14px] font-bold hover:text-[#D8D8D8] cursor-pointer transition-colors"
+        onClick={() => navigate('/')}
+      >
+        로그아웃
+      </span>
+</div>
+
       </div>
 
       <MyPage active={activePage === 'myinfo'} />
@@ -101,8 +105,14 @@ export default function Bar({
         isOpen={isOpenG}
         toggleOpen={() => setIsOpenG((p) => !p)}
         onLabelClick={() => navigate('/personal')}
-        labelClassName={activePage === 'personal' ? 'text-[#4FE75E]' : 'text-[#888]'}
+        active={activePage === 'personal'}
+        labelClassName={
+          activePage === 'personal' ? 'text-[#4FE75E]' : 'text-[#888] hover:text-white'
+        }
       />
+
+
+
 
 
       <div className={isOpenG ? '' : 'hidden'}>

@@ -1,4 +1,3 @@
-// AddFolding.tsx
 import BtnAdd from '../btn/btn-add';
 import BtnBigArrow from '../btn/btn-big-arrow';
 
@@ -9,6 +8,7 @@ type AddFoldingProps = {
   toggleOpen: () => void;
   onLabelClick?: () => void;
   labelClassName?: string;
+  active?: boolean;
 };
 
 export default function AddFolding({
@@ -18,7 +18,15 @@ export default function AddFolding({
   toggleOpen,
   onLabelClick,
   labelClassName,
+  active = false,
 }: AddFoldingProps) {
+  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onLabelClick?.();
+    }
+  };
+
   return (
     <div
       className="flex w-[220px] h-[56px] px-[12px] justify-between items-center
@@ -32,9 +40,11 @@ export default function AddFolding({
           e.stopPropagation();
           onLabelClick?.();
         }}
-        className={`pt-[2px] hover:text-[#F2F2F2] ${labelClassName || 'text-[#888]'}`}
+        onKeyDown={handleLabelKeyDown}
+        className={`pt-[2px] ${active ? '' : 'hover:text-[#F2F2F2]'} ${labelClassName ?? 'text-[#888]'}`}
         role="button"
         tabIndex={0}
+        aria-current={active ? 'page' : undefined}
       >
         {label}
       </span>
@@ -46,6 +56,8 @@ export default function AddFolding({
             e.stopPropagation();
             onAdd?.();
           }}
+          role="button"
+          tabIndex={0}
         >
           <BtnAdd />
         </div>
@@ -56,6 +68,8 @@ export default function AddFolding({
             toggleOpen();
           }}
           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          role="button"
+          tabIndex={0}
         >
           <BtnBigArrow direction="up" />
         </div>
