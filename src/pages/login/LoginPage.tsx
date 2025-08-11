@@ -68,7 +68,7 @@ export default function LoginPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -30 }}
       transition={{ duration: 0.4 }}
-      className="w-screen h-screen overflow-hidden flex justify-center items-center bg-[#091104]"
+      className="w-screen h-screen overflow-hidden flex justify-center items-center bg-[#111]"
     >
       <div className="flex flex-col items-center w-[480px] gap-[55px] flex-shrink-0">
         {/* 로고 + 제목 */}

@@ -68,7 +68,7 @@ export default function SignupPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -30 }}
       transition={{ duration: 0.4 }}
-      className="w-screen h-screen flex justify-center items-center bg-[#091104]"
+      className="w-screen h-screen flex justify-center items-center bg-[#111]"
     >
       <div className="w-[1920px] flex justify-center items-center py-[80px]">
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">
