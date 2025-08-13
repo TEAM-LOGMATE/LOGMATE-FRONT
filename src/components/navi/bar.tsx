@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import AddFolding from './add-folding';
 import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
@@ -13,7 +13,9 @@ interface BarProps {
   folders?: Folder[];
   onAddFolder?: () => void;
   onRemoveFolder?: () => void;
-  activePage?: 'personal' | 'myinfo' | string; // 현재 활성 페이지
+  activePage?: 'personal' | 'myinfo' | string;
+  activeFolderId?: string | number | null;
+  onSelectFolder?: (folderId: string | number) => void;
 }
 
 export default function Bar({
@@ -22,12 +24,15 @@ export default function Bar({
   onAddFolder,
   onRemoveFolder,
   activePage,
+  activeFolderId,
+  onSelectFolder,
 }: BarProps) {
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
   const [isOpenS, setIsOpenS] = useState(true);
   const [localFolders, setLocalFolders] = useState<Folder[]>([]);
   const navigate = useNavigate();
+  const { folderId: routeFolderId } = useParams<{ folderId: string }>();
 
   const propHasFolders = folders !== undefined;
 
@@ -51,15 +56,15 @@ export default function Bar({
 
   const displayedFolders: Folder[] = propHasFolders ? (folders as Folder[]) : localFolders;
 
-  const handleAddSpaceNameG = () => {
-    if (onAddFolder) {
-      if (displayedFolders.length >= MAX_SPACES) return;
-      if (!isOpenG) setIsOpenG(true);
-      onAddFolder();
-      return;
-    }
-    navigate('/personal');
-  };
+ const handleAddSpaceNameG = () => {
+  if (onAddFolder) {
+    if (displayedFolders.length >= MAX_SPACES) return;
+    if (!isOpenG) setIsOpenG(true);
+    onAddFolder(); // 폴더만 추가
+    return;
+  }
+  navigate('/personal');
+};
 
   const handleAddSpaceNameS = () => {
     if (spaceNameSList.length >= MAX_SPACES) return;
@@ -70,6 +75,12 @@ export default function Bar({
 
   const handleCancelSpaceNameS = (id: number) => {
     setSpaceNameSList((prev) => prev.filter((item) => item !== id));
+  };
+
+  // 폴더 클릭 시 즉시 activeFolderId 반영 + 페이지 이동
+  const handleFolderClick = (folderId: number | string) => {
+    if (onSelectFolder) onSelectFolder(folderId);
+    navigate(`/personal/${folderId}`); // 클릭해야만 이동
   };
 
   return (
@@ -86,14 +97,13 @@ export default function Bar({
           <span className="text-[#D8D8D8] font-geist text-[16px]">{username}</span>
         </div>
         <div className="mb-[4px]">
-      <span
-        className="text-[#6E6E6E] font-suit text-[14px] font-bold hover:text-[#D8D8D8] cursor-pointer transition-colors"
-        onClick={() => navigate('/')}
-      >
-        로그아웃
-      </span>
-</div>
-
+          <span
+            className="text-[#6E6E6E] font-suit text-[14px] font-bold hover:text-[#D8D8D8] cursor-pointer transition-colors"
+            onClick={() => navigate('/')}
+          >
+            로그아웃
+          </span>
+        </div>
       </div>
 
       <MyPage active={activePage === 'myinfo'} />
@@ -111,14 +121,20 @@ export default function Bar({
         }
       />
 
-
-
-
-
+      {/* 폴더 목록 */}
       <div className={isOpenG ? '' : 'hidden'}>
-        {displayedFolders.map((folder) => (
-          <SpaceNameG key={folder.id} name={folder.name} />
-        ))}
+        {displayedFolders.map((folder) => {
+          const isActiveFolder =
+            String(folder.id) === String(activeFolderId ?? routeFolderId);
+          return (
+            <SpaceNameG
+              key={folder.id}
+              name={folder.name}
+              isActive={isActiveFolder}
+              onClick={() => handleFolderClick(folder.id)}
+            />
+          );
+        })}
       </div>
 
       {/* 팀 스페이스 */}
