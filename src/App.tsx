@@ -5,6 +5,8 @@ import PSpacePage from './pages/home/P-SpacePage';
 import MyInfoPage from './pages/home/MyInfo';
 import MyInfoEditPage from './pages/home/MyInfoEdit';
 import { AuthProvider, ProtectedRoute } from './utils/AuthContext';
+import TestPage from './test';
+import FolderPage from './pages/home/folderpage'; 
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -43,6 +45,17 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* 폴더 내부 페이지 */}
+      <Route
+        path="/personal/:folderId"
+        element={
+          <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
+            <FolderPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/myinfo"
         element={
@@ -59,6 +72,9 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* 컴포넌트 테스트 페이지 */}
+      <Route path="/test" element={<TestPage />} />
 
       {/* 그 외 경로는 로그인 페이지로 */}
       <Route path="*" element={<LoginPage />} />
