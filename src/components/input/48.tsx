@@ -21,14 +21,15 @@ export default function Input48({ value, onChange, placeholder }: Input48Props) 
     <div
       className="
         flex items-center
-        w-[417px] h-[48px]
-        px-[20px] pr-[267px] pt-[13px] pb-[11px]
+        h-[48px]
+        px-[20px]   /* 좌우 20px 패딩으로 변경 */
         flex-shrink-0
         rounded-[8px]
         border border-[#222222]
         bg-[#171717]
         font-[SUIT] text-[16px] font-medium
         leading-[150%] tracking-[-0.4px]
+        w-full
       "
       style={{ color: textColor }}
     >
