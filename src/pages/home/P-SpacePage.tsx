@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
 import BtnPoint from '../../components/btn/btn-point';
@@ -14,6 +14,7 @@ export default function P_SpacePage() {
   if (!user) return <Navigate to="/login" replace />;
 
   const username = user.username;
+  const navigate = useNavigate();
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [pendingFolder, setPendingFolder] = useState(false);
@@ -23,7 +24,7 @@ export default function P_SpacePage() {
   const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
     setFolders((prev) => {
       const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev; 
+      if (candidate.length > MAX_SPACES) return prev;
       saveFolders(username, candidate);
       return candidate;
     });
@@ -37,8 +38,13 @@ export default function P_SpacePage() {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    const t = setTimeout(() => { document.body.style.overflow = ''; }, 400);
-    return () => { clearTimeout(t); document.body.style.overflow = ''; };
+    const t = setTimeout(() => {
+      document.body.style.overflow = '';
+    }, 400);
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = '';
+    };
   }, []);
 
   const isValidFolderName = (raw: string) => {
@@ -54,15 +60,21 @@ export default function P_SpacePage() {
     setPendingDraft('');
   };
 
+  const handleDeleteFolder = (id: number) => {
+    updateFolders((prev) => prev.filter((f) => f.id !== id));
+  };
+
   const handleConfirmAdd = (newName: string) => {
     if (!isValidFolderName(newName)) return;
+    let newId = Date.now() + Math.random();
     updateFolders((prev) => {
       if (prev.length >= MAX_SPACES) return prev;
       const name = newName.trim();
-      return [...prev, { id: Date.now() + Math.random(), name }];
+      return [...prev, { id: newId, name }];
     });
     setPendingFolder(false);
     setPendingDraft('');
+    
   };
 
   const handleCancelAdd = () => {
@@ -75,9 +87,10 @@ export default function P_SpacePage() {
   };
 
   const handleRenameFolder = (id: number, newName: string) => {
-    const name = (newName ?? '').trim();
-    if (!name) return;
-    updateFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+    if (!isValidFolderName(newName)) return;
+    updateFolders((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, name: newName.trim() } : f))
+    );
   };
 
   const barFolders: Folder[] = pendingFolder
@@ -95,7 +108,8 @@ export default function P_SpacePage() {
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node;
       const inside = pendingCardRef.current?.contains(target);
-      const empty = !pendingDraft.trim() || pendingDraft.trim() === '새 폴더';
+      const empty =
+        !pendingDraft.trim() || pendingDraft.trim() === '새 폴더';
       if (!inside && empty) handleCancelAdd();
     };
     document.addEventListener('mousedown', onDown);
@@ -116,8 +130,8 @@ export default function P_SpacePage() {
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
         activePage="personal"
+        activeFolderId={null}
       />
-
 
       <div className="flex flex-col flex-1 px-10 pt-10">
         <div className="relative flex items-start w-fit">
@@ -137,7 +151,9 @@ export default function P_SpacePage() {
             <FrmFolder
               key={folder.id}
               name={folder.name}
+              onClickName={() => navigate(`/personal/${folder.id}`)}
               onRename={(newName) => handleRenameFolder(folder.id, newName)}
+              onDelete={() => handleDeleteFolder(folder.id)}
             />
           ))}
 
