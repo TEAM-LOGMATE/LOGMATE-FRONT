@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import BtnSmallArrow from './btn-small-arrow';
+import BtnMoreText from './btn-more-text';
 
 type BtnRoleProps = {
   role: 'teamAdmin' | 'member' | 'viewer'; // 역할 타입 3종
-  onArrowClick?: () => void;
+  onRoleChange?: (role: 'teamAdmin' | 'member' | 'viewer') => void;
 };
 
-export default function BtnRole({ role, onArrowClick }: BtnRoleProps) {
+export default function BtnRole({ role, onRoleChange }: BtnRoleProps) {
+  const [open, setOpen] = useState(false);
+
   // 역할별 label
   const labelMap: Record<BtnRoleProps['role'], string> = {
     teamAdmin: '팀 관리자',
@@ -16,34 +19,53 @@ export default function BtnRole({ role, onArrowClick }: BtnRoleProps) {
 
   // 역할별 색상
   const colorMap: Record<BtnRoleProps['role'], string> = {
-    teamAdmin: 'text-[var(--Alert-Yellow,#D4B66F)]', // 약간 노란색
-    member: 'text-[var(--Gray-300,#AEAEAE)]',        // 회색
-    viewer: 'text-[var(--Gray-300,#AEAEAE)]',        // 회색
+    teamAdmin: 'text-[var(--Alert-Yellow,#D4B66F)]',
+    member: 'text-[var(--Gray-300,#AEAEAE)]',
+    viewer: 'text-[var(--Gray-300,#AEAEAE)]',
   };
 
   const label = labelMap[role];
   const textColor = colorMap[role];
 
+  const handleSelect = (label: string) => {
+    const newRole =
+      Object.keys(labelMap).find(
+        (key) => labelMap[key as BtnRoleProps['role']] === label
+      ) as BtnRoleProps['role'];
+    onRoleChange?.(newRole);
+    setOpen(false);
+  };
+
   return (
-    <div className="inline-flex h-[48px] pl-[8px] items-center flex-shrink-0">
+    <div className="relative inline-flex h-[48px] pl-[8px] items-center flex-shrink-0">
       {/* 텍스트 */}
       <span
         className={`
           ${textColor} text-center
           font-suit text-[14px] font-bold leading-[150%] tracking-[-0.4px]
-          cursor-default
         `}
       >
         {label}
       </span>
 
-      {/* 화살표: 클릭 가능 */}
+      {/* 화살표 */}
       <div
         className="ml-[4px] w-[32px] h-[32px] flex items-center justify-center cursor-pointer"
-        onClick={onArrowClick}
+        onClick={() => setOpen((prev) => !prev)}
       >
-        <BtnSmallArrow direction="down" />
+        <BtnSmallArrow direction={open ? 'up' : 'down'} />
       </div>
+
+      {/* 드롭다운 */}
+      {open && (
+        <div className="absolute top-[48px] left-0 z-10">
+          <BtnMoreText
+            options={['팀 관리자', '팀원', '뷰어']}
+            selected={label}
+            onSelect={handleSelect}
+          />
+        </div>
+      )}
     </div>
   );
 }
