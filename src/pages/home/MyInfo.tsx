@@ -5,7 +5,7 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, type Folder } from '../../utils/storage'; // ✅ 추가
+import { loadFolders, type Folder } from '../../utils/storage';
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export default function MyInfoPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [folders, setFolders] = useState<Folder[]>([]); // ✅ 폴더 상태 추가
+  const [folders, setFolders] = useState<Folder[]>([]);
 
   // 폴더 로드
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function MyInfoPage() {
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        folders={folders} // ✅ 저장된 폴더 목록 전달
+        folders={folders} 
         onAddFolder={() => {}}
         onRemoveFolder={() => {}}
         activePage="myinfo"
