@@ -13,12 +13,10 @@ type ErrorToastProps = {
 export default function ErrorToast({ message, trigger, autoHideMs, onClose }: ErrorToastProps) {
   const [animKey, setAnimKey] = useState(0);
 
-  // message나 trigger가 바뀌면 애니메이션 재시작
   useEffect(() => {
     setAnimKey((k) => k + 1);
   }, [message, trigger]);
 
-  // autoHideMs 옵션이 있으면 자동 닫기
   useEffect(() => {
     if (!autoHideMs) return;
     const t = setTimeout(() => onClose?.(), autoHideMs);
