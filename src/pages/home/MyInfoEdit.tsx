@@ -12,10 +12,8 @@ export default function MyInfoEditPage() {
   const navigate = useNavigate();
   const { user, setUserUnsafe } = useAuth();
 
-  // 미인증 가드: 로그인 필요
   if (!user) return <Navigate to="/login" replace />;
 
-  // 로그인 사용자 정보만 사용
   const username = user.username;
   const currentEmail = user.email;
 
