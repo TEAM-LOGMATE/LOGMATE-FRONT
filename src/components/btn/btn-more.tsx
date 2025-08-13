@@ -1,6 +1,13 @@
-export default function BtnMore() {
+import React from 'react';
+
+type BtnMoreProps = {
+  onClick?: () => void;
+};
+
+export default function BtnMore({ onClick }: BtnMoreProps) {
   return (
     <button
+      onClick={onClick}
       className="
         group
         flex w-[31px] h-[24px] p-[14px_8px] justify-center items-center gap-[3px] flex-shrink-0
