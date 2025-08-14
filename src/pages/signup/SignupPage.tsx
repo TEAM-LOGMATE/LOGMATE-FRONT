@@ -4,8 +4,14 @@ import BtnSign from '../../components/btn/btn-sign';
 import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
-import { isValidEmail, isValidPassword, isValidUsername, doPasswordsMatch,} from '../../utils/validate';
+import {
+  isValidEmail,
+  isValidPassword,
+  isValidUsername,
+  doPasswordsMatch,
+} from '../../utils/validate';
 import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { loadFolders, saveFolders } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 
@@ -47,7 +53,6 @@ export default function SignupPage() {
     }
 
     try {
-
       await signup(username.trim(), email.trim().toLowerCase(), password);
 
       const existing = loadFolders(username);
@@ -62,13 +67,23 @@ export default function SignupPage() {
     }
   };
 
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+    },
+    exit: { opacity: 0, y: -30, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -30 }}
-      transition={{ duration: 0.4 }}
-      className="w-screen h-screen flex justify-center items-center bg-[#091104]"
+    <motion.div
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="w-screen h-screen flex justify-center items-center bg-[#111]"
     >
       <div className="w-[1920px] flex justify-center items-center py-[80px]">
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">

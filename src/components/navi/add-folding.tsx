@@ -7,8 +7,8 @@ type AddFoldingProps = {
   isOpen: boolean;
   toggleOpen: () => void;
   onLabelClick?: () => void;
-  labelClassName?: string;
-  active?: boolean;
+  labelClassName?: string; // Bar.tsx에서 직접 스타일 줄 때 사용
+  active?: boolean;        // true면 활성화 색상 적용
 };
 
 export default function AddFolding({
@@ -41,7 +41,13 @@ export default function AddFolding({
           onLabelClick?.();
         }}
         onKeyDown={handleLabelKeyDown}
-        className={`pt-[2px] ${active ? '' : 'hover:text-[#F2F2F2]'} ${labelClassName ?? 'text-[#888]'}`}
+        className={`pt-[2px] ${
+          labelClassName
+            ? labelClassName
+            : active
+              ? 'text-[#4FE75E]'
+              : 'text-[#888] hover:text-[#F2F2F2]'
+        }`}
         role="button"
         tabIndex={0}
         aria-current={active ? 'page' : undefined}

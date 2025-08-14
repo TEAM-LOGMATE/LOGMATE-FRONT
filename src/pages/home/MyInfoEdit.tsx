@@ -1,6 +1,7 @@
 // src/pages/myinfo/MyInfoEditPage.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
@@ -12,10 +13,8 @@ export default function MyInfoEditPage() {
   const navigate = useNavigate();
   const { user, setUserUnsafe } = useAuth();
 
-  // 미인증 가드: 로그인 필요
   if (!user) return <Navigate to="/login" replace />;
 
-  // 로그인 사용자 정보만 사용
   const username = user.username;
   const currentEmail = user.email;
 
@@ -33,7 +32,6 @@ export default function MyInfoEditPage() {
     isValidPassword(newPassword) &&
     doPasswordsMatch(newPassword, confirmPassword);
 
-  // 이메일 중복확인: 현재 이메일과의 비교만 (추후 API로 교체)
   const handleCheckDuplicate = () => {
     const trimmedEmail = newEmail.trim().toLowerCase();
     if (!isValidEmail(trimmedEmail)) {
@@ -44,7 +42,6 @@ export default function MyInfoEditPage() {
     else setEmailCheckResult('valid');
   };
 
-  // 입력 비우면 상태 초기화
   useEffect(() => {
     if (newEmail === '') setEmailCheckResult('idle');
   }, [newEmail]);
@@ -61,13 +58,11 @@ export default function MyInfoEditPage() {
       return;
     }
 
-    // 로컬 컨텍스트 갱신
     setUserUnsafe?.({
       username,
       email: newEmail.trim().toLowerCase(),
     });
 
-    // TODO(api): /me/update 등으로 이메일/비밀번호 변경 요청
     navigate('/myinfo');
   };
 
@@ -77,8 +72,16 @@ export default function MyInfoEditPage() {
 
   return (
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
+      {/* Bar는 고정 */}
       <Bar username={username} />
-      <div className="flex flex-1 justify-center items-center px-10">
+
+      {/* 메인 컨텐츠만 애니메이션 */}
+      <motion.div
+        className="flex flex-1 justify-center items-center px-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
         <div className="w-full max-w-[480px] flex flex-col items-center gap-[48px]">
           <h1 className="text-[#F2F2F2] text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
             내 정보 수정
@@ -207,7 +210,7 @@ export default function MyInfoEditPage() {
             </BtnSign2>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -22,8 +22,14 @@ export const storage = {
   },
 };
 
-export type Folder = { id: number; name: string };
+export type Folder = {
+  id: number;
+  name: string;
+  createdAt?: string;   // 폴더 생성 시 기록
+  modifiedAt?: string;  // 폴더 수정 시 기록
+};
 
+/* ---------- 개인 스페이스 ---------- */
 export const foldersKey = (username: string) => `folders:${username}`;
 
 export function loadFolders(username: string): Folder[] {
@@ -34,5 +40,15 @@ export function saveFolders(username: string, folders: Folder[]): void {
   storage.set<Folder[]>(foldersKey(username), folders);
 }
 
+/* ---------- 팀 스페이스 ---------- */
+export const teamFoldersKey = (username: string) => `teamFolders:${username}`;
 
-//localStorage.clear(); 이거로 로컬 스토리지 초기화 가능
+export function loadTeamFolders(username: string): Folder[] {
+  return storage.get<Folder[]>(teamFoldersKey(username), []);
+}
+
+export function saveTeamFolders(username: string, folders: Folder[]): void {
+  storage.set<Folder[]>(teamFoldersKey(username), folders);
+}
+
+// localStorage.clear(); 로 로컬 스토리지 전체 초기화 가능

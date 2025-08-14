@@ -72,6 +72,19 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+@font-face {
+  font-family: 'SUIT';
+  src: url('/fonts/SUIT-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
 
 @layer base {
   html, body, #root {

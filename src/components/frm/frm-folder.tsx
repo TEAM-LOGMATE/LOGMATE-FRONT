@@ -1,124 +1,218 @@
 import { useState, useEffect, useRef } from 'react';
 import BtnMore from '../btn/btn-more';
+import BtnMoreText from '../btn/btn-more-text';
 
 interface FrmFolderProps {
   name: string;
-  onRename: (newName: string) => void;
-  onCancel?: () => void;
-  onDraftChange?: (value: string) => void;
+  boards?: any[]; // 보드 데이터 배열 (없으면 초기 1개)
+
+  // 공통
+  spaceType?: 'personal' | 'team';
+  onClickName?: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
+  onDraftChange?: (value: string) => void;
+  onCancel?: () => void;
+
+  // 개인 스페이스 전용
+  onRename?: (newName: string) => void;
+  onDelete?: () => void;
+
+  // 팀 스페이스 전용
+  onOpenTeamSettings?: () => void;
+  onLeaveTeam?: () => void;
 }
 
 export default function FrmFolder({
   name,
+  boards = [],
+  spaceType = 'personal',
   onRename,
+  onDelete,
   onCancel,
   onDraftChange,
   containerRef,
+  onClickName,
+  onOpenTeamSettings,
+  onLeaveTeam,
 }: FrmFolderProps) {
-  const [isEditing, setIsEditing] = useState(name === '새 폴더');
+  const [isEditing, setIsEditing] = useState(name === '새 폴더' || name === '새 팀');
   const [inputValue, setInputValue] = useState(name);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [modifiedAt, setModifiedAt] = useState<Date>(new Date());
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // 부모가 이름을 바꾸면 입력값도 동기화
+  const mode: 'personal' | 'team' = spaceType === 'team' ? 'team' : 'personal';
+
   useEffect(() => {
     setInputValue(name);
   }, [name]);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isEditing && inputRef.current) inputRef.current.focus();
   }, [isEditing]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!isEditing) return;
+      const target = e.target as Node;
+
+      // 메뉴 클릭은 무시
+      if (menuRef.current?.contains(target)) return;
+      // 인풋 클릭은 무시
+      if (inputRef.current?.contains(target)) return;
+
+      const trimmed = inputValue.trim();
+      if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
+        onCancel?.();
+        setIsEditing(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isEditing, inputValue, onCancel]);
+
+  useEffect(() => {
+    function handleClickOutsideMenu(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) document.addEventListener('mousedown', handleClickOutsideMenu);
+    return () => document.removeEventListener('mousedown', handleClickOutsideMenu);
+  }, [isMenuOpen]);
+
+  const validateName = (value: string) => {
+    if (value.trim().length < 2 || value.trim().length > 20) {
+      setErrorMessage('*2자~20자 내로 입력해주세요.');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
 
   const tryConfirm = () => {
     const trimmed = inputValue.trim();
-    // 빈 값이면 취소
-    if (trimmed === '') {
+    if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
       onCancel?.();
       setIsEditing(false);
       return;
     }
-    // '새 폴더'는 유효하지 않으므로 편집 유지 (부모도 동일 정책)
-    if (trimmed === '새 폴더') {
-      return; // 편집 유지
-    }
-    // 정상 확정
-    onRename(trimmed);
+    if (!validateName(trimmed)) return;
+    onRename?.(trimmed);
+    setModifiedAt(new Date());
     setIsEditing(false);
   };
 
   const handleBlur = () => {
-    // blur에서도 동일 정책
     const trimmed = inputValue.trim();
-    if (trimmed === '') {
+    if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
       onCancel?.();
       setIsEditing(false);
       return;
     }
-    if (trimmed === '새 폴더') {
-      return; // 편집 유지
-    }
-    onRename(trimmed);
+    if (!validateName(trimmed)) return;
+    onRename?.(trimmed);
+    setModifiedAt(new Date());
     setIsEditing(false);
   };
+
+  const formatDate = (date: Date) => {
+    if (isNaN(date.getTime())) return '----.--.--';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${d}`;
+  };
+
+  const boardsToShow = boards.length > 0 ? boards : [null];
 
   return (
     <div
       ref={containerRef}
-      className="w-[340px] h-[300px] flex flex-col items-start gap-[12px] font-suit text-white"
+      className="w-[340px] h-[300px] flex flex-col items-start gap-[12px] font-suit text-white relative"
     >
-      {/* 썸네일 + 전체 배경 박스 */}
+      {/* 썸네일 */}
       <div className="flex-1 w-full grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
+        {boardsToShow.map((_, idx) => (
+          <div key={idx} className="flex-1 rounded-[4px] bg-[#171717]" />
+        ))}
       </div>
 
-      {/* 텍스트 영역 */}
+      {/* 폴더 정보 */}
       <div className="w-full bg-[#0F0F0F] px-[12px] pt-[8px] pb-[16px] rounded-b-[12px]">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start relative">
           <div className="flex flex-col items-start gap-[4px]">
             {isEditing ? (
-              <input
-                ref={inputRef}
-                className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] bg-transparent border-none focus:ring-0 focus:outline-none outline-none"
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  onDraftChange?.(e.target.value);
-                }}
-                onBlur={handleBlur}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') tryConfirm();
-                  if (e.key === 'Escape') {
-                    // ESC는 '새 폴더' 추가 중일 때만 취소
-                    if (onCancel) {
-                      onCancel();
-                      setIsEditing(false);
-                    } else {
+              <>
+                <input
+                  ref={inputRef}
+                  className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] bg-transparent border-none outline-none"
+                  value={inputValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setInputValue(value);
+                    onDraftChange?.(value);
+                    validateName(value);
+                  }}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') tryConfirm();
+                    if (e.key === 'Escape') {
+                      onCancel?.();
                       setIsEditing(false);
                     }
-                  }
-                }}
-                placeholder="폴더 이름을 입력하세요"
-                spellCheck={false}
-              />
+                  }}
+                  placeholder={mode === 'team' ? '팀 이름을 입력하세요' : '폴더 이름을 입력하세요'}
+                  spellCheck={false}
+                />
+                {errorMessage && (
+                  <span className="text-[14px] leading-[21px] text-red-500">{errorMessage}</span>
+                )}
+              </>
             ) : (
               <span
                 className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] cursor-pointer"
-                onClick={() => setIsEditing(true)}
+                onClick={onClickName}
               >
                 {name}
               </span>
             )}
             <span className="text-[14px] leading-[21px] text-[#AEAEAE]">
               <span className="font-[Geist] font-light">Edited </span>
-              <span className="font-['Geist_Mono'] font-light">0000.00.00</span>
+              <span className="font-['Geist_Mono'] font-light">{formatDate(modifiedAt)}</span>
             </span>
           </div>
-          <BtnMore />
+
+          {/* 더보기 버튼 + 메뉴 */}
+          <div className="relative">
+            <BtnMore onClick={() => setIsMenuOpen((prev) => !prev)} />
+            {isMenuOpen && (
+              <div ref={menuRef} className="absolute top-full right-0 mt-1 z-10">
+                <BtnMoreText
+                  options={
+                    mode === 'personal'
+                      ? ['폴더 이름 바꾸기', '폴더 삭제']
+                      : ['팀설정 변경', '팀 나가기']
+                  }
+                  selected=""
+                  onSelect={(option) => {
+                    setIsMenuOpen(false);
+                    if (mode === 'personal') {
+                      if (option === '폴더 이름 바꾸기') setIsEditing(true);
+                      if (option === '폴더 삭제') onDelete?.();
+                    } else {
+                      if (option === '팀설정 변경') onOpenTeamSettings?.();
+                      if (option === '팀 나가기') onLeaveTeam?.();
+                    }
+                  }}
+                  onClose={() => setIsMenuOpen(false)}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

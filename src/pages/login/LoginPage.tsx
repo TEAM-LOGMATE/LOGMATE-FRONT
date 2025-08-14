@@ -9,12 +9,11 @@ import { useAuth } from '../../utils/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, error: authError } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toastTrigger, setToastTrigger] = useState(0);
 
@@ -37,7 +36,7 @@ export default function LoginPage() {
 
   // 토스트 표시 헬퍼
   const emitError = (msg: string) => {
-    setErrorMessage(null); // 먼저 초기화
+    setErrorMessage(null);
     requestAnimationFrame(() => {
       setErrorMessage(msg);
       setToastTrigger((t) => t + 1);
@@ -46,13 +45,10 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     const e = email.trim().toLowerCase();
-
-    // 클라이언트 선검증
     if (!e || !password) {
       emitError('이메일과 비밀번호를 입력하세요.');
       return;
     }
-
     try {
       setErrorMessage(null);
       await login(e, password);
@@ -62,17 +58,37 @@ export default function LoginPage() {
     }
   };
 
+  // Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: ['easeOut'] as any }
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -30 }}
-      transition={{ duration: 0.4 }}
-      className="w-screen h-screen overflow-hidden flex justify-center items-center bg-[#091104]"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="w-screen h-screen overflow-hidden flex justify-center items-center bg-[#111]"
     >
-      <div className="flex flex-col items-center w-[480px] gap-[55px] flex-shrink-0">
+      <motion.div
+        variants={containerVariants}
+        className="flex flex-col items-center w-[480px] gap-[55px] flex-shrink-0"
+      >
         {/* 로고 + 제목 */}
-        <div className="flex flex-col items-center gap-[20px]">
+        <motion.div variants={itemVariants} className="flex flex-col items-center gap-[20px]">
           <div
             className="bg-white text-black text-[12px] font-bold leading-[150%] tracking-[-0.4px]
                        font-suit flex justify-center items-center 
@@ -81,14 +97,13 @@ export default function LoginPage() {
           >
             로고
           </div>
-
           <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
             기존 계정으로 로그인
           </h1>
-        </div>
+        </motion.div>
 
         {/* 이메일 */}
-        <div className="flex flex-col items-start gap-[12px] w-full">
+        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
           <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
             이메일 <span className="text-[#FF6F6F]">*</span>
           </label>
@@ -99,10 +114,10 @@ export default function LoginPage() {
             placeholder="이메일을 입력하세요"
             showIcon={false}
           />
-        </div>
+        </motion.div>
 
         {/* 비밀번호 */}
-        <div className="flex flex-col items-start gap-[12px] w-full">
+        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
           <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
             비밀번호 <span className="text-[#FF6F6F]">*</span>
           </label>
@@ -115,26 +130,28 @@ export default function LoginPage() {
             onDone={setShowPassword}
             showIcon={true}
           />
-        </div>
+        </motion.div>
 
         {/* 로그인 버튼 + 에러 토스트 */}
-        <div className="relative w-full flex flex-col items-center mt-[16px]">
+        <motion.div variants={itemVariants} className="relative w-full flex flex-col items-center mt-[16px]">
           {errorMessage && (
             <div className="absolute bottom-[calc(100%+16px)]">
               <ErrorToast message={errorMessage} trigger={toastTrigger} />
             </div>
           )}
-          <BtnSign onClick={handleLogin}>로그인</BtnSign>
-        </div>
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+            <BtnSign onClick={handleLogin}>로그인</BtnSign>
+          </motion.div>
+        </motion.div>
 
         {/* SNS 로그인 */}
-        <div className="flex flex-row justify-between items-center gap-[12px] w-full">
+        <motion.div variants={itemVariants} className="flex flex-row justify-between items-center gap-[12px] w-full">
           <BtnSnsLogin type="google">Google</BtnSnsLogin>
           <BtnSnsLogin type="github">GitHub</BtnSnsLogin>
-        </div>
+        </motion.div>
 
         {/* 하단 링크 */}
-        <div className="flex flex-col items-center gap-[60px] w-[480px]">
+        <motion.div variants={itemVariants} className="flex flex-col items-center gap-[60px] w-[480px]">
           <div className="flex items-center gap-[14px]">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
@@ -144,20 +161,18 @@ export default function LoginPage() {
             >
               새 계정 만들기
             </div>
-
             <div className="flex items-center h-[16px]">
               <svg xmlns="http://www.w3.org/2000/svg" width="2" height="17" viewBox="0 0 2 17" fill="none">
                 <path d="M1 0.5L1 16.5" stroke="#888888" />
               </svg>
             </div>
-
             <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
                             text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center">
               비밀번호 찾기
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 }

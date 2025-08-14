@@ -21,7 +21,7 @@ export default function Input54({
   onDone,
   showIcon = false, 
 }: Input54Props) {
-  const textColor = done ? '#F2F2F2' : '#888888';
+  const textColor = done ? 'text-[#F2F2F2]' : 'text-[#888888]';
   const iconColor = done ? '#F2F2F2' : '#535353';
 
   const handleMouseDown = () => onDone?.(true);
@@ -30,7 +30,7 @@ export default function Input54({
   return (
     <div
       className="
-        flex justify-between items-center
+        flex items-center justify-between
         w-[480px] h-[54px] px-[16px] py-[15px]
         rounded-[12px] border border-[#222222]
         bg-[#171717]
@@ -42,18 +42,16 @@ export default function Input54({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="bg-transparent outline-none placeholder-[#888888] flex-1"
-        style={{ color: textColor }}
+        className={`flex-1 min-w-0 bg-transparent outline-none placeholder-[#888888] ${textColor}`}
       />
 
-      {/* 이 부분이 조건부 렌더링 */}
       {showIcon && (
         <button
           type="button"
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
-          className="w-[24px] h-[24px] flex items-center justify-center bg-transparent"
+          className="w-[24px] h-[24px] flex-shrink-0 flex items-center justify-center bg-transparent"
         >
           {done ? <IconSign fill={iconColor} /> : <IconBlind fill={iconColor} />}
         </button>

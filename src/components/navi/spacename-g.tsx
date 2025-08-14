@@ -2,37 +2,52 @@ import { useState, useEffect } from 'react';
 
 interface SpaceNameGProps {
   name: string;
-  onCancel?: () => void;
+  isActive: boolean; // 외부에서 활성 상태 받기
+  onClick: () => void; // 클릭 시 페이지 이동
+  onCancel?: () => void; // 폴더 생성 취소
+  onRename?: (newName: string) => void; // 이름 변경 시 호출
 }
 
-export default function SpaceNameG({ name, onCancel }: SpaceNameGProps) {
-  const [pressed, setPressed] = useState(false);
+export default function SpaceNameG({
+  name,
+  isActive,
+  onClick,
+  onCancel,
+  onRename,
+}: SpaceNameGProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(name);
 
+  // name prop이 바뀌면 로컬 state도 반영
   useEffect(() => {
-    // name prop이 바뀔 때 내부 inputValue도 갱신
     setInputValue(name);
   }, [name]);
 
-  const handleBlur = () => {
-    if (inputValue.trim() === '') {
+  const finishEditing = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed === '') {
       onCancel?.();
     } else {
+      if (trimmed !== name) {
+        onRename?.(trimmed);
+      }
       setIsEditing(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleBlur();
+      finishEditing();
+    } else if (e.key === 'Escape') {
+      setInputValue(name);
+      setIsEditing(false);
     }
   };
 
   return (
     <div
       onClick={() => {
-        if (!isEditing) setPressed(!pressed);
+        if (!isEditing) onClick();
       }}
       className={`
         flex items-center flex-shrink-0 cursor-pointer
@@ -40,7 +55,7 @@ export default function SpaceNameG({ name, onCancel }: SpaceNameGProps) {
         px-[16px]
         text-[14px] font-normal leading-[145%] font-geist
         transition-colors
-        ${pressed ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#111]'}
+        ${isActive ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#353535]'}
       `}
     >
       {isEditing ? (
@@ -49,21 +64,17 @@ export default function SpaceNameG({ name, onCancel }: SpaceNameGProps) {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onBlur={handleBlur}
+          onBlur={finishEditing}
           onKeyDown={handleKeyDown}
           maxLength={24}
-          className="
-            w-full bg-transparent border-none outline-none
-            text-inherit font-inherit
-            placeholder-[#777]
-            truncate
-          "
+          className="w-full bg-transparent border-none outline-none text-inherit font-inherit placeholder-[#777] truncate"
           placeholder="새 폴더"
         />
       ) : (
         <span
           className="truncate w-full whitespace-nowrap overflow-hidden"
-          onDoubleClick={() => setIsEditing(true)} // 더블 클릭 시 이름 수정 가능
+          // 더블클릭 시 이름 변경 진입을 막음
+          onDoubleClick={() => {}}
         >
           {inputValue}
         </span>

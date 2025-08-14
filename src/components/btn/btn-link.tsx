@@ -8,14 +8,14 @@ interface BtnLinkProps {
 export default function BtnLink({ onClick, children }: BtnLinkProps) {
   return (
     <button
-      onClick={onClick}
-      className="
-        inline-flex h-8 px-3 py-[5px] pl-2 items-center flex-shrink-0
-        rounded-lg border border-[#222] bg-[#171717] text-[#5CB3E3]
-        font-light text-sm leading-[150%] font-sans
-        hover:bg-[#222]
-      "
-    >
+    onClick={onClick}
+    className="
+      inline-flex h-8 px-3 py-[5px] pl-2 items-center flex-shrink-0
+      rounded-lg bg-[#171717] text-[#D8D8D8]
+      font-light text-sm leading-[150%] font-sans
+      hover:bg-[#222] hover:text-[#5CB3E3]
+    "
+  >
       <span
         className="
           flex w-6 h-6 p-[4px] justify-center items-center mr-2
@@ -38,7 +38,7 @@ export default function BtnLink({ onClick, children }: BtnLinkProps) {
           />
         </svg>
       </span>
-      {children}
+      <span className="relative top-[-2px]">{children}</span>
     </button>
   );
 }
