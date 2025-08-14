@@ -4,6 +4,7 @@ import BtnMoreText from '../btn/btn-more-text';
 
 interface FrmFolderProps {
   name: string;
+  boards?: any[]; // 보드 데이터 배열 (없으면 초기 1개)
   onRename?: (newName: string) => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -14,6 +15,7 @@ interface FrmFolderProps {
 
 export default function FrmFolder({
   name,
+  boards = [],
   onRename,
   onDelete,
   onCancel,
@@ -25,7 +27,7 @@ export default function FrmFolder({
   const [inputValue, setInputValue] = useState(name);
   const [errorMessage, setErrorMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [modifiedAt, setModifiedAt] = useState<Date>(new Date()); // ⬅ 내부에서 날짜 관리
+  const [modifiedAt, setModifiedAt] = useState<Date>(new Date());
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +55,6 @@ export default function FrmFolder({
     };
   }, [isMenuOpen]);
 
-  // 유효성 검사 함수
   const validateName = (value: string) => {
     if (value.trim().length < 2 || value.trim().length > 20) {
       setErrorMessage('*2자~20자 내로 입력해주세요.');
@@ -73,7 +74,7 @@ export default function FrmFolder({
     if (trimmed === '새 폴더') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
-    setModifiedAt(new Date()); // ⬅ 수정 시 날짜 갱신
+    setModifiedAt(new Date());
     setIsEditing(false);
   };
 
@@ -87,7 +88,7 @@ export default function FrmFolder({
     if (trimmed === '새 폴더') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
-    setModifiedAt(new Date()); // ⬅ 수정 시 날짜 갱신
+    setModifiedAt(new Date());
     setIsEditing(false);
   };
 
@@ -108,6 +109,9 @@ export default function FrmFolder({
     return `${year}.${month}.${day}`;
   };
 
+  // 보드 개수 표시 로직: 없으면 1개만
+  const boardsToShow = boards.length > 0 ? boards : [null];
+
   return (
     <div
       ref={containerRef}
@@ -115,10 +119,12 @@ export default function FrmFolder({
     >
       {/* 썸네일 */}
       <div className="flex-1 w-full grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
-        <div className="flex-1 rounded-[4px] bg-[#171717]" />
+        {boardsToShow.map((_, idx) => (
+          <div
+            key={idx}
+            className="flex-1 rounded-[4px] bg-[#171717]"
+          />
+        ))}
       </div>
 
       {/* 폴더 정보 */}
