@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Input48 from '../input/48';
 import FrmMemberList from './frm-memberlist';
 import BtnX from '../btn/btn-x';
