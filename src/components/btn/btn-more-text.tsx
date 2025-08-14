@@ -2,9 +2,9 @@ import React from 'react';
 
 type BtnMoreTextProps = {
   options: string[];
-  selected?: string; // 선택값 없을 수도 있음
+  selected?: string;
   onSelect: (value: string) => void;
-  onClose?: () => void; // 선택 후 메뉴 닫기용 (선택 사항)
+  onClose?: () => void;
 };
 
 export default function BtnMoreText({
@@ -17,18 +17,20 @@ export default function BtnMoreText({
 
   const handleClick = (option: string) => {
     onSelect(option);
-    onClose?.(); // 있으면 닫기
+    onClose?.();
   };
 
   return (
-    <div className="flex flex-col w-[120px] rounded-[6px] bg-[#111111] border border-[#222] overflow-hidden">
+    <div className="flex flex-col w-[120px] rounded-[6px] bg-[#111111] overflow-hidden">
       {options.map((option) => (
         <button
           key={option}
           onClick={() => handleClick(option)}
           className={`
-            w-full text-left px-[12px] py-[10px]
+            w-full text-left h-[40px] px-[12px]
+            flex items-center gap-[10px]
             font-suit text-[14px] leading-[150%]
+            bg-transparent
             ${option === selected
               ? 'text-[#FFD966] font-semibold'
               : 'text-[#F2F2F2]'}
