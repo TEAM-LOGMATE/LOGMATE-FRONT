@@ -7,7 +7,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        suit: ['"SUIT"', 'sans-serif'], // SUIT 폰트
+        suit: ['"SUIT"', 'sans-serif'],
+        geist: ['"Geist"','sans-serif'],
       },
       colors: {
         brand: {
