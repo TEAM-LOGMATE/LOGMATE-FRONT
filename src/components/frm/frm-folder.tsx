@@ -23,7 +23,9 @@ export default function FrmFolder({
 }: FrmFolderProps) {
   const [isEditing, setIsEditing] = useState(name === '새 폴더');
   const [inputValue, setInputValue] = useState(name);
+  const [errorMessage, setErrorMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [modifiedAt, setModifiedAt] = useState<Date>(new Date()); // ⬅ 내부에서 날짜 관리
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +53,16 @@ export default function FrmFolder({
     };
   }, [isMenuOpen]);
 
+  // 유효성 검사 함수
+  const validateName = (value: string) => {
+    if (value.trim().length < 2 || value.trim().length > 20) {
+      setErrorMessage('*2자~20자 내로 입력해주세요.');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
+
   const tryConfirm = () => {
     const trimmed = inputValue.trim();
     if (trimmed === '') {
@@ -59,7 +71,9 @@ export default function FrmFolder({
       return;
     }
     if (trimmed === '새 폴더') return;
+    if (!validateName(trimmed)) return;
     onRename?.(trimmed);
+    setModifiedAt(new Date()); // ⬅ 수정 시 날짜 갱신
     setIsEditing(false);
   };
 
@@ -71,7 +85,9 @@ export default function FrmFolder({
       return;
     }
     if (trimmed === '새 폴더') return;
+    if (!validateName(trimmed)) return;
     onRename?.(trimmed);
+    setModifiedAt(new Date()); // ⬅ 수정 시 날짜 갱신
     setIsEditing(false);
   };
 
@@ -82,6 +98,14 @@ export default function FrmFolder({
     } else if (option === '폴더 삭제') {
       onDelete?.();
     }
+  };
+
+  const formatDate = (date: Date) => {
+    if (isNaN(date.getTime())) return '----.--.--';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}`;
   };
 
   return (
@@ -102,25 +126,34 @@ export default function FrmFolder({
         <div className="flex justify-between items-start relative">
           <div className="flex flex-col items-start gap-[4px]">
             {isEditing ? (
-              <input
-                ref={inputRef}
-                className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] bg-transparent border-none outline-none"
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  onDraftChange?.(e.target.value);
-                }}
-                onBlur={handleBlur}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') tryConfirm();
-                  if (e.key === 'Escape') {
-                    onCancel?.();
-                    setIsEditing(false);
-                  }
-                }}
-                placeholder="폴더 이름을 입력하세요"
-                spellCheck={false}
-              />
+              <>
+                <input
+                  ref={inputRef}
+                  className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] bg-transparent border-none outline-none"
+                  value={inputValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setInputValue(value);
+                    onDraftChange?.(value);
+                    validateName(value);
+                  }}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') tryConfirm();
+                    if (e.key === 'Escape') {
+                      onCancel?.();
+                      setIsEditing(false);
+                    }
+                  }}
+                  placeholder="폴더 이름을 입력하세요"
+                  spellCheck={false}
+                />
+                {errorMessage && (
+                  <span className="text-[14px] leading-[21px] text-red-500">
+                    {errorMessage}
+                  </span>
+                )}
+              </>
             ) : (
               <span
                 className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] cursor-pointer"
@@ -131,7 +164,9 @@ export default function FrmFolder({
             )}
             <span className="text-[14px] leading-[21px] text-[#AEAEAE]">
               <span className="font-[Geist] font-light">Edited </span>
-              <span className="font-['Geist_Mono'] font-light">0000.00.00</span>
+              <span className="font-['Geist_Mono'] font-light">
+                {formatDate(modifiedAt)}
+              </span>
             </span>
           </div>
           {/* 더보기 버튼 */}
