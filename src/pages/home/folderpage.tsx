@@ -24,6 +24,18 @@ export default function FolderPage() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [activePage, setActivePage] = useState<'personal' | 'myinfo' | null>(
+  folderId ? null : 'personal'
+);
+  
+  useEffect(() => {
+    if (folderId) {
+      setActivePage(null); // 폴더 페이지 → personal 비활성화
+    } else {
+      setActivePage('personal'); // personal 페이지 → personal 활성화
+    }
+  }, [folderId]);
+
   // 폴더 로드
   useEffect(() => {
     const loaded = loadFolders(username);
@@ -31,7 +43,6 @@ export default function FolderPage() {
     setLoading(false);
   }, [username]);
 
-  // ✅ 로컬스토리지 변경 감지 → 폴더 동기화
   useEffect(() => {
     const key = foldersKey(username);
     const onStorage = (e: StorageEvent) => {
@@ -64,7 +75,6 @@ export default function FolderPage() {
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
 
-  // ✅ 로딩이 끝나고, 폴더가 존재하는데 ID가 잘못된 경우만 personal로 이동
   useEffect(() => {
     if (!loading && folders.length > 0 && folderId && !currentFolder) {
       navigate('/personal');
@@ -79,7 +89,6 @@ export default function FolderPage() {
     return null; // 리다이렉트 직전 빈 화면 방지
   }
 
-  // 📌 현재 폴더의 보드 데이터 (없으면 [])
   const boards: Board[] = (currentFolder as any).boards || [];
 
   return (
@@ -90,8 +99,13 @@ export default function FolderPage() {
         folders={folders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
-        activePage="personal"
+        activePage={activePage}
         activeFolderId={folderId}
+        onSelectPage={(page) => setActivePage(page)}
+        onSelectFolder={(id) => {
+        setActivePage(null);
+        navigate(`/personal/${id}`);
+  }}
       />
 
       {/* 메인 컨텐츠 */}

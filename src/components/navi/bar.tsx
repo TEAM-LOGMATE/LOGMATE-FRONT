@@ -13,9 +13,10 @@ interface BarProps {
   folders?: Folder[];
   onAddFolder?: () => void;
   onRemoveFolder?: () => void;
-  activePage?: 'personal' | 'myinfo' | string;
+  activePage?: 'personal' | 'myinfo' | null;
   activeFolderId?: string | number | null;
   onSelectFolder?: (folderId: string | number) => void;
+  onSelectPage?: (page: 'personal' | 'myinfo' | null) => void;
 }
 
 export default function Bar({
@@ -26,6 +27,7 @@ export default function Bar({
   activePage,
   activeFolderId,
   onSelectFolder,
+  onSelectPage,
 }: BarProps) {
   const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
@@ -56,15 +58,15 @@ export default function Bar({
 
   const displayedFolders: Folder[] = propHasFolders ? (folders as Folder[]) : localFolders;
 
- const handleAddSpaceNameG = () => {
-  if (onAddFolder) {
-    if (displayedFolders.length >= MAX_SPACES) return;
-    if (!isOpenG) setIsOpenG(true);
-    onAddFolder(); // 폴더만 추가
-    return;
-  }
-  navigate('/personal');
-};
+  const handleAddSpaceNameG = () => {
+    if (onAddFolder) {
+      if (displayedFolders.length >= MAX_SPACES) return;
+      if (!isOpenG) setIsOpenG(true);
+      onAddFolder();
+      return;
+    }
+    navigate('/personal');
+  };
 
   const handleAddSpaceNameS = () => {
     if (spaceNameSList.length >= MAX_SPACES) return;
@@ -77,10 +79,10 @@ export default function Bar({
     setSpaceNameSList((prev) => prev.filter((item) => item !== id));
   };
 
-  // 폴더 클릭 시 즉시 activeFolderId 반영 + 페이지 이동
   const handleFolderClick = (folderId: number | string) => {
-    if (onSelectFolder) onSelectFolder(folderId);
-    navigate(`/personal/${folderId}`); // 클릭해야만 이동
+    onSelectFolder?.(folderId);
+    onSelectPage?.(null); // personal 비활성화
+    navigate(`/personal/${folderId}`);
   };
 
   return (
@@ -114,11 +116,11 @@ export default function Bar({
         label="개인 스페이스"
         isOpen={isOpenG}
         toggleOpen={() => setIsOpenG((p) => !p)}
-        onLabelClick={() => navigate('/personal')}
+        onLabelClick={() => {
+          onSelectPage?.('personal');
+          navigate('/personal');
+        }}
         active={activePage === 'personal'}
-        labelClassName={
-          activePage === 'personal' ? 'text-[#4FE75E]' : 'text-[#888] hover:text-white'
-        }
       />
 
       {/* 폴더 목록 */}
