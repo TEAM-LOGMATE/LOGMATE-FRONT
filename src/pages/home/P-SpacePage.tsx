@@ -21,20 +21,33 @@ export default function P_SpacePage() {
   const [pendingDraft, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
 
+  // 🔹 정렬 상태 추가 (최신순이 기본)
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const sortFolders = (data: Folder[], order: 'newest' | 'oldest') => {
+    return [...data].sort((a, b) => {
+      const dateA = new Date(a.modifiedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.modifiedAt || b.createdAt || 0).getTime();
+      return order === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  };
+
   const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
     setFolders((prev) => {
       const candidate = updater(prev);
       if (candidate.length > MAX_SPACES) return prev;
-      saveFolders(username, candidate);
-      return candidate;
+      const sorted = sortFolders(candidate, sortOrder);
+      saveFolders(username, sorted);
+      return sorted;
     });
   };
 
   useEffect(() => {
-    setFolders(loadFolders(username));
+    const loaded = loadFolders(username);
+    setFolders(sortFolders(loaded, sortOrder));
     setPendingFolder(false);
     setPendingDraft('');
-  }, [username]);
+  }, [username, sortOrder]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -70,11 +83,14 @@ export default function P_SpacePage() {
     updateFolders((prev) => {
       if (prev.length >= MAX_SPACES) return prev;
       const name = newName.trim();
-      return [...prev, { id: newId, name }];
+      const now = new Date().toISOString();
+      return [
+        ...prev,
+        { id: newId, name, createdAt: now, modifiedAt: now },
+      ];
     });
     setPendingFolder(false);
     setPendingDraft('');
-    
   };
 
   const handleCancelAdd = () => {
@@ -89,7 +105,11 @@ export default function P_SpacePage() {
   const handleRenameFolder = (id: number, newName: string) => {
     if (!isValidFolderName(newName)) return;
     updateFolders((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, name: newName.trim() } : f))
+      prev.map((f) =>
+        f.id === id
+          ? { ...f, name: newName.trim(), modifiedAt: new Date().toISOString() }
+          : f
+      )
     );
   };
 
@@ -142,7 +162,8 @@ export default function P_SpacePage() {
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
-          <BtnSort onClick={() => {}} />
+          {/* 🔹 BtnSort에서 order 변경 시 sortOrder 갱신 */}
+          <BtnSort onSortChange={(order) => setSortOrder(order)} />
           <BtnPoint onClick={handleAddFolder}>새 폴더 추가 +</BtnPoint>
         </div>
 

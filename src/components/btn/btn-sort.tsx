@@ -1,12 +1,21 @@
+import { useState } from 'react';
+
 interface BtnSortProps {
-  onClick?: () => void;
-  children?: React.ReactNode;
+  onSortChange?: (order: 'newest' | 'oldest') => void;
 }
 
-export default function BtnSort({ onClick, children = '최신순 정렬' }: BtnSortProps) {
+export default function BtnSort({ onSortChange }: BtnSortProps) {
+  const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const handleClick = () => {
+    const newOrder = order === 'newest' ? 'oldest' : 'newest';
+    setOrder(newOrder);
+    onSortChange?.(newOrder);
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className="
         inline-flex
         h-[40px]
@@ -23,7 +32,7 @@ export default function BtnSort({ onClick, children = '최신순 정렬' }: BtnS
         hover:bg-[#1F1F1F] transition
       "
     >
-      {children}
+      {order === 'newest' ? '최신순 정렬' : '오래된순 정렬'}
     </button>
   );
 }

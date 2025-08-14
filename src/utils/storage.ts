@@ -22,7 +22,13 @@ export const storage = {
   },
 };
 
-export type Folder = { id: number; name: string };
+export type Folder = {
+  id: number;
+  name: string;
+  createdAt?: string;   // 폴더 생성 시 기록
+  modifiedAt?: string;  // 폴더 수정 시 기록
+};
+
 
 export const foldersKey = (username: string) => `folders:${username}`;
 
