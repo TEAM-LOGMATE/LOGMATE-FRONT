@@ -1,11 +1,12 @@
 // src/pages/team/TeamPage.tsx
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, type Folder, storage } from '../../utils/storage';
+import { loadFolders, storage, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
 
 interface Board {
@@ -68,33 +69,56 @@ export default function TeamPage() {
   const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
 
   useEffect(() => {
-    if (!loading && teamId && !currentTeam) navigate('/team');
+    if (!loading && teamId && !currentTeam) {
+      navigate('/team');
+    }
   }, [loading, teamId, currentTeam, navigate]);
 
-  if (loading) return <div style={{ color: '#fff', padding: 20 }}>Loading...</div>;
-  if (!teamId || !currentTeam) return null;
+  if (loading) {
+    return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
+  }
+
+  if (!teamId || !currentTeam) {
+    return null;
+  }
 
   const boards: Board[] = (currentTeam as any).boards || [];
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
-      {/* 네비게이션 바 */}
+      {/* Bar: 애니메이션 없음 */}
       <Bar
         username={username}
-        folders={loadFolders(username)}               // 개인 폴더
-        teamFolders={teamFolders}                     // 팀 폴더
-        activePage="team"
+        folders={loadFolders(username)}
+        teamFolders={teamFolders}
+        activePage={!teamId ? 'team' : undefined}
         activeFolderId={teamId}
-        onAddTeamFolder={handleAddTeamFolder}        // 팀 + 버튼
+        onAddTeamFolder={handleAddTeamFolder}
         onRemoveTeamFolder={handleRemoveTeamFolder}
-        onSelectFolder={(id: string | number) => navigate(`/team/${id}`)} // 팀 클릭 이동
+        onSelectFolder={(id) => {
+          navigate(`/team/${id}`, { replace: true });
+        }}
       />
 
-      {/* 본문 */}
+      {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 헤더 */}
-        <div className="flex items-center gap-4">
-          <div onClick={() => navigate('/team')} className="cursor-pointer">
+        {/* 상단 제목 영역 */}
+        <motion.div
+          className="flex items-center gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <div
+            onClick={() => {
+              if (window.history.length <= 1) {
+                navigate('/team', { replace: true });
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="cursor-pointer"
+          >
             <BtnBigArrow />
           </div>
           <h1
@@ -103,9 +127,9 @@ export default function TeamPage() {
           >
             {currentTeam.name}
           </h1>
-        </div>
+        </motion.div>
 
-        {/* 2x2 썸네일 */}
+        {/* 썸네일 2x2 */}
         <div
           className="grid gap-4 flex-1"
           style={{
@@ -114,9 +138,27 @@ export default function TeamPage() {
           }}
         >
           {boards.length === 0 ? (
-            <FrmThumbnailBoard connected={false} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FrmThumbnailBoard connected={false} />
+            </motion.div>
           ) : (
-            boards.map((b) => <FrmThumbnailBoard key={b.id} connected />)
+            boards.map((b, idx) => (
+              <motion.div
+                key={b.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.3,
+                  delay: idx * 0.05,
+                }}
+              >
+                <FrmThumbnailBoard connected />
+              </motion.div>
+            ))
           )}
         </div>
       </div>
