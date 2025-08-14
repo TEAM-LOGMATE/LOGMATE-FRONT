@@ -106,15 +106,16 @@ export default function Bar({
 
   const handleFolderClick = (folderId: number | string) => {
     onSelectFolder?.(folderId);
-    onSelectPage?.('personal');
-    navigate(`/personal/${folderId}`);
+    navigate(`/personal/${folderId}`, { replace: true });
   };
+
 
   const handleTeamFolderClick = (folderId: number | string) => {
     onSelectFolder?.(folderId);
     onSelectPage?.('team');
-    navigate(`/team/${folderId}`);
+    navigate(`/team/${folderId}`, { replace: true }); 
   };
+
 
   return (
     <div className="w-[220px] h-screen min-h-screen flex-shrink-0 border-r border-[#222] bg-[#171717] flex flex-col">
