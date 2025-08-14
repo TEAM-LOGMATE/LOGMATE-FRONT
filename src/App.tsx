@@ -9,6 +9,7 @@ import TestPage from './test';
 import FolderPage from './pages/home/folderpage';
 import S_SpacePage from './pages/home/S-SpacePage';
 import LandingPage from './pages/landingpage/landingpage';
+import TeamPage from './pages/home/teampage';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -51,10 +52,10 @@ function AnimatedRoutes() {
       />
       {/* 팀 스페이스 폴더 내부 */}
       <Route
-        path="/team/:folderId"
+        path="/team/:teamId"
         element={
           <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
-            <S_SpacePage />
+            <TeamPage/>
           </ProtectedRoute>
         }
       />
