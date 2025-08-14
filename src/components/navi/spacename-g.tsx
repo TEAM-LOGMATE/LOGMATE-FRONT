@@ -28,7 +28,6 @@ export default function SpaceNameG({
     if (trimmed === '') {
       onCancel?.();
     } else {
-      // 이름 변경이 실제로 부모 상태에도 반영되도록 호출
       if (trimmed !== name) {
         onRename?.(trimmed);
       }
@@ -56,7 +55,7 @@ export default function SpaceNameG({
         px-[16px]
         text-[14px] font-normal leading-[145%] font-geist
         transition-colors
-        ${isActive ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#111]'}
+        ${isActive ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#353535]'}
       `}
     >
       {isEditing ? (
@@ -74,7 +73,8 @@ export default function SpaceNameG({
       ) : (
         <span
           className="truncate w-full whitespace-nowrap overflow-hidden"
-          onDoubleClick={() => setIsEditing(true)}
+          // 더블클릭 시 이름 변경 진입을 막음
+          onDoubleClick={() => {}}
         >
           {inputValue}
         </span>

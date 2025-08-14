@@ -53,7 +53,7 @@ export default function SpaceNameS({
         w-[220px] h-[48px] px-[16px]
         font-suit text-[14px] font-medium leading-[150%] tracking-[-0.4px]
         cursor-pointer transition-colors
-        ${isActive ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#111]'}
+        ${isActive ? 'bg-[#222] text-[#4FE75E]' : 'bg-transparent text-[#F2F2F2] hover:bg-[#353535]'}
       `}
     >
       {isEditing ? (
