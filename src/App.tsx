@@ -6,7 +6,8 @@ import MyInfoPage from './pages/home/MyInfo';
 import MyInfoEditPage from './pages/home/MyInfoEdit';
 import { AuthProvider, ProtectedRoute } from './utils/AuthContext';
 import TestPage from './test';
-import FolderPage from './pages/home/folderpage'; 
+import FolderPage from './pages/home/folderpage';
+import S_SpacePage from './pages/home/S-SpacePage';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -36,7 +37,7 @@ function AnimatedRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
 
-      {/* 보호된 페이지 */}
+      {/* 개인 스페이스 */}
       <Route
         path="/personal"
         element={
@@ -45,8 +46,7 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-
-      {/* 폴더 내부 페이지 */}
+      {/* 개인 스페이스 폴더 내부 */}
       <Route
         path="/personal/:folderId"
         element={
@@ -56,6 +56,26 @@ function AnimatedRoutes() {
         }
       />
 
+      {/* 팀 스페이스 */}
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
+            <S_SpacePage />
+          </ProtectedRoute>
+        }
+      />
+      {/* 팀 스페이스 폴더 내부 */}
+      <Route
+        path="/team/:folderId"
+        element={
+          <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
+            <S_SpacePage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 내 정보 */}
       <Route
         path="/myinfo"
         element={

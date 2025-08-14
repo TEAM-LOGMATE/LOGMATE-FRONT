@@ -5,48 +5,62 @@ import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
 import SpaceNameS from './spacename-s';
 
-import { loadFolders, foldersKey, type Folder } from '../../utils/storage';
+import {
+  loadFolders,
+  foldersKey,
+  type Folder,
+  loadTeamFolders,
+  teamFoldersKey,
+} from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
 
 interface BarProps {
   username: string;
   folders?: Folder[];
+  teamFolders?: Folder[];
   onAddFolder?: () => void;
-  onRemoveFolder?: () => void;
-  activePage?: 'personal' | 'myinfo' | null;
+  onAddTeamFolder?: () => void; // 팀 폴더 추가 콜백 분리
+  onRemoveFolder?: (folderId: string | number) => void;
+  onRemoveTeamFolder?: (folderId: string | number) => void;
+  activePage?: 'personal' | 'myinfo' | 'team' | null;
   activeFolderId?: string | number | null;
   onSelectFolder?: (folderId: string | number) => void;
-  onSelectPage?: (page: 'personal' | 'myinfo' | null) => void;
+  onSelectPage?: (page: 'personal' | 'myinfo' | 'team' | null) => void;
 }
 
 export default function Bar({
   username,
   folders,
+  teamFolders,
   onAddFolder,
+  onAddTeamFolder,
   onRemoveFolder,
+  onRemoveTeamFolder,
   activePage,
   activeFolderId,
   onSelectFolder,
   onSelectPage,
 }: BarProps) {
-  const [spaceNameSList, setSpaceNameSList] = useState<number[]>([]);
   const [isOpenG, setIsOpenG] = useState(true);
   const [isOpenS, setIsOpenS] = useState(true);
+
+  // 개인 스페이스 로컬 상태
   const [localFolders, setLocalFolders] = useState<Folder[]>([]);
+  const propHasFolders = folders !== undefined;
+
+  // 팀 스페이스 로컬 상태
+  const [localTeamFolders, setLocalTeamFolders] = useState<Folder[]>([]);
+  const propHasTeamFolders = teamFolders !== undefined;
+
   const navigate = useNavigate();
   const { folderId: routeFolderId } = useParams<{ folderId: string }>();
 
-  const propHasFolders = folders !== undefined;
-
-  // props 없을 때만 로컬 로드
+  /* ---------- 개인 스페이스 항상 로드 ---------- */
   useEffect(() => {
-    if (propHasFolders) return;
     setLocalFolders(loadFolders(username));
-  }, [username, propHasFolders]);
+  }, [username]);
 
-  // props 없을 때만 로컬 동기화
   useEffect(() => {
-    if (propHasFolders) return;
     const key = foldersKey(username);
     const onStorage = (e: StorageEvent) => {
       if (e.key !== key) return;
@@ -54,40 +68,58 @@ export default function Bar({
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [username, propHasFolders]);
+  }, [username]);
+
+  /* ---------- 팀 스페이스 ---------- */
+  useEffect(() => {
+    if (propHasTeamFolders) return;
+    setLocalTeamFolders(loadTeamFolders(username));
+  }, [username, propHasTeamFolders]);
+
+  useEffect(() => {
+    if (propHasTeamFolders) return;
+    const key = teamFoldersKey(username);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== key) return;
+      setLocalTeamFolders(loadTeamFolders(username));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [username, propHasTeamFolders]);
 
   const displayedFolders: Folder[] = propHasFolders ? (folders as Folder[]) : localFolders;
+  const displayedTeamFolders: Folder[] = propHasTeamFolders ? (teamFolders as Folder[]) : localTeamFolders;
 
+  /* ---------- 버튼 클릭 핸들러 ---------- */
   const handleAddSpaceNameG = () => {
-    if (onAddFolder) {
-      if (displayedFolders.length >= MAX_SPACES) return;
-      if (!isOpenG) setIsOpenG(true);
-      onAddFolder();
-      return;
-    }
-    navigate('/personal');
+    if (activePage !== 'personal') return; // 다른 페이지에서는 동작 X
+    if (displayedFolders.length >= MAX_SPACES) return;
+    if (!isOpenG) setIsOpenG(true);
+    onAddFolder?.();
   };
 
   const handleAddSpaceNameS = () => {
-    if (spaceNameSList.length >= MAX_SPACES) return;
+    if (activePage !== 'team') return; // 다른 페이지에서는 동작 X
+    if (displayedTeamFolders.length >= MAX_SPACES) return;
     if (!isOpenS) setIsOpenS(true);
-    const newId = Date.now() + Math.random();
-    setSpaceNameSList((prev) => [...prev, newId]);
-  };
-
-  const handleCancelSpaceNameS = (id: number) => {
-    setSpaceNameSList((prev) => prev.filter((item) => item !== id));
+    onAddTeamFolder?.();
   };
 
   const handleFolderClick = (folderId: number | string) => {
     onSelectFolder?.(folderId);
-    onSelectPage?.(null); // personal 비활성화
+    onSelectPage?.('personal');
     navigate(`/personal/${folderId}`);
+  };
+
+  const handleTeamFolderClick = (folderId: number | string) => {
+    onSelectFolder?.(folderId);
+    onSelectPage?.('team');
+    navigate(`/team/${folderId}`);
   };
 
   return (
     <div className="w-[220px] h-screen min-h-screen flex-shrink-0 border-r border-[#222] bg-[#171717] flex flex-col">
-      {/* 로고/유저 */}
+      {/* 로고 / 유저 */}
       <div className="flex flex-col px-[16px] pt-[24px]">
         <div className="inline-flex items-center gap-[6px]">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none">
@@ -122,12 +154,9 @@ export default function Bar({
         }}
         active={activePage === 'personal'}
       />
-
-      {/* 폴더 목록 */}
       <div className={isOpenG ? '' : 'hidden'}>
         {displayedFolders.map((folder) => {
-          const isActiveFolder =
-            String(folder.id) === String(activeFolderId ?? routeFolderId);
+          const isActiveFolder = String(folder.id) === String(activeFolderId ?? routeFolderId);
           return (
             <SpaceNameG
               key={folder.id}
@@ -145,11 +174,25 @@ export default function Bar({
         label="팀 스페이스"
         isOpen={isOpenS}
         toggleOpen={() => setIsOpenS((p) => !p)}
+        onLabelClick={() => {
+          onSelectPage?.('team');
+          navigate('/team');
+        }}
+        active={activePage === 'team'}
       />
       <div className={isOpenS ? '' : 'hidden'}>
-        {spaceNameSList.map((id) => (
-          <SpaceNameS key={id} onCancel={() => handleCancelSpaceNameS(id)} />
-        ))}
+        {displayedTeamFolders.map((folder) => {
+          const isActiveFolder = String(folder.id) === String(activeFolderId ?? routeFolderId);
+          return (
+            <SpaceNameS
+              key={folder.id}
+              onCancel={() => onRemoveTeamFolder?.(folder.id)}
+              isActive={isActiveFolder}
+              onClick={() => handleTeamFolderClick(folder.id)}
+              name={folder.name}
+            />
+          );
+        })}
       </div>
     </div>
   );

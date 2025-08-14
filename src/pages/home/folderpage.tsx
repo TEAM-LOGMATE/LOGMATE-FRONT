@@ -24,7 +24,7 @@ export default function FolderPage() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [activePage, setActivePage] = useState<'personal' | 'myinfo' | null>(
+  const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team' | null>(
   folderId ? null : 'personal'
 );
   
