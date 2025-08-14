@@ -7,10 +7,21 @@ interface SpaceNameSProps {
   onCancel?: () => void;      // 취소(삭제) 동작
 }
 
-export default function SpaceNameS({ name: initialName, isActive = false, onClick, onCancel }: SpaceNameSProps) {
-  const [isEditing, setIsEditing] = useState(true);
+export default function SpaceNameS({
+  name: initialName,
+  isActive = false,
+  onClick,
+  onCancel,
+}: SpaceNameSProps) {
+  // 🔧 자동 편집 막기: 초기값 false
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(initialName);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 외부에서 이름이 바뀌는 경우만 동기화
+  useEffect(() => {
+    setName(initialName);
+  }, [initialName]);
 
   const handleBlur = () => {
     if (name.trim() === '') {
