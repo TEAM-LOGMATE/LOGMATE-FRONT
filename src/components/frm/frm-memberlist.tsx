@@ -4,25 +4,24 @@ import BtnInviteLink from '../btn/btn-invitelink';
 import BtnAddMember from '../btn/btn-addmember';
 import { isValidEmail } from '../../utils/validate';
 
+type Role = 'teamAdmin' | 'member' | 'viewer';
+
 type FrmMemberListProps = {
-  members: {
-    name: string;
-    email: string;
-    role: 'teamAdmin' | 'member' | 'viewer';
-  }[];
+  members: { name: string; email: string; role: Role }[];
+  readOnly?: boolean; // 읽기전용: 역할 변경/삭제만 막음. 초대는 항상 가능.
   onMemberAdd?: (email: string) => void;
-  onRoleChange?: (index: number, newRole: 'teamAdmin' | 'member' | 'viewer') => void;
+  onRoleChange?: (index: number, newRole: Role) => void;
   onDeleteClick?: (index: number) => void;
 };
 
 export default function FrmMemberList({
   members,
+  readOnly = false,
   onMemberAdd,
   onRoleChange,
   onDeleteClick,
 }: FrmMemberListProps) {
   const [emailInput, setEmailInput] = useState('');
-
   const isAddActive = isValidEmail(emailInput);
 
   return (
@@ -55,7 +54,7 @@ export default function FrmMemberList({
           <path d="M18 19L22 23" stroke="#AEAEAE" strokeWidth="1.2" />
         </svg>
 
-        {/* 입력 필드 */}
+        {/* 입력 필드 (권한과 무관하게 항상 활성) */}
         <input
           type="text"
           value={emailInput}
@@ -68,8 +67,10 @@ export default function FrmMemberList({
           "
         />
 
-        {/* 버튼들 */}
+        {/* 초대 링크 (항상 활성) */}
         <BtnInviteLink onClick={() => console.log('링크 복사')} />
+
+        {/* 팀원 추가 (이메일 유효성으로만 활성) */}
         <BtnAddMember
           onClick={() => {
             if (isValidEmail(emailInput)) {
@@ -81,17 +82,19 @@ export default function FrmMemberList({
         />
       </div>
 
-      {/* 멤버 리스트 */}
+      {/* 멤버 리스트: 역할 변경/삭제만 권한에 따라 제어 */}
       {members.map((member, index) => (
         <FrmMemberLine
           key={index}
           name={member.name}
           email={member.email}
           role={member.role}
-          onRoleChange={(newRole) => onRoleChange?.(index, newRole)}
-          onDeleteClick={() => onDeleteClick?.(index)}
+          readOnly={readOnly}  
+          onRoleChange={readOnly ? undefined : (r) => onRoleChange?.(index, r)}
+          onDeleteClick={readOnly ? undefined : () => onDeleteClick?.(index)}
         />
       ))}
+
     </div>
   );
 }

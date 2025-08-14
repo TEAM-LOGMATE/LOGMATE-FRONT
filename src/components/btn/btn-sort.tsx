@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
 interface BtnSortProps {
+  spaceType?: string; // ← 추가
   onSortChange?: (order: 'newest' | 'oldest') => void;
 }
 
-export default function BtnSort({ onSortChange }: BtnSortProps) {
+export default function BtnSort({ spaceType, onSortChange }: BtnSortProps) {
   const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
 
   const handleClick = () => {

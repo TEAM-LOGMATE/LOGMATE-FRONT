@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import BtnSmallArrow from './btn-small-arrow';
 import BtnMoreText from './btn-more-text';
 
 type BtnRoleProps = {
-  role: 'teamAdmin' | 'member' | 'viewer'; // 역할 타입 3종
+  role: 'teamAdmin' | 'member' | 'viewer';
   onRoleChange?: (role: 'teamAdmin' | 'member' | 'viewer') => void;
+  readOnly?: boolean;   
+  hideCaret?: boolean;  
 };
 
-export default function BtnRole({ role, onRoleChange }: BtnRoleProps) {
+export default function BtnRole({
+  role,
+  onRoleChange,
+  readOnly = false,
+  hideCaret = false,
+}: BtnRoleProps) {
   const [open, setOpen] = useState(false);
 
   // 역할별 label
@@ -27,11 +34,22 @@ export default function BtnRole({ role, onRoleChange }: BtnRoleProps) {
   const label = labelMap[role];
   const textColor = colorMap[role];
 
-  const handleSelect = (label: string) => {
+  // 권한 없거나 케럿 숨겨야 하면 드롭다운 강제 닫기
+  useEffect(() => {
+    if (readOnly || hideCaret) setOpen(false);
+  }, [readOnly, hideCaret]);
+
+  const toggleOpen = () => {
+    if (readOnly || hideCaret) return;
+    setOpen((prev) => !prev);
+  };
+
+  const handleSelect = (selectedLabel: string) => {
+    if (readOnly) return; // 권한 없으면 선택 막기
     const newRole =
-      Object.keys(labelMap).find(
-        (key) => labelMap[key as BtnRoleProps['role']] === label
-      ) as BtnRoleProps['role'];
+      (Object.keys(labelMap).find(
+        (key) => labelMap[key as BtnRoleProps['role']] === selectedLabel
+      ) as BtnRoleProps['role']) ?? role;
     onRoleChange?.(newRole);
     setOpen(false);
   };
@@ -48,13 +66,15 @@ export default function BtnRole({ role, onRoleChange }: BtnRoleProps) {
         {label}
       </span>
 
-      {/* 화살표 */}
-      <div
-        className="ml-[4px] w-[32px] h-[32px] flex items-center justify-center cursor-pointer"
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <BtnSmallArrow direction={open ? 'up' : 'down'} />
-      </div>
+      {/* 화살표 (권한 없으면 숨김) */}
+      {!hideCaret && (
+        <div
+          className="ml-[4px] w-[32px] h-[32px] flex items-center justify-center cursor-pointer"
+          onClick={toggleOpen}
+        >
+          <BtnSmallArrow direction={open ? 'up' : 'down'} />
+        </div>
+      )}
 
       {/* 드롭다운 */}
       {open && (

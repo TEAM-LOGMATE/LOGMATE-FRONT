@@ -224,21 +224,31 @@ export default function S_SpacePage() {
       )}
 
       {/* 팀 설정 모달 */}
-      {showTeamSettings && editingTeamId != null && (
+        {showTeamSettings && editingTeamId != null && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <FrmTeamEdit
+            <FrmTeamEdit
             initialName={editInitialName}
             initialDescription={editInitialDesc}
             initialMembers={editInitialMembers}
+            currentRole="teamAdmin" // 임시: 관리자 권한으로 설정
             onSubmit={handleTeamEditSubmit}
             onClose={() => {
-              setShowTeamSettings(false);
-              setEditingTeamId(null);
+                setShowTeamSettings(false);
+                setEditingTeamId(null);
             }}
             onDelete={handleTeamDeleteFromEdit}
-          />
+            onLeaveTeam={() => {
+                // 멤버/뷰어가 팀 나가기 눌렀을 때 동작
+                if (editingTeamId != null) {
+                handleDeleteFolder(editingTeamId);
+                setShowTeamSettings(false);
+                setEditingTeamId(null);
+                }
+            }}
+            />
         </div>
-      )}
+        )}
+
     </motion.div>
   );
 }
