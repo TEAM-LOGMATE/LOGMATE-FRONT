@@ -55,12 +55,33 @@ export default function FrmFolder({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      if (!isEditing) return;
+      const target = e.target as Node;
+
+      // 메뉴 클릭은 무시
+      if (menuRef.current?.contains(target)) return;
+      // 인풋 클릭은 무시
+      if (inputRef.current?.contains(target)) return;
+
+      const trimmed = inputValue.trim();
+      if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
+        onCancel?.();
+        setIsEditing(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isEditing, inputValue, onCancel]);
+
+  useEffect(() => {
+    function handleClickOutsideMenu(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsMenuOpen(false);
       }
     }
-    if (isMenuOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (isMenuOpen) document.addEventListener('mousedown', handleClickOutsideMenu);
+    return () => document.removeEventListener('mousedown', handleClickOutsideMenu);
   }, [isMenuOpen]);
 
   const validateName = (value: string) => {
@@ -74,12 +95,11 @@ export default function FrmFolder({
 
   const tryConfirm = () => {
     const trimmed = inputValue.trim();
-    if (trimmed === '') {
+    if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
       onCancel?.();
       setIsEditing(false);
       return;
     }
-    if (trimmed === '새 폴더' || trimmed === '새 팀') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
     setModifiedAt(new Date());
@@ -88,12 +108,11 @@ export default function FrmFolder({
 
   const handleBlur = () => {
     const trimmed = inputValue.trim();
-    if (trimmed === '') {
+    if (!trimmed || trimmed === '새 폴더' || trimmed === '새 팀') {
       onCancel?.();
       setIsEditing(false);
       return;
     }
-    if (trimmed === '새 폴더' || trimmed === '새 팀') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
     setModifiedAt(new Date());
@@ -189,7 +208,7 @@ export default function FrmFolder({
                       if (option === '팀 나가기') onLeaveTeam?.();
                     }
                   }}
-                  onClose={() => setIsMenuOpen(false)} 
+                  onClose={() => setIsMenuOpen(false)}
                 />
               </div>
             )}
