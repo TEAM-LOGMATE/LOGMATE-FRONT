@@ -64,6 +64,7 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
       <div className="w-full">
         <label
           className="
+            block mb-[8px]
             text-[var(--Gray-200,#D8D8D8)]
             font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
           "
@@ -81,8 +82,10 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
       <div className="w-full">
         <label
           className="
+            block
             text-[var(--Gray-200,#D8D8D8)]
             font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
+            mb-[8px]
           "
         >
           팀 설명
