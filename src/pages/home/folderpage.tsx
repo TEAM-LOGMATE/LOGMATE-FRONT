@@ -1,5 +1,6 @@
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
@@ -10,7 +11,6 @@ import { MAX_SPACES } from '../../utils/validate';
 interface Board {
   id: number;
   name: string;
-  // 필요한 필드 추가 가능
 }
 
 export default function FolderPage() {
@@ -25,18 +25,17 @@ export default function FolderPage() {
   const [loading, setLoading] = useState(true);
 
   const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team' | null>(
-  folderId ? null : 'personal'
-);
-  
+    folderId ? null : 'personal'
+  );
+
   useEffect(() => {
     if (folderId) {
-      setActivePage(null); // 폴더 페이지 → personal 비활성화
+      setActivePage(null);
     } else {
-      setActivePage('personal'); // personal 페이지 → personal 활성화
+      setActivePage('personal');
     }
   }, [folderId]);
 
-  // 폴더 로드
   useEffect(() => {
     const loaded = loadFolders(username);
     setFolders(loaded);
@@ -86,14 +85,13 @@ export default function FolderPage() {
   }
 
   if (!folderId || !currentFolder) {
-    return null; // 리다이렉트 직전 빈 화면 방지
+    return null;
   }
 
   const boards: Board[] = (currentFolder as any).boards || [];
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
-      {/* 네비게이션 바 */}
       <Bar
         username={username}
         folders={folders}
@@ -103,25 +101,41 @@ export default function FolderPage() {
         activeFolderId={folderId}
         onSelectPage={(page) => setActivePage(page)}
         onSelectFolder={(id) => {
-        setActivePage(null);
-        navigate(`/personal/${id}`);
-  }}
+          setActivePage(null);
+          navigate(`/personal/${id}`, { replace: true });
+        }}
       />
 
       {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
         {/* 상단 제목 영역 */}
-        <div className="flex items-center gap-4">
-          <div onClick={() => navigate(-1)} className="cursor-pointer">
-            <BtnBigArrow />
-          </div>
-          <h1
-            className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
-            style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
-          >
-            {currentFolder.name}
-          </h1>
+      <motion.div
+        className="flex items-center gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
+        <div
+          onClick={() => {
+            // 히스토리 길이가 1 이하이면 이전 페이지가 없는 경우 → 기본 경로로 이동
+            if (window.history.length <= 1) {
+              navigate('/personal', { replace: true });
+            } else {
+              navigate(-1);
+            }
+          }}
+          className="cursor-pointer"
+        >
+          <BtnBigArrow />
         </div>
+        <h1
+          className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
+          style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+        >
+          {currentFolder.name}
+        </h1>
+      </motion.div>
+
 
         {/* 썸네일 2x2 */}
         <div
@@ -132,10 +146,26 @@ export default function FolderPage() {
           }}
         >
           {boards.length === 0 ? (
-            <FrmThumbnailBoard connected={false} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FrmThumbnailBoard connected={false} />
+            </motion.div>
           ) : (
             boards.map((_, idx) => (
-              <FrmThumbnailBoard key={idx} connected={true} />
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.3,
+                  delay: idx * 0.05,
+                }}
+              >
+                <FrmThumbnailBoard connected={true} />
+              </motion.div>
             ))
           )}
         </div>
