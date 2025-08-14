@@ -34,7 +34,6 @@ export default function Bar({
   teamFolders,
   onAddFolder,
   onAddTeamFolder,
-  onRemoveFolder,
   onRemoveTeamFolder,
   activePage,
   activeFolderId,
