@@ -5,25 +5,37 @@ import BtnMoreText from '../btn/btn-more-text';
 interface FrmFolderProps {
   name: string;
   boards?: any[]; // 보드 데이터 배열 (없으면 초기 1개)
+
+  // 공통
+  spaceType?: 'personal' | 'team';
+  onClickName?: () => void;
+  containerRef?: React.Ref<HTMLDivElement>;
+  onDraftChange?: (value: string) => void;
+  onCancel?: () => void;
+
+  // 개인 스페이스 전용
   onRename?: (newName: string) => void;
   onDelete?: () => void;
-  onCancel?: () => void;
-  onDraftChange?: (value: string) => void;
-  containerRef?: React.Ref<HTMLDivElement>;
-  onClickName?: () => void;
+
+  // 팀 스페이스 전용
+  onOpenTeamSettings?: () => void;
+  onLeaveTeam?: () => void;
 }
 
 export default function FrmFolder({
   name,
   boards = [],
+  spaceType = 'personal',
   onRename,
   onDelete,
   onCancel,
   onDraftChange,
   containerRef,
   onClickName,
+  onOpenTeamSettings,
+  onLeaveTeam,
 }: FrmFolderProps) {
-  const [isEditing, setIsEditing] = useState(name === '새 폴더');
+  const [isEditing, setIsEditing] = useState(name === '새 폴더' || name === '새 팀');
   const [inputValue, setInputValue] = useState(name);
   const [errorMessage, setErrorMessage] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,14 +43,14 @@ export default function FrmFolder({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const mode: 'personal' | 'team' = spaceType === 'team' ? 'team' : 'personal';
+
   useEffect(() => {
     setInputValue(name);
   }, [name]);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isEditing && inputRef.current) inputRef.current.focus();
   }, [isEditing]);
 
   useEffect(() => {
@@ -47,12 +59,8 @@ export default function FrmFolder({
         setIsMenuOpen(false);
       }
     }
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (isMenuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
   const validateName = (value: string) => {
@@ -71,7 +79,7 @@ export default function FrmFolder({
       setIsEditing(false);
       return;
     }
-    if (trimmed === '새 폴더') return;
+    if (trimmed === '새 폴더' || trimmed === '새 팀') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
     setModifiedAt(new Date());
@@ -85,31 +93,21 @@ export default function FrmFolder({
       setIsEditing(false);
       return;
     }
-    if (trimmed === '새 폴더') return;
+    if (trimmed === '새 폴더' || trimmed === '새 팀') return;
     if (!validateName(trimmed)) return;
     onRename?.(trimmed);
     setModifiedAt(new Date());
     setIsEditing(false);
   };
 
-  const handleMenuSelect = (option: string) => {
-    setIsMenuOpen(false);
-    if (option === '폴더 이름 바꾸기') {
-      setIsEditing(true);
-    } else if (option === '폴더 삭제') {
-      onDelete?.();
-    }
-  };
-
   const formatDate = (date: Date) => {
     if (isNaN(date.getTime())) return '----.--.--';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}.${month}.${day}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${d}`;
   };
 
-  // 보드 개수 표시 로직: 없으면 1개만
   const boardsToShow = boards.length > 0 ? boards : [null];
 
   return (
@@ -120,10 +118,7 @@ export default function FrmFolder({
       {/* 썸네일 */}
       <div className="flex-1 w-full grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
         {boardsToShow.map((_, idx) => (
-          <div
-            key={idx}
-            className="flex-1 rounded-[4px] bg-[#171717]"
-          />
+          <div key={idx} className="flex-1 rounded-[4px] bg-[#171717]" />
         ))}
       </div>
 
@@ -151,13 +146,11 @@ export default function FrmFolder({
                       setIsEditing(false);
                     }
                   }}
-                  placeholder="폴더 이름을 입력하세요"
+                  placeholder={mode === 'team' ? '팀 이름을 입력하세요' : '폴더 이름을 입력하세요'}
                   spellCheck={false}
                 />
                 {errorMessage && (
-                  <span className="text-[14px] leading-[21px] text-red-500">
-                    {errorMessage}
-                  </span>
+                  <span className="text-[14px] leading-[21px] text-red-500">{errorMessage}</span>
                 )}
               </>
             ) : (
@@ -170,20 +163,33 @@ export default function FrmFolder({
             )}
             <span className="text-[14px] leading-[21px] text-[#AEAEAE]">
               <span className="font-[Geist] font-light">Edited </span>
-              <span className="font-['Geist_Mono'] font-light">
-                {formatDate(modifiedAt)}
-              </span>
+              <span className="font-['Geist_Mono'] font-light">{formatDate(modifiedAt)}</span>
             </span>
           </div>
-          {/* 더보기 버튼 */}
+
+          {/* 더보기 버튼 + 메뉴 */}
           <div className="relative">
             <BtnMore onClick={() => setIsMenuOpen((prev) => !prev)} />
             {isMenuOpen && (
               <div ref={menuRef} className="absolute top-full right-0 mt-1 z-10">
                 <BtnMoreText
-                  options={['폴더 이름 바꾸기', '폴더 삭제']}
+                  options={
+                    mode === 'personal'
+                      ? ['폴더 이름 바꾸기', '폴더 삭제']
+                      : ['팀설정 변경', '팀 나가기']
+                  }
                   selected=""
-                  onSelect={handleMenuSelect}
+                  onSelect={(option) => {
+                    setIsMenuOpen(false);
+                    if (mode === 'personal') {
+                      if (option === '폴더 이름 바꾸기') setIsEditing(true);
+                      if (option === '폴더 삭제') onDelete?.();
+                    } else {
+                      if (option === '팀설정 변경') onOpenTeamSettings?.();
+                      if (option === '팀 나가기') onLeaveTeam?.();
+                    }
+                  }}
+                  onClose={() => setIsMenuOpen(false)} 
                 />
               </div>
             )}
