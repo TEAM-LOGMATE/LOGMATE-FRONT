@@ -8,30 +8,14 @@ import { AuthProvider, ProtectedRoute } from './utils/AuthContext';
 import TestPage from './test';
 import FolderPage from './pages/home/folderpage';
 import S_SpacePage from './pages/home/S-SpacePage';
+import LandingPage from './pages/landingpage/landingpage';
 
 function AnimatedRoutes() {
   const location = useLocation();
   return (
     <Routes location={location} key={location.pathname}>
       {/* 첫 화면: 랜딩페이지 */}
-      <Route
-        path="/"
-        element={
-          <div
-            style={{
-              color: '#fff',
-              fontSize: '24px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100vh',
-              backgroundColor: '#000',
-            }}
-          >
-            랜딩페이지
-          </div>
-        }
-      />
+      <Route path="/" element={<LandingPage />} />
 
       {/* 로그인/회원가입 */}
       <Route path="/login" element={<LoginPage />} />
