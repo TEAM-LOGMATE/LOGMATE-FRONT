@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
@@ -19,6 +20,7 @@ export default function MyInfoPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorTrigger, setErrorTrigger] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -29,7 +31,10 @@ export default function MyInfoPage() {
   }, [username]);
 
   useEffect(() => {
-    if (authError) setErrorMessage(authError);
+    if (authError) {
+      setErrorMessage(authError);
+      setErrorTrigger((t) => t + 1);
+    }
   }, [authError]);
 
   useEffect(() => {
@@ -42,6 +47,7 @@ export default function MyInfoPage() {
     const pwd = password.trim();
     if (!pwd) {
       setErrorMessage('비밀번호를 입력해 주세요.');
+      setErrorTrigger((t) => t + 1); 
       return;
     }
     try {
@@ -50,7 +56,8 @@ export default function MyInfoPage() {
       await login(email.toLowerCase(), pwd);
       navigate('/edit-info');
     } catch {
-      if (!authError) setErrorMessage('비밀번호가 올바르지 않습니다.');
+      setErrorMessage('비밀번호가 올바르지 않습니다.');
+      setErrorTrigger((t) => t + 1); 
     } finally {
       setSubmitting(false);
     }
@@ -62,13 +69,19 @@ export default function MyInfoPage() {
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        folders={folders} 
+        folders={folders}
         onAddFolder={() => {}}
         onRemoveFolder={() => {}}
         activePage="myinfo"
       />
 
-      <div className="flex flex-1 justify-center items-center px-10">
+      {/* 메인 컨텐츠에만 애니메이션 적용 */}
+      <motion.div
+        className="flex flex-1 justify-center items-center px-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+      >
         <div className="w-full max-w-[480px] flex flex-col items-center gap-[48px]">
           <h1 className="text-[#F2F2F2] text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
             내 정보
@@ -106,7 +119,7 @@ export default function MyInfoPage() {
           <div className="relative w-full flex flex-col items-center gap-2">
             {errorMessage && (
               <div className="absolute -top-[52px]">
-                <ErrorToast message={errorMessage} />
+                <ErrorToast message={errorMessage} trigger={errorTrigger} />
               </div>
             )}
             <BtnSign2 onClick={handleUpdate} isActive={canSubmit}>
@@ -114,7 +127,7 @@ export default function MyInfoPage() {
             </BtnSign2>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
