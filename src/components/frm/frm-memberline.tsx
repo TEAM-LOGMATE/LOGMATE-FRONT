@@ -1,4 +1,3 @@
-import React from 'react';
 import BtnRole from '../btn/btn-role';
 import BtnDelete from '../btn/btn-delete';
 
