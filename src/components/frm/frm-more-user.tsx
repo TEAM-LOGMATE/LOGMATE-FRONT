@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function FrmMoreUser() {
   const items = ['폴더 이름 바꾸기', '폴더 삭제', '아무거나']; // 원하는 텍스트로 교체 가능
 

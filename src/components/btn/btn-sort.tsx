@@ -5,7 +5,7 @@ interface BtnSortProps {
   onSortChange?: (order: 'newest' | 'oldest') => void;
 }
 
-export default function BtnSort({ spaceType, onSortChange }: BtnSortProps) {
+export default function BtnSort({ onSortChange }: BtnSortProps) {
   const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
 
   const handleClick = () => {

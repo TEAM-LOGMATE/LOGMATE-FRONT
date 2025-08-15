@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import BtnSmallArrow from './btn-small-arrow';
 import BtnMoreText from './btn-more-text';
 

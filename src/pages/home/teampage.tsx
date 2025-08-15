@@ -1,4 +1,3 @@
-// src/pages/team/TeamPage.tsx
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';

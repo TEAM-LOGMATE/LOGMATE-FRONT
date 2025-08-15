@@ -1,7 +1,5 @@
-import React from 'react';
-
 export default function FrmMoreTeam() {
-  const teamItems = ['팀 설정 변경', '팀 나가기']; // 추가 가능
+  const teamItems = ['팀 설정 변경', '팀 나가기']; 
 
   return (
     <div
