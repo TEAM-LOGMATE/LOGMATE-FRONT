@@ -1,4 +1,3 @@
-// src/components/landingpage/index.tsx
 import BtnDownload from './btn-download';
 import PreviewBox from './preview-box';
 import FeatureSection from './feature-section';

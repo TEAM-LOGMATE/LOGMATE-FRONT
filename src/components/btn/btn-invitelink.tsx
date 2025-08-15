@@ -1,5 +1,3 @@
-import React from 'react';
-
 type BtnInviteLinkProps = {
   onClick?: () => void;
   variant?: 'default' | 'variant2'; // variant2면 회색 배경

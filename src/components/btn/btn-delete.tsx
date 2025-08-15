@@ -1,6 +1,3 @@
-// src/components/btn/btn-delete.tsx
-import React from 'react';
-
 type BtnDeleteProps = {
   label?: string;
   onClick?: () => void;

@@ -1,5 +1,3 @@
-import React from 'react';
-
 type BtnMoreTextProps = {
   options: string[];
   selected?: string;
