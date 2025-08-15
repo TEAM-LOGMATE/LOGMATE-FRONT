@@ -1,4 +1,3 @@
-// src/components/input/48.tsx
 import React, { useState } from 'react';
 
 interface Input48Props {

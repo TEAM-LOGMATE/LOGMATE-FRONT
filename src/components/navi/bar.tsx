@@ -128,7 +128,7 @@ export default function Bar({
           <span className="text-[#6E6E6E] font-geist text-[16px]">Log Mate</span>
         </div>
         <div className="pt-[12px]">
-          <span className="text-[#D8D8D8] font-geist text-[16px]">{username}</span>
+          <span className="text-[#D8D8D8] font-Geist text-[16px]">{username}</span>
         </div>
         <div className="mb-[4px]">
           <span
