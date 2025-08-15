@@ -111,12 +111,9 @@ export default function TeamPage() {
         >
           <div
             onClick={() => {
-              if (window.history.length <= 1) {
-                navigate('/team', { replace: true });
-              } else {
-                navigate(-1);
-              }
+              navigate('/team', { replace: true });
             }}
+
             className="cursor-pointer"
           >
             <BtnBigArrow />

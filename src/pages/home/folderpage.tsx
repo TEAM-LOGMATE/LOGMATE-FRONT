@@ -117,13 +117,8 @@ export default function FolderPage() {
       >
         <div
           onClick={() => {
-            // 히스토리 길이가 1 이하이면 이전 페이지가 없는 경우 → 기본 경로로 이동
-            if (window.history.length <= 1) {
-              navigate('/personal', { replace: true });
-            } else {
-              navigate(-1);
-            }
-          }}
+                navigate('/personal', { replace: true });
+              }}
           className="cursor-pointer"
         >
           <BtnBigArrow />
