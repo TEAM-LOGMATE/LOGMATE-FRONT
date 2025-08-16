@@ -112,7 +112,21 @@ export default function S_SpacePage() {
 
   const handleMakeTeamSubmit = (data: { name: string; description: string; members: TeamMember[] }) => {
     if (newTeamId != null) {
-      handleRenameFolder(newTeamId, data.name);
+      // Folder에도 description 저장
+      updateFolders((prev) =>
+        prev.map((f) =>
+          f.id === newTeamId
+            ? {
+                ...f,
+                name: data.name,
+                description: data.description,
+                modifiedAt: new Date().toISOString(),
+              }
+            : f
+        )
+      );
+
+      // Meta에도 그대로 저장
       const meta: TeamMeta = {
         description: data.description ?? '',
         members: data.members ?? [],
@@ -137,15 +151,30 @@ export default function S_SpacePage() {
 
   const handleTeamEditSubmit = (data: { name: string; description: string; members: TeamMember[] }) => {
     if (editingTeamId == null) return;
-    handleRenameFolder(editingTeamId, data.name);
-    const meta: TeamMeta = {
-      description: data.description ?? '',
-      members: data.members ?? [],
-    };
-    storage.set(teamMetaKey(username, editingTeamId), meta);
-    setShowTeamSettings(false);
-    setEditingTeamId(null);
+
+    updateFolders((prev) =>
+      prev.map((f) =>
+        f.id === editingTeamId
+          ? {
+              ...f,
+              name: data.name,
+              description: data.description, // 팀 설명 업데이트
+              modifiedAt: new Date().toISOString(),
+            }
+          : f
+      )
+    );
+
+  const meta: TeamMeta = {
+    description: data.description ?? '',
+    members: data.members ?? [],
   };
+  storage.set(teamMetaKey(username, editingTeamId), meta);
+
+  setShowTeamSettings(false);
+  setEditingTeamId(null);
+};
+
 
   const handleTeamDeleteFromEdit = () => {
     if (editingTeamId == null) return;

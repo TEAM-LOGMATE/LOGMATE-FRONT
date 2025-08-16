@@ -27,6 +27,7 @@ export type Folder = {
   name: string;
   createdAt?: string;   // 폴더 생성 시 기록
   modifiedAt?: string;  // 폴더 수정 시 기록
+  description?: string; // 폴더 설명
 };
 
 /* ---------- 개인 스페이스 ---------- */

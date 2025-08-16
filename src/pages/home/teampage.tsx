@@ -127,27 +127,40 @@ export default function TeamPage() {
 
       {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 상단 제목 */}
+        {/* 상단 제목 + 설명 */}
         <motion.div
-          className="flex items-center gap-4"
+          className="flex flex-col gap-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div
-            onClick={() => {
-              navigate('/team', { replace: true });
-            }}
-            className="cursor-pointer"
-          >
-            <BtnBigArrow />
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => {
+                navigate('/team', { replace: true });
+              }}
+              className="cursor-pointer"
+            >
+              <BtnBigArrow />
+            </div>
+            <h1
+              className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
+              style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+            >
+              {currentTeam.name}
+            </h1>
           </div>
-          <h1
-            className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
-            style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+
+          {/* 팀 설명 */}
+          {currentTeam.description && (
+            <p
+            className="text-[14px] font-bold leading-[150%] tracking-[-0.4px] ml-[12px]"
+            style={{ color: 'var(--Gray-300, #AEAEAE)', fontFamily: 'SUIT' }}
           >
-            {currentTeam.name}
-          </h1>
+            {currentTeam.description}
+          </p>
+
+          )}
         </motion.div>
 
         {/* 썸네일 2x2 */}
