@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           const token = localStorage.getItem(TOKEN_KEY);
           if (!token) {
-            setUser(null);
+            if (alive) setUser(null);
           } else {
             const res = await api.get('/auth/me');
             if (alive) {
@@ -90,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setError(null);
     if (USE_MOCK) {
-      // 회원가입 시 저장된 이름 그대로 복구
       const storedUser = readUserFromStorage();
       if (storedUser && storedUser.email === email) {
         setUser(storedUser);
@@ -187,7 +186,10 @@ export function ProtectedRoute({
   fallback?: ReactNode;
 }) {
   const { isLoading, isAuthed } = useAuth();
+
   if (isLoading) return <>{fallback}</>;
+
   if (!isAuthed) return <Navigate to="/login" replace />;
+
   return children;
 }
