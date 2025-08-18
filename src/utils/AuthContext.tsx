@@ -1,6 +1,8 @@
+// src/utils/AuthContext.tsx
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode, ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
+import { api } from '../api/axiosInstance';
 
 export type User = { username: string; email: string };
 
@@ -18,15 +20,10 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const LS_KEY = 'authUser';
+const TOKEN_KEY = 'access_token';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK?.toLowerCase() === 'true';
 
-// 데모 계정 (mock)
-const DEMO_EMAIL = 'admin@logmate.com';
-const DEMO_PASSWORD = 'admin1234@';
-const DEMO_USERNAME = '관리자';
-
-// 나중에 .env로 'api' 전환 가능
-const MODE: 'mock' | 'api' = 'mock';
-
+// 로컬스토리지 유저 읽기/쓰기
 function readUserFromStorage(): User | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -61,63 +58,115 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       setLoading(true);
       try {
-        if (MODE === 'mock') {
+        if (USE_MOCK) {
+          // mock 모드에서는 로컬스토리지에서 바로 복구
           const u = readUserFromStorage();
           if (alive) setUser(u);
         } else {
-          // API 모드: /auth/me 호출
+          const token = localStorage.getItem(TOKEN_KEY);
+          if (!token) {
+            if (alive) setUser(null);
+          } else {
+            const res = await api.get('/auth/me');
+            if (alive) {
+              const u: User = { username: res.data.username, email: res.data.email };
+              setUser(u);
+              writeUserToStorage(u);
+            }
+          }
         }
+      } catch {
+        if (alive) setUser(null);
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
+  // 로그인
   const login = async (email: string, password: string) => {
     setError(null);
-    if (MODE === 'mock') {
-      const ok = email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD;
-      if (!ok) {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-        throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+    if (USE_MOCK) {
+      const storedUser = readUserFromStorage();
+      if (storedUser && storedUser.email === email) {
+        setUser(storedUser);
+        writeUserToStorage(storedUser);
+      } else {
+        const u: User = { username: email.split('@')[0], email };
+        setUser(u);
+        writeUserToStorage(u);
       }
-      const u: User = { username: DEMO_USERNAME, email: DEMO_EMAIL };
-      setUser(u); writeUserToStorage(u);
       return;
     }
-    // API 모드: /auth/login → /auth/me
+    try {
+      const res = await api.post('/users/login', { email, password });
+      if (res.data?.token) {
+        localStorage.setItem(TOKEN_KEY, res.data.token);
+        const me = await api.get('/auth/me');
+        const u: User = { username: me.data.username, email: me.data.email };
+        setUser(u);
+        writeUserToStorage(u);
+      }
+    } catch (err) {
+      setError('로그인 실패');
+      throw err;
+    }
   };
 
+  // 로그아웃
   const logout = async () => {
     setError(null);
-    if (MODE === 'mock') {
-      setUser(null); writeUserToStorage(null);
+    if (USE_MOCK) {
+      setUser(null);
+      writeUserToStorage(null);
       return;
     }
-    // API 모드: /auth/logout
+    try {
+      await api.post('/users/logout');
+    } finally {
+      setUser(null);
+      writeUserToStorage(null);
+      localStorage.removeItem(TOKEN_KEY);
+    }
   };
 
+  // 회원가입
   const signup = async (username: string, email: string, password: string) => {
     setError(null);
-    if (MODE === 'mock') {
+    if (USE_MOCK) {
       const u: User = { username: username.trim() || '사용자', email: email.trim() };
-      setUser(u); writeUserToStorage(u);
+      setUser(u);
+      writeUserToStorage(u);
       return;
     }
-    // API 모드: /auth/signup → login
+    try {
+      await api.post('/users/signup', { name: username, email, password });
+      await login(email, password); // 회원가입 후 자동 로그인
+    } catch (err) {
+      setError('회원가입 실패');
+      throw err;
+    }
   };
 
-  const value: AuthContextValue = useMemo(() => ({
-    user,
-    isLoading,
-    isAuthed: !!user,
-    login,
-    logout,
-    signup,
-    setUserUnsafe: (u) => { setUser(u); writeUserToStorage(u); },
-    error,
-  }), [user, isLoading, error]);
+  const value: AuthContextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthed: !!user,
+      login,
+      logout,
+      signup,
+      setUserUnsafe: (u) => {
+        setUser(u);
+        writeUserToStorage(u);
+      },
+      error,
+    }),
+    [user, isLoading, error]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -132,9 +181,15 @@ export function useAuth() {
 export function ProtectedRoute({
   children,
   fallback = null,
-}: { children: ReactElement; fallback?: ReactNode }) {
+}: {
+  children: ReactElement;
+  fallback?: ReactNode;
+}) {
   const { isLoading, isAuthed } = useAuth();
+
   if (isLoading) return <>{fallback}</>;
+
   if (!isAuthed) return <Navigate to="/login" replace />;
+
   return children;
 }

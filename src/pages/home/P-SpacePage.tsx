@@ -19,7 +19,7 @@ export default function P_SpacePage() {
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [pendingFolder, setPendingFolder] = useState(false);
-  const [pendingDraft, setPendingDraft] = useState('');
+  const [_pendingDraft, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 

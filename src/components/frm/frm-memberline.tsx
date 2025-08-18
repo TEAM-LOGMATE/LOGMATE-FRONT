@@ -48,8 +48,8 @@ export default function FrmMemberLine({
           <BtnRole
             role={role}
             onRoleChange={isLocked ? undefined : onRoleChange}
-            readOnly={isLocked}        // ✅ 관리자면 false
-            hideCaret={isLocked}       // ✅ 관리자면 false → 화살표 표시
+            readOnly={isLocked}       
+            hideCaret={isLocked}       
           />
 
           <BtnDelete onClick={isLocked ? undefined : onDeleteClick} />

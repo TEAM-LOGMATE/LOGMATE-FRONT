@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface BtnSmallArrowProps {
   direction?: 'up' | 'down' | 'right' | 'left';
   selected? : boolean;

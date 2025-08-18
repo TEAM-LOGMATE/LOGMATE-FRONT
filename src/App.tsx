@@ -1,3 +1,4 @@
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import LoginPage from './pages/login/LoginPage';
 import SignupPage from './pages/signup/SignupPage';
@@ -10,6 +11,7 @@ import FolderPage from './pages/home/folderpage';
 import S_SpacePage from './pages/home/S-SpacePage';
 import LandingPage from './pages/landingpage/landingpage';
 import TeamPage from './pages/home/teampage';
+import AppDashboard from './pages/dashboard/appdashboard';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -40,6 +42,15 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* 개인 스페이스 보드(AppDashboard) */}
+      <Route
+        path="/personal/:folderId/:boardId"
+        element={
+          <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
+            <AppDashboard />
+          </ProtectedRoute>
+        }
+      />
 
       {/* 팀 스페이스 */}
       <Route
@@ -55,7 +66,7 @@ function AnimatedRoutes() {
         path="/team/:teamId"
         element={
           <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
-            <TeamPage/>
+            <TeamPage />
           </ProtectedRoute>
         }
       />

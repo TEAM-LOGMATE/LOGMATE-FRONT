@@ -4,6 +4,7 @@ import AddFolding from './add-folding';
 import MyPage from './my-page';
 import SpaceNameG from './spacename-g';
 import SpaceNameS from './spacename-s';
+import Logo from '../../components/icon/logo';
 
 import {
   loadFolders,
@@ -120,15 +121,14 @@ export default function Bar({
   return (
     <div className="w-[220px] h-screen min-h-screen flex-shrink-0 border-r border-[#222] bg-[#171717] flex flex-col">
       {/* 로고 / 유저 */}
-      <div className="flex flex-col px-[16px] pt-[24px]">
+      <div className="flex flex-col px-[16px] pt-[20px]">
         <div className="inline-flex items-center gap-[6px]">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none">
-            <circle cx="10" cy="10" r="9.5" stroke="#6E6E6E" strokeWidth="1" />
-          </svg>
+          {/* 로고 사용 */}
+          <Logo width={20} height={20} fill="var(--Gray-300, #AEAEAE)" />
           <span className="text-[#6E6E6E] font-geist text-[16px]">Log Mate</span>
         </div>
         <div className="pt-[12px]">
-          <span className="text-[#D8D8D8] font-geist text-[16px]">{username}</span>
+          <span className="text-[#D8D8D8] font-Geist text-[16px]">{username}</span>
         </div>
         <div className="mb-[4px]">
           <span
@@ -139,6 +139,7 @@ export default function Bar({
           </span>
         </div>
       </div>
+
 
       <MyPage active={activePage === 'myinfo'} />
 

@@ -1,4 +1,3 @@
-// src/components/landingpage/btn-download.tsx
 import { useState } from 'react';
 
 interface BtnDownloadProps {

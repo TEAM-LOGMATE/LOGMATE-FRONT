@@ -1,11 +1,10 @@
-// src/components/landingpage/index.tsx
 import BtnDownload from './btn-download';
 import PreviewBox from './preview-box';
 import FeatureSection from './feature-section';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-
+import Logo from '../../components/icon/logo';
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -75,7 +74,7 @@ export default function LandingPage() {
             <motion.h1
               ref={heroRef}
               style={{
-                color: '#71FF90',
+                color: '#42FF55',
                 textAlign: 'center',
                 fontFamily: 'Geist',
                 fontSize: '96px',
@@ -86,10 +85,19 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 50 }}
               animate={heroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
               transition={{ duration: 1 }}
+              className="flex items-center gap-4 justify-center"
             >
+              {/* 타이틀 아이콘 */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={heroInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                transition={{ delay: 0.3, duration: 0.8 }}
+              >
+                <Logo />
+              </motion.div>
+
               LogMate
             </motion.h1>
-
             <motion.h2
               style={{
                 color: '#D8D8D8',

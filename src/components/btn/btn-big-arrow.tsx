@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface BtnBigArrowProps {
   direction?: 'up' | 'down' | 'right' | 'left';
   variant?: 'default' | 'variant2';

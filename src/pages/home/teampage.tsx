@@ -6,15 +6,17 @@ import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, storage, type Folder } from '../../utils/storage';
+import { loadFolders, loadTeamFolders, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
+import { api } from '../../api/axiosInstance';
 
 interface Board {
   id: number;
   name: string;
 }
 
-const teamFoldersKey = (username: string) => `teamFolders:${username}`;
+// 개발 시 true, 배포 시 false
+const USE_LOCAL_FALLBACK = true;
 
 export default function TeamPage() {
   const { user } = useAuth();
@@ -27,47 +29,70 @@ export default function TeamPage() {
   const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 팀 폴더 로드
+  // 서버에서 팀 목록 로드
   useEffect(() => {
-    const loaded = storage.get<Folder[]>(teamFoldersKey(username), []);
-    setTeamFolders(loaded);
-    setLoading(false);
+    async function fetchTeamList() {
+      try {
+        const res = await api.get('/teams');
+
+        if (USE_LOCAL_FALLBACK) {
+          // 개발 모드: 서버 + 로컬 데이터 병합
+          const localFolders = loadTeamFolders(username);
+          const merged = [
+            ...res.data,
+            ...localFolders.filter(
+              lf => !res.data.some((sf: Folder) => String(sf.id) === String(lf.id))
+            ),
+          ];
+          setTeamFolders(merged);
+        } else {
+          // 배포 모드: 서버 데이터만
+          setTeamFolders(res.data);
+        }
+      } catch (err) {
+        console.error('팀 목록 불러오기 실패:', err);
+        if (USE_LOCAL_FALLBACK) {
+          // 서버 요청 실패 시 로컬 데이터만 표시
+          setTeamFolders(loadTeamFolders(username));
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTeamList();
   }, [username]);
 
-  // storage 변경 감지
-  useEffect(() => {
-    const key = teamFoldersKey(username);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== key) return;
-      const loaded = storage.get<Folder[]>(teamFoldersKey(username), []);
-      setTeamFolders(loaded);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [username]);
-
-  const updateTeamFolders = (updater: (prev: Folder[]) => Folder[]) => {
-    setTeamFolders((prev) => {
-      const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev;
-      storage.set(teamFoldersKey(username), candidate);
-      return candidate;
-    });
+  // 팀 폴더 추가
+  const handleAddTeamFolder = async () => {
+    try {
+      const res = await api.post(`/teams/${teamId}/folders`, {
+        name: '새 팀',
+        boards: [] as Board[],
+      });
+      setTeamFolders(prev => {
+        if (prev.length >= MAX_SPACES) return prev;
+        return [...prev, res.data];
+      });
+    } catch (err) {
+      console.error('팀 폴더 추가 실패:', err);
+    }
   };
 
-  const handleAddTeamFolder = () => {
-    updateTeamFolders((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), name: '새 팀', boards: [] as Board[] },
-    ]);
+  // 팀 폴더 삭제
+  const handleRemoveTeamFolder = async (folderId?: number | string) => {
+    try {
+      if (!folderId) return;
+      await api.delete(`/teams/${teamId}/folders/${folderId}`);
+      setTeamFolders(prev => prev.filter(f => f.id !== folderId));
+    } catch (err) {
+      console.error('팀 폴더 삭제 실패:', err);
+    }
   };
 
-  const handleRemoveTeamFolder = () => {
-    updateTeamFolders((prev) => prev.slice(0, -1));
-  };
+  // 현재 선택된 팀 정보
+  const currentTeam = teamFolders.find(f => String(f.id) === String(teamId));
 
-  const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
-
+  // 현재 팀이 없으면 /team으로 이동
   useEffect(() => {
     if (!loading && teamId && !currentTeam) {
       navigate('/team');
@@ -86,7 +111,7 @@ export default function TeamPage() {
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
-      {/* Bar: 애니메이션 없음 */}
+      {/* Bar */}
       <Bar
         username={username}
         folders={loadFolders(username)}
@@ -95,38 +120,47 @@ export default function TeamPage() {
         activeFolderId={teamId}
         onAddTeamFolder={handleAddTeamFolder}
         onRemoveTeamFolder={handleRemoveTeamFolder}
-        onSelectFolder={(id) => {
+        onSelectFolder={id => {
           navigate(`/team/${id}`, { replace: true });
         }}
       />
 
       {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 상단 제목 영역 */}
+        {/* 상단 제목 + 설명 */}
         <motion.div
-          className="flex items-center gap-4"
+          className="flex flex-col gap-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div
-            onClick={() => {
-              if (window.history.length <= 1) {
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => {
                 navigate('/team', { replace: true });
-              } else {
-                navigate(-1);
-              }
-            }}
-            className="cursor-pointer"
-          >
-            <BtnBigArrow />
+              }}
+              className="cursor-pointer"
+            >
+              <BtnBigArrow />
+            </div>
+            <h1
+              className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
+              style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+            >
+              {currentTeam.name}
+            </h1>
           </div>
-          <h1
-            className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
-            style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+
+          {/* 팀 설명 */}
+          {currentTeam.description && (
+            <p
+            className="text-[14px] font-bold leading-[150%] tracking-[-0.4px] ml-[12px]"
+            style={{ color: 'var(--Gray-300, #AEAEAE)', fontFamily: 'SUIT' }}
           >
-            {currentTeam.name}
-          </h1>
+            {currentTeam.description}
+          </p>
+
+          )}
         </motion.div>
 
         {/* 썸네일 2x2 */}

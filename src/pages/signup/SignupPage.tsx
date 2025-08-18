@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { loadFolders, saveFolders } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
+import Logo from '../../components/icon/logo';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -89,13 +90,15 @@ export default function SignupPage() {
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">
           {/* 로고 + 제목 */}
           <div className="flex flex-col items-center gap-[20px]">
-            <div
-              className="bg-white text-black text-[12px] font-bold leading-[150%] tracking-[-0.4px]
-                         font-suit flex justify-center items-center px-[1px] py-[3px] aspect-square"
-              style={{ width: '30px' }}
+            {/* 로고 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
             >
-              로고
-            </div>
+              <Logo width={24} height={28} />
+            </motion.div>
+
             <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
               새 계정 만들기
             </h1>
