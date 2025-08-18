@@ -1,3 +1,5 @@
+// src/utils/storage.ts
+
 export const storage = {
   get<T>(key: string, fallback: T): T {
     try {
@@ -28,13 +30,21 @@ export type Folder = {
   createdAt?: string;   // 폴더 생성 시 기록
   modifiedAt?: string;  // 폴더 수정 시 기록
   description?: string; // 폴더 설명
+  spaceType: "personal" | "team"; // 개인 스페이스 또는 팀 스페이스
+  boards?: {    
+    id: number;
+    name: string;
+    logPath?: string;
+  }[];
 };
 
 /* ---------- 개인 스페이스 ---------- */
 export const foldersKey = (username: string) => `folders:${username}`;
 
 export function loadFolders(username: string): Folder[] {
-  return storage.get<Folder[]>(foldersKey(username), []);
+  const data = storage.get<Folder[]>(foldersKey(username), []);
+  // 기존 데이터 보정 (spaceType 누락 방지)
+  return data.map(f => ({ ...f, spaceType: f.spaceType ?? "personal" }));
 }
 
 export function saveFolders(username: string, folders: Folder[]): void {
@@ -45,7 +55,9 @@ export function saveFolders(username: string, folders: Folder[]): void {
 export const teamFoldersKey = (username: string) => `teamFolders:${username}`;
 
 export function loadTeamFolders(username: string): Folder[] {
-  return storage.get<Folder[]>(teamFoldersKey(username), []);
+  const data = storage.get<Folder[]>(teamFoldersKey(username), []);
+  // 기존 데이터 보정 (spaceType 누락 방지)
+  return data.map(f => ({ ...f, spaceType: f.spaceType ?? "team" }));
 }
 
 export function saveTeamFolders(username: string, folders: Folder[]): void {
