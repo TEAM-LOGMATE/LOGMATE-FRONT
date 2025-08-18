@@ -4,9 +4,24 @@ import BtnSetting from '../btn/btn-setting';
 
 interface FrmThumbnailBoardProps {
   connected?: boolean;
+  onAddBoard?: () => void; // 새로운 보드 연결 클릭 이벤트
+  boardName?: string;
+  lastEdited?: string;     // 수정된 날짜 (YYYY.MM.DD)
+  onDelete?: () => void;   // 세팅 버튼 클릭 → 삭제 임의로 구현
+  onOpen?: () => void;     // 보드 이름 클릭 시 대시보드 열기
 }
 
-export default function FrmThumbnailBoard({ connected = true }: FrmThumbnailBoardProps) {
+export default function FrmThumbnailBoard({
+  connected = true,
+  onAddBoard,
+  boardName,
+  lastEdited,
+  onDelete,
+  onOpen,
+}: FrmThumbnailBoardProps) {
+  const today = new Date();
+  const fallbackDate = today.toISOString().slice(0, 10).replace(/-/g, '.');
+
   return (
     <div
       className="
@@ -28,27 +43,20 @@ export default function FrmThumbnailBoard({ connected = true }: FrmThumbnailBoar
             {/* 좌측: 텍스트 영역 */}
             <div className="flex flex-col gap-[2px]">
               <span
+                onClick={onOpen}
                 className="
                   font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px]
-                  text-[#D8D8D8]
+                  text-[#D8D8D8] cursor-pointer
                 "
               >
-                모니터링 보드 A
+                {boardName || '모니터링 보드 A'}
               </span>
               <div className="flex gap-[4px]">
-                <span
-                  className="
-                    font-geist text-[14px] font-light leading-[150%] text-[#AEAEAE]
-                  "
-                >
+                <span className="font-geist text-[14px] font-light leading-[150%] text-[#AEAEAE]">
                   Edited
                 </span>
-                <span
-                  className="
-                    font-geist-mono text-[14px] font-light leading-[150%] text-[#AEAEAE]
-                  "
-                >
-                  0000.00.00
+                <span className="font-geist-mono text-[14px] font-light leading-[150%] text-[#AEAEAE]">
+                  {lastEdited || fallbackDate}
                 </span>
               </div>
             </div>
@@ -56,7 +64,7 @@ export default function FrmThumbnailBoard({ connected = true }: FrmThumbnailBoar
             {/* 우측: 링크 + 세팅 */}
             <div className="flex items-center gap-2 relative top-[8px]">
               <BtnLink>http://google.com</BtnLink>
-              <BtnSetting />
+              <BtnSetting onClick={onDelete} />
             </div>
           </div>
         </>
@@ -64,9 +72,10 @@ export default function FrmThumbnailBoard({ connected = true }: FrmThumbnailBoar
         /* Unconnected 상태 */
         <div className="flex flex-1 w-full h-full justify-center items-center">
           <span
+            onClick={onAddBoard}
             className="
               font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-              text-[#888888]
+              text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition
             "
           >
             새로운 보드 연결하기 +
