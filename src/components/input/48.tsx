@@ -6,6 +6,7 @@ interface Input48Props {
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  width?: string;
 }
 
 export default function Input48({
@@ -14,6 +15,7 @@ export default function Input48({
   placeholder,
   disabled = false,
   readOnly = false,
+  width = 'w-full',
 }: Input48Props) {
   const [isDone, setIsDone] = useState(false);
   const locked = disabled || readOnly;
@@ -32,10 +34,10 @@ export default function Input48({
         ${
           locked
             ? 'rounded-[12px] border border-[var(--Gray-700,#222)] bg-[#171717]'
-            : 'rounded-[8px]  border border-[#222222] bg-[var(--Gray-700,#222)]'
+            : 'rounded-[8px] border border-[#222222] bg-[var(--Gray-700,#222)]'
         }
         font-[SUIT] text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-        w-full
+        ${width}
       `}
       style={{ color: textColor }}
     >
