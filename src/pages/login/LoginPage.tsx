@@ -6,6 +6,7 @@ import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../utils/AuthContext';
+import Logo from '../../components/icon/logo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -89,14 +90,15 @@ export default function LoginPage() {
       >
         {/* 로고 + 제목 */}
         <motion.div variants={itemVariants} className="flex flex-col items-center gap-[20px]">
-          <div
-            className="bg-white text-black text-[12px] font-bold leading-[150%] tracking-[-0.4px]
-                       font-suit flex justify-center items-center 
-                       px-[1px] py-[3px] aspect-square"
-            style={{ width: '30px' }}
+          {/* 로고 */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
           >
-            로고
-          </div>
+          <Logo width={24} height={28} />
+          </motion.div>
+
           <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
             기존 계정으로 로그인
           </h1>
