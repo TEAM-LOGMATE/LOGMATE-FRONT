@@ -1,22 +1,24 @@
 // src/pages/team/TeamPage.tsx
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
+import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, loadTeamFolders, type Folder } from '../../utils/storage';
+import { loadFolders, loadTeamFolders, saveTeamFolders, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
 import { api } from '../../api/axiosInstance';
 
 interface Board {
   id: number;
   name: string;
+  lastEdited?: string;
 }
 
-// 개발 시 true, 배포 시 false
 const USE_LOCAL_FALLBACK = true;
+const FAST_TIMEOUT_MS = 800;
 
 export default function TeamPage() {
   const { user } = useAuth();
@@ -29,73 +31,94 @@ export default function TeamPage() {
   const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 서버에서 팀 목록 로드
-  useEffect(() => {
-    async function fetchTeamList() {
-      try {
-        const res = await api.get('/teams');
+  const [showDashboardMake, setShowDashboardMake] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
-        if (USE_LOCAL_FALLBACK) {
-          // 개발 모드: 서버 + 로컬 데이터 병합
-          const localFolders = loadTeamFolders(username);
-          const merged = [
-            ...res.data,
-            ...localFolders.filter(
-              lf => !res.data.some((sf: Folder) => String(sf.id) === String(lf.id))
-            ),
-          ];
-          setTeamFolders(merged);
-        } else {
-          // 배포 모드: 서버 데이터만
-          setTeamFolders(res.data);
-        }
+  // 로컬 우선 + 네트워크는 뒤에서 짧게 시도
+  useEffect(() => {
+    let cancelled = false;
+
+    // 1) 로컬 즉시 반영
+    const local = loadTeamFolders(username) || [];
+    setTeamFolders(local);
+
+    // 현재 teamId가 로컬에 있으면 로딩 없이 바로 화면
+    const hasLocalCurrent = !!teamId && local.some((f) => String(f.id) === String(teamId));
+    setLoading(!hasLocalCurrent);
+
+    // 2) 네트워크는 짧은 타임아웃으로 시도하고, 성공 시 병합 저장
+    (async () => {
+      try {
+        const res = await api.get('/teams', { timeout: FAST_TIMEOUT_MS });
+        if (cancelled) return;
+
+        const serverTeams: Folder[] = res.data ?? [];
+
+        const merged = USE_LOCAL_FALLBACK
+          ? [
+              ...serverTeams,
+              ...local.filter(
+                (lf) => !serverTeams.some((sf: Folder) => String(sf.id) === String(lf.id))
+              ),
+            ]
+          : serverTeams;
+
+        setTeamFolders(merged);
+        saveTeamFolders(username, merged);
       } catch (err) {
-        console.error('팀 목록 불러오기 실패:', err);
-        if (USE_LOCAL_FALLBACK) {
-          // 서버 요청 실패 시 로컬 데이터만 표시
-          setTeamFolders(loadTeamFolders(username));
+        // 서버가 느리거나 꺼져 있어도 로컬만 유지
+        if (USE_LOCAL_FALLBACK && !cancelled) {
+          const onlyLocal = loadTeamFolders(username) || [];
+          setTeamFolders(onlyLocal);
+          saveTeamFolders(username, onlyLocal);
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
-    fetchTeamList();
-  }, [username]);
+    })();
 
-  // 팀 폴더 추가
+    return () => {
+      cancelled = true;
+    };
+  }, [username, teamId]);
+
   const handleAddTeamFolder = async () => {
     try {
       const res = await api.post(`/teams/${teamId}/folders`, {
         name: '새 팀',
         boards: [] as Board[],
       });
-      setTeamFolders(prev => {
+      setTeamFolders((prev) => {
         if (prev.length >= MAX_SPACES) return prev;
-        return [...prev, res.data];
+        const updated = [...prev, res.data];
+        saveTeamFolders(username, updated);
+        return updated;
       });
     } catch (err) {
       console.error('팀 폴더 추가 실패:', err);
     }
   };
 
-  // 팀 폴더 삭제
   const handleRemoveTeamFolder = async (folderId?: number | string) => {
     try {
       if (!folderId) return;
       await api.delete(`/teams/${teamId}/folders/${folderId}`);
-      setTeamFolders(prev => prev.filter(f => f.id !== folderId));
+      setTeamFolders((prev) => {
+        const updated = prev.filter((f) => String(f.id) !== String(folderId));
+        saveTeamFolders(username, updated);
+        return updated;
+      });
     } catch (err) {
       console.error('팀 폴더 삭제 실패:', err);
     }
   };
 
-  // 현재 선택된 팀 정보
-  const currentTeam = teamFolders.find(f => String(f.id) === String(teamId));
+  const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
 
-  // 현재 팀이 없으면 /team으로 이동
+  // 네트워크 확인 후에도 팀이 없으면 리스트로 복귀
   useEffect(() => {
     if (!loading && teamId && !currentTeam) {
-      navigate('/team');
+      navigate('/team', { replace: true });
     }
   }, [loading, teamId, currentTeam, navigate]);
 
@@ -111,7 +134,6 @@ export default function TeamPage() {
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
-      {/* Bar */}
       <Bar
         username={username}
         folders={loadFolders(username)}
@@ -120,14 +142,14 @@ export default function TeamPage() {
         activeFolderId={teamId}
         onAddTeamFolder={handleAddTeamFolder}
         onRemoveTeamFolder={handleRemoveTeamFolder}
-        onSelectFolder={id => {
+        onSelectFolder={(id) => {
+          // 즉시 이동
           navigate(`/team/${id}`, { replace: true });
         }}
       />
 
-      {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 상단 제목 + 설명 */}
+        {/* 상단 */}
         <motion.div
           className="flex flex-col gap-2"
           initial={{ opacity: 0, y: 20 }}
@@ -135,31 +157,24 @@ export default function TeamPage() {
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <div className="flex items-center gap-4">
-            <div
-              onClick={() => {
-                navigate('/team', { replace: true });
-              }}
-              className="cursor-pointer"
-            >
+            <div onClick={() => navigate('/team', { replace: true })} className="cursor-pointer">
               <BtnBigArrow />
             </div>
             <h1
               className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
-              style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
+              style={{ color: '#F2F2F2', fontFamily: 'SUIT' }}
             >
               {currentTeam.name}
             </h1>
           </div>
 
-          {/* 팀 설명 */}
           {currentTeam.description && (
             <p
-            className="text-[14px] font-bold leading-[150%] tracking-[-0.4px] ml-[12px]"
-            style={{ color: 'var(--Gray-300, #AEAEAE)', fontFamily: 'SUIT' }}
-          >
-            {currentTeam.description}
-          </p>
-
+              className="text-[14px] font-bold leading-[150%] tracking-[-0.4px] ml-[12px]"
+              style={{ color: '#AEAEAE', fontFamily: 'SUIT' }}
+            >
+              {currentTeam.description}
+            </p>
           )}
         </motion.div>
 
@@ -177,7 +192,14 @@ export default function TeamPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <FrmThumbnailBoard connected={false} />
+              <FrmThumbnailBoard
+                connected={false}
+                spaceType="team"
+                onAddBoard={() => {
+                  setSelectedFolderId(Number(currentTeam.id));
+                  setShowDashboardMake(true);
+                }}
+              />
             </motion.div>
           ) : (
             boards.map((b, idx) => (
@@ -185,17 +207,62 @@ export default function TeamPage() {
                 key={b.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  duration: 0.3,
-                  delay: idx * 0.05,
-                }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
               >
-                <FrmThumbnailBoard connected />
+                <FrmThumbnailBoard
+                  connected
+                  spaceType="team"
+                  boardName={b.name}
+                  lastEdited={b.lastEdited}
+                  // 정확한 라우팅: /team/:teamId/:boardId
+                  onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
+                />
               </motion.div>
             ))
           )}
         </div>
       </div>
+
+      {/* DashboardMake 모달 */}
+      <AnimatePresence>
+        {showDashboardMake && selectedFolderId != null && (
+          <motion.div
+            key="dashboardMakeModal"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            >
+              <DashboardMake
+                onClose={() => {
+                  setShowDashboardMake(false);
+                  setSelectedFolderId(null);
+                }}
+                onCreate={(board) => {
+                  setTeamFolders((prev) => {
+                    const updated = prev.map((team) =>
+                      String(team.id) === String(selectedFolderId)
+                        ? { ...team, boards: [...(team.boards ?? []), board] }
+                        : team
+                    );
+                    saveTeamFolders(username, updated);
+                    return updated;
+                  });
+                  setShowDashboardMake(false);
+                  setSelectedFolderId(null);
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
