@@ -5,6 +5,7 @@ import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
+import ToastMessage from '../dashboard/toastmessage';
 import { useAuth } from '../../utils/AuthContext';
 import { loadFolders, saveFolders, foldersKey, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
@@ -31,6 +32,7 @@ export default function FolderPage() {
   );
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (folderId) {
@@ -68,12 +70,12 @@ export default function FolderPage() {
   const handleAddFolder = () => {
     updateFolders((prev) => [
       ...prev,
-       {
-    id: Date.now() + Math.random(),
-    name: '새 폴더',
-    boards: [] as Board[],
-    spaceType: 'personal', 
-  },
+      {
+        id: Date.now() + Math.random(),
+        name: '새 폴더',
+        boards: [] as Board[],
+        spaceType: 'personal',
+      },
     ]);
   };
 
@@ -108,6 +110,7 @@ export default function FolderPage() {
           : folder
       )
     );
+    setShowToast(true);
   };
 
   // 보드 삭제
@@ -224,6 +227,13 @@ export default function FolderPage() {
               }}
             />
           </div>
+        </div>
+      )}
+
+      {/* ToastMessage 모달 */}
+      {showToast && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <ToastMessage onCloseToast={() => setShowToast(false)} />
         </div>
       )}
     </div>

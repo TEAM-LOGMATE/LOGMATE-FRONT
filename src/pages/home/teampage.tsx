@@ -1,4 +1,4 @@
-// src/pages/team/TeamPage.tsx
+import ToastMessage from '../dashboard/toastmessage';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,20 +33,17 @@ export default function TeamPage() {
 
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
-  // 로컬 우선 + 네트워크는 뒤에서 짧게 시도
+  // 로컬 + 네트워크 병합
   useEffect(() => {
     let cancelled = false;
-
-    // 1) 로컬 즉시 반영
     const local = loadTeamFolders(username) || [];
     setTeamFolders(local);
 
-    // 현재 teamId가 로컬에 있으면 로딩 없이 바로 화면
     const hasLocalCurrent = !!teamId && local.some((f) => String(f.id) === String(teamId));
     setLoading(!hasLocalCurrent);
 
-    // 2) 네트워크는 짧은 타임아웃으로 시도하고, 성공 시 병합 저장
     (async () => {
       try {
         const res = await api.get('/teams', { timeout: FAST_TIMEOUT_MS });
@@ -65,8 +62,7 @@ export default function TeamPage() {
 
         setTeamFolders(merged);
         saveTeamFolders(username, merged);
-      } catch (err) {
-        // 서버가 느리거나 꺼져 있어도 로컬만 유지
+      } catch {
         if (USE_LOCAL_FALLBACK && !cancelled) {
           const onlyLocal = loadTeamFolders(username) || [];
           setTeamFolders(onlyLocal);
@@ -115,7 +111,6 @@ export default function TeamPage() {
 
   const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
 
-  // 네트워크 확인 후에도 팀이 없으면 리스트로 복귀
   useEffect(() => {
     if (!loading && teamId && !currentTeam) {
       navigate('/team', { replace: true });
@@ -143,7 +138,6 @@ export default function TeamPage() {
         onAddTeamFolder={handleAddTeamFolder}
         onRemoveTeamFolder={handleRemoveTeamFolder}
         onSelectFolder={(id) => {
-          // 즉시 이동
           navigate(`/team/${id}`, { replace: true });
         }}
       />
@@ -178,49 +172,51 @@ export default function TeamPage() {
           )}
         </motion.div>
 
-        {/* 썸네일 2x2 */}
+        {/* 썸네일 목록 */}
         <div
-          className="grid gap-4 flex-1"
+          className="grid gap-x-10 gap-y-10 flex-1"
           style={{
-            gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gridTemplateColumns: "repeat(auto-fill, 640px)",
+            gridAutoRows: "372px",
+            justifyContent: "start",
+            alignContent: "start",
           }}
         >
-          {boards.length === 0 ? (
+          {boards.map((b, idx) => (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              key={b.id}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3, delay: idx * 0.05 }}
             >
               <FrmThumbnailBoard
-                connected={false}
+                connected
                 spaceType="team"
-                onAddBoard={() => {
-                  setSelectedFolderId(Number(currentTeam.id));
-                  setShowDashboardMake(true);
-                }}
+                boardName={b.name}
+                lastEdited={b.lastEdited}
+                onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
               />
             </motion.div>
-          ) : (
-            boards.map((b, idx) => (
-              <motion.div
-                key={b.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-              >
-                <FrmThumbnailBoard
-                  connected
-                  spaceType="team"
-                  boardName={b.name}
-                  lastEdited={b.lastEdited}
-                  // 정확한 라우팅: /team/:teamId/:boardId
-                  onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
-                />
-              </motion.div>
-            ))
-          )}
+          ))}
+
+          {/* + 버튼 */}
+          <motion.div
+            key="add-board-btn"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FrmThumbnailBoard
+              connected={false}
+              spaceType="team"
+              onAddBoard={() => {
+                setSelectedFolderId(Number(currentTeam.id));
+                setShowDashboardMake(true);
+              }}
+            />
+          </motion.div>
         </div>
+
       </div>
 
       {/* DashboardMake 모달 */}
@@ -257,12 +253,20 @@ export default function TeamPage() {
                   });
                   setShowDashboardMake(false);
                   setSelectedFolderId(null);
+                  setShowToast(true);
                 }}
               />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ToastMessage 모달 */}
+      {showToast && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <ToastMessage onCloseToast={() => setShowToast(false)} />
+        </div>
+      )}
     </div>
   );
 }
