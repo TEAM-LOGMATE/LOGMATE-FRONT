@@ -4,7 +4,7 @@ import BtnMoreText from '../btn/btn-more-text';
 
 interface FrmFolderProps {
   name: string;
-  boards?: any[]; // 보드 데이터 배열 (없으면 초기 1개)
+  boards?: any[];
 
   // 공통
   spaceType?: 'personal' | 'team';
@@ -12,6 +12,7 @@ interface FrmFolderProps {
   containerRef?: React.Ref<HTMLDivElement>;
   onDraftChange?: (value: string) => void;
   onCancel?: () => void;
+  onAddBoard?: () => void;
 
   // 개인 스페이스 전용
   onRename?: (newName: string) => void;
@@ -34,6 +35,7 @@ export default function FrmFolder({
   onClickName,
   onOpenTeamSettings,
   onLeaveTeam,
+  onAddBoard
 }: FrmFolderProps) {
   const [isEditing, setIsEditing] = useState(name === '새 폴더' || name === '새 팀');
   const [inputValue, setInputValue] = useState(name);
@@ -58,9 +60,7 @@ export default function FrmFolder({
       if (!isEditing) return;
       const target = e.target as Node;
 
-      // 메뉴 클릭은 무시
       if (menuRef.current?.contains(target)) return;
-      // 인풋 클릭은 무시
       if (inputRef.current?.contains(target)) return;
 
       const trimmed = inputValue.trim();
