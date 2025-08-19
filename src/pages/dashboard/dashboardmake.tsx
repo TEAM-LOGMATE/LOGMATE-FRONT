@@ -3,6 +3,7 @@ import Input48 from '../../components/input/48';
 import BtnSmallArrow from '../../components/btn/btn-small-arrow';
 import BtnSign2Small from '../../components/btn/btn-sign-2-small';
 import BtnDropdown from '../../components/btn/btn-dropdown';
+import AdvancedSettings from './advancedsetting';
 
 interface DashboardMakeProps {
   onClose?: () => void;
@@ -12,6 +13,8 @@ interface DashboardMakeProps {
 export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
   const [boardName, setBoardName] = useState('');
+
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false); 
 
   const isFormValid = logPath.trim() !== '' && boardName.trim() !== '';
 
@@ -49,7 +52,7 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
       </h2>
 
       {/* 입력 영역 */}
-      <div className="flex flex-col w-[80%]">
+      <div className="flex flex-col w-[86%]">
         {/* 로그 파일 경로 */}
         <label className="mb-2 flex items-center gap-1">
           <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
@@ -115,13 +118,23 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
           </div>
         </div>
 
-        {/* 고급 설정 */}
-        <div className="mt-4 flex items-center justify-center gap-1 cursor-pointer">
+        {/* 고급 설정 버튼 */}
+        <div
+          className="mt-4 flex items-center justify-center gap-1 cursor-pointer"
+          onClick={() => setIsAdvancedOpen((prev) => !prev)} // 토글
+        >
           <span className="text-[#888] font-[SUIT] font-medium text-[16px] leading-[150%] tracking-[-0.4px]">
             고급 설정
           </span>
-          <BtnSmallArrow />
+          <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
         </div>
+
+        {/* 고급 설정 컴포넌트 */}
+        {isAdvancedOpen && (
+          <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
+            <AdvancedSettings />
+          </div>
+        )}
       </div>
 
       {/* 보드 만들기 버튼 */}
