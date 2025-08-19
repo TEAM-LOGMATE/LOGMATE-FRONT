@@ -8,6 +8,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLogStore } from "../../utils/logstore"; // 로그 스토어 연결
+import type { AppLog, WebLog } from "../../utils/logstore";
 
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
@@ -40,35 +42,49 @@ export default function AppTimeLog() {
   const [activeRange, setActiveRange] = useState("1h");
   const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
 
+  // 실제 로그 가져오기
+  const { appLogs, webLogs } = useLogStore();
+
   const generateData = (range: string) => {
     let labels: string[] = [];
 
     if (range === "1h") {
-      // 1시간 → 5분 단위 12개
-      labels = generateTimeLabels(12, 5);
+      labels = generateTimeLabels(12, 5); // 5분 단위 12개
     } else if (range === "6h") {
-      // 6시간 → 30분 단위 12개
-      labels = generateTimeLabels(12, 30);
+      labels = generateTimeLabels(12, 30); // 30분 단위
     } else {
-      // 12시간 → 1시간 단위 12개
-      labels = generateTimeLabels(12, 60);
+      labels = generateTimeLabels(12, 60); // 1시간 단위
     }
+
+    // appLogs + webLogs 합치기
+    const allLogs = [...appLogs, ...webLogs] as (AppLog | WebLog)[];
+
+    // 시간대별 count 계산
+    const counts: Record<string, number> = {};
+    labels.forEach((l) => (counts[l] = 0));
+
+    allLogs.forEach((log) => {
+      const t = new Date(log.timestamp);
+      const label = t.toTimeString().slice(0, 5);
+      // 레이블 중 가장 가까운 시간대에 반영
+      const closest = labels.reduce((a, b) =>
+        Math.abs(parseInt(label.replace(":", "")) - parseInt(a.replace(":", ""))) <
+        Math.abs(parseInt(label.replace(":", "")) - parseInt(b.replace(":", "")))
+          ? a
+          : b
+      );
+      counts[closest] = (counts[closest] || 0) + 1;
+    });
 
     return labels.map((t) => ({
       time: t,
-      value: Math.floor(Math.random() * 100),
+      value: counts[t] || 0,
     }));
   };
 
   useEffect(() => {
     setChartData(generateData(activeRange));
-
-    const interval = setInterval(() => {
-      setChartData(generateData(activeRange));
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [activeRange]);
+  }, [activeRange, appLogs, webLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">

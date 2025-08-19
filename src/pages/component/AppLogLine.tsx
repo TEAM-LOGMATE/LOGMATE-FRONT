@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLogStore } from "../../utils/logstore"; // 로그 스토어 연결
 
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
@@ -28,36 +29,50 @@ const CustomTick = (props: any) => {
   );
 };
 
-const generateTimeLabels = (count: number, stepMinutes: number) => {
-  const now = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const t = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
-    return t.toTimeString().slice(0, 5); 
-  });
-};
-
 export default function AppLogLine() {
+  const { appLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
+  const [chartData, setChartData] = useState<
+    { time: string; warn: number; error: number; fatal: number }[]
+  >([]);
 
+  // 범위별 데이터 생성
   const generateData = (range: string) => {
-    let labels: string[] = [];
+    const now = new Date();
+    let count = 12;
+    let stepMinutes = 5;
 
-    if (range === "1h") {
-      // 1시간 → 5분 단위 12개
-      labels = generateTimeLabels(12, 5);
-    } else if (range === "6h") {
-      // 6시간 → 30분 단위 12개
-      labels = generateTimeLabels(12, 30);
-    } else {
-      // 12시간 → 1시간 단위 12개
-      labels = generateTimeLabels(12, 60);
-    }
+    if (range === "1h") stepMinutes = 5; // 12칸 = 60분
+    else if (range === "6h") stepMinutes = 30; // 12칸 = 360분
+    else stepMinutes = 60; // 12칸 = 720분
 
-    return labels.map((t) => ({
-      time: t,
-      value: Math.floor(Math.random() * 100),
-    }));
+    return Array.from({ length: count }, (_, i) => {
+      const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
+      const end = new Date(start.getTime() + stepMinutes * 60000);
+
+      // WARN, ERROR, FATAL 각각 카운트
+      const warnCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return t >= start && t < end && log.level.toUpperCase() === "WARN";
+      }).length;
+
+      const errorCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return t >= start && t < end && log.level.toUpperCase() === "ERROR";
+      }).length;
+
+      const fatalCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return t >= start && t < end && log.level.toUpperCase() === "FATAL";
+      }).length;
+
+      return {
+        time: start.toTimeString().slice(0, 5),
+        warn: warnCount,
+        error: errorCount,
+        fatal: fatalCount,
+      };
+    });
   };
 
   useEffect(() => {
@@ -65,10 +80,10 @@ export default function AppLogLine() {
 
     const interval = setInterval(() => {
       setChartData(generateData(activeRange));
-    }, 2000);
+    }, 5000); // 5초마다 갱신
 
     return () => clearInterval(interval);
-  }, [activeRange]);
+  }, [activeRange, appLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
@@ -119,10 +134,27 @@ export default function AppLogLine() {
               contentStyle={{ backgroundColor: "#232323", borderRadius: "6px" }}
               labelStyle={{ color: "#F2F2F2" }}
             />
+            {/* WARN */}
             <Line
               type="linear"
-              dataKey="value"
-              stroke="#FF6969"
+              dataKey="warn"
+              stroke="#FFD058" // 노랑
+              strokeWidth={2}
+              dot={false}
+            />
+            {/* ERROR */}
+            <Line
+              type="linear"
+              dataKey="error"
+              stroke="#FF6969" // 빨강
+              strokeWidth={2}
+              dot={false}
+            />
+            {/* FATAL */}
+            <Line
+              type="linear"
+              dataKey="fatal"
+              stroke="#9B5DE5" // 보라
               strokeWidth={2}
               dot={false}
             />

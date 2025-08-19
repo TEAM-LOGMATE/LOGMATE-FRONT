@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLogStore } from "../../utils/logstore";
 
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
@@ -32,43 +33,56 @@ const generateTimeLabels = (count: number, stepMinutes: number) => {
   const now = new Date();
   return Array.from({ length: count }, (_, i) => {
     const t = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
-    return t.toTimeString().slice(0, 5);
+    return t.toTimeString().slice(0, 5); // HH:mm
   });
 };
 
 export default function WebTimeLog() {
+  const { webLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
+  const [chartData, setChartData] = useState<{ time: string; value: number }[]>(
+    []
+  );
 
-  const generateData = (range: string) => {
+  // 로그 기반 데이터 생성
+  const generateDataFromLogs = (range: string) => {
     let labels: string[] = [];
 
     if (range === "1h") {
-      // 1시간 → 5분 단위 12개
       labels = generateTimeLabels(12, 5);
     } else if (range === "6h") {
-      // 6시간 → 30분 단위 12개
       labels = generateTimeLabels(12, 30);
     } else {
-      // 12시간 → 1시간 단위 12개
       labels = generateTimeLabels(12, 60);
     }
 
-    return labels.map((t) => ({
-      time: t,
-      value: Math.floor(Math.random() * 100),
-    }));
+    return labels.map((labelTime) => {
+      const [hour, minute] = labelTime.split(":").map(Number);
+
+      const logsAtTime = webLogs.filter((log) => {
+        const logDate = new Date(log.timestamp);
+        return (
+          logDate.getHours() === hour &&
+          Math.floor(
+            logDate.getMinutes() /
+              (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+          ) ===
+            Math.floor(
+              minute / (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+            )
+        );
+      });
+
+      return {
+        time: labelTime,
+        value: logsAtTime.length,
+      };
+    });
   };
 
   useEffect(() => {
-    setChartData(generateData(activeRange));
-
-    const interval = setInterval(() => {
-      setChartData(generateData(activeRange));
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [activeRange]);
+    setChartData(generateDataFromLogs(activeRange));
+  }, [activeRange, webLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
@@ -84,13 +98,18 @@ export default function WebTimeLog() {
           <button
             key={range}
             onClick={() => setActiveRange(range)}
-            className={`px-4 py-1.5 rounded-[19px] text-[14px] ${
-              activeRange === range
+            className={
+              `px-4 py-1.5 rounded-[19px] text-[14px] ` +
+              (activeRange === range
                 ? "bg-[#4FE75E] text-black"
-                : "bg-[#222] text-[#AEAEAE]"
-            }`}
+                : "bg-[#222] text-[#AEAEAE]")
+            }
           >
-            {range === "1h" ? "1시간 전" : range === "6h" ? "6시간 전" : "12시간 전"}
+            {range === "1h"
+              ? "1시간 전"
+              : range === "6h"
+              ? "6시간 전"
+              : "12시간 전"}
           </button>
         ))}
       </div>
@@ -102,7 +121,11 @@ export default function WebTimeLog() {
             data={chartData}
             margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
           >
-            <CartesianGrid stroke="#292929" strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid
+              stroke="#292929"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
             <XAxis
               dataKey="time"
               interval={0}

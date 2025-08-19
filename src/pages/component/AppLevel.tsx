@@ -1,27 +1,28 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
+import { useLogStore } from "../../utils/logstore"; // 로그 스토어에서 가져오기
 
 export default function AppLevel() {
-  const [data, setData] = useState([
-    { name: "Info", value: 40, color: "#3B82F6" },     // 파랑
-    { name: "Warning", value: 35, color: "#FFD058" },  // 노랑
-    { name: "Error", value: 25, color: "#F03838" },    // 빨강
-  ]);
+  const logs = useLogStore((s) => s.appLogs);
+
+  // 로그 레벨별 카운트 계산
+  const levelCounts = useMemo(() => {
+    const counts = { INFO: 0, WARN: 0, ERROR: 0 };
+    logs.forEach((log) => {
+      if (log.level === "INFO") counts.INFO++;
+      if (log.level === "WARN") counts.WARN++;
+      if (log.level === "ERROR") counts.ERROR++;
+    });
+    return counts;
+  }, [logs]);
+
+  const data = [
+    { name: "Info", value: levelCounts.INFO, color: "#3B82F6" },   // 파랑
+    { name: "Warning", value: levelCounts.WARN, color: "#FFD058" },// 노랑
+    { name: "Error", value: levelCounts.ERROR, color: "#F03838" }, // 빨강
+  ];
 
   const [selectedName, setSelectedName] = useState<string | null>(null);
-
-  // 값 랜덤 변경 (2초마다)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData((prev) =>
-        prev.map((d) => ({
-          ...d,
-          value: Math.floor(Math.random() * 50) + 10, // 10~60 랜덤
-        }))
-      );
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const selected = selectedName ? data.find((d) => d.name === selectedName) : null;
@@ -38,7 +39,7 @@ export default function AppLevel() {
             에러 발생
           </span>
           <span className="text-[#FFB3B3] font-['Geist Mono'] text-[14px] font-medium leading-[150%]">
-            +5
+            +{levelCounts.ERROR}
           </span>
         </div>
       </div>
@@ -93,7 +94,7 @@ export default function AppLevel() {
       </div>
 
       {/* 선택한 섹터 정보 */}
-      {selected && (
+      {selected && total > 0 && (
         <div className="mt-4 text-[14px] text-[#D8D8D8]">
           선택된 항목: <span style={{ color: selected.color }}>{selected.name}</span>  
           ({selected.value} / {total}, {((selected.value / total) * 100).toFixed(1)}%)

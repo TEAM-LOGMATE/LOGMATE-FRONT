@@ -8,7 +8,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLogStore } from "../../utils/logstore";
 
+// 커스텀 X축 라벨
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
   return (
@@ -28,6 +30,7 @@ const CustomTick = (props: any) => {
   );
 };
 
+// 시간 라벨 생성
 const generateTimeLabels = (count: number, stepMinutes: number) => {
   const now = new Date();
   return Array.from({ length: count }, (_, i) => {
@@ -37,45 +40,61 @@ const generateTimeLabels = (count: number, stepMinutes: number) => {
 };
 
 export default function WebLogLine() {
+  const { webLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
-  const generateData = (range: string) => {
+  // 로그 기반 데이터 생성
+  const generateDataFromLogs = (range: string) => {
     let labels: string[] = [];
 
     if (range === "1h") {
-      // 1시간 → 5분 단위 12개
       labels = generateTimeLabels(12, 5);
     } else if (range === "6h") {
-      // 6시간 → 30분 단위 12개
       labels = generateTimeLabels(12, 30);
     } else {
-      // 12시간 → 1시간 단위 12개
       labels = generateTimeLabels(12, 60);
     }
 
-    return labels.map((t) => ({
-      time: t,
-      value: Math.floor(Math.random() * 100),
-    }));
+    return labels.map((labelTime) => {
+      const [hour, minute] = labelTime.split(":").map(Number);
+
+      const logsAtTime = webLogs.filter((log) => {
+        const logDate = new Date(log.timestamp);
+        return (
+          logDate.getHours() === hour &&
+          Math.floor(
+            logDate.getMinutes() /
+              (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+          ) ===
+            Math.floor(
+              minute / (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+            )
+        );
+      });
+
+      return {
+        time: labelTime,
+        warning: logsAtTime.filter(
+          (l) => l.aiScore >= 60 && l.aiScore < 70
+        ).length,
+        danger: logsAtTime.filter((l) => l.aiScore >= 70).length,
+      };
+    });
   };
 
   useEffect(() => {
-    setChartData(generateData(activeRange));
-
-    const interval = setInterval(() => {
-      setChartData(generateData(activeRange));
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [activeRange]);
+    setChartData(generateDataFromLogs(activeRange));
+  }, [activeRange, webLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
       {/* 제목 + 설명 */}
       <div className="flex items-center gap-3 mb-2 -ml-1">
         <h2 className="text-[24px] font-bold text-[#F2F2F2]">이상 로그라인</h2>
-        <p className="text-[14px] text-[#AEAEAE]">시간대별 AI 이상 탐지 수 변화</p>
+        <p className="text-[14px] text-[#AEAEAE]">
+          시간대별 AI 이상 탐지 수 변화
+        </p>
       </div>
 
       {/* 버튼 */}
@@ -119,12 +138,23 @@ export default function WebLogLine() {
               contentStyle={{ backgroundColor: "#232323", borderRadius: "6px" }}
               labelStyle={{ color: "#F2F2F2" }}
             />
+
+            {/* Warning (노랑), Danger (빨강) */}
             <Line
               type="linear"
-              dataKey="value"
+              dataKey="warning"
+              stroke="#FFD058"
+              strokeWidth={2}
+              dot={false}
+              name="경고"
+            />
+            <Line
+              type="linear"
+              dataKey="danger"
               stroke="#FF6969"
               strokeWidth={2}
               dot={false}
+              name="위험"
             />
           </LineChart>
         </ResponsiveContainer>

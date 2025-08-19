@@ -1,4 +1,3 @@
-// src/pages/dashboard/WebDashboard.tsx
 import { useState } from "react";
 import WebAll from "../component/WebAll";
 import WebAI from "../component/WebAI";

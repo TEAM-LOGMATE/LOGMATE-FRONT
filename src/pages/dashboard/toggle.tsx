@@ -1,4 +1,3 @@
-// src/components/toggle.tsx
 interface ToggleProps {
   activeTab: "app" | "web";
   setActiveTab: (tab: "app" | "web") => void;

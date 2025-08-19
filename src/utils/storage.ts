@@ -1,5 +1,3 @@
-// src/utils/storage.ts
-
 export const storage = {
   get<T>(key: string, fallback: T): T {
     try {
@@ -43,7 +41,7 @@ export const foldersKey = (username: string) => `folders:${username}`;
 
 export function loadFolders(username: string): Folder[] {
   const data = storage.get<Folder[]>(foldersKey(username), []);
-  // 기존 데이터 보정 (spaceType 누락 방지)
+  // 저장된 spaceType 있으면 유지, 없으면 personal
   return data.map(f => ({ ...f, spaceType: f.spaceType ?? "personal" }));
 }
 
@@ -56,7 +54,7 @@ export const teamFoldersKey = (username: string) => `teamFolders:${username}`;
 
 export function loadTeamFolders(username: string): Folder[] {
   const data = storage.get<Folder[]>(teamFoldersKey(username), []);
-  // 기존 데이터 보정 (spaceType 누락 방지)
+  // 저장된 spaceType 있으면 유지, 없으면 team
   return data.map(f => ({ ...f, spaceType: f.spaceType ?? "team" }));
 }
 

@@ -1,3 +1,4 @@
+// src/components/frm/frm-thumbnail-board.tsx
 import AgentStatusUnresponsive from '../text/agent-status-unresponse';
 import BtnLink from '../btn/btn-link';
 import BtnSetting from '../btn/btn-setting';
@@ -7,8 +8,9 @@ interface FrmThumbnailBoardProps {
   onAddBoard?: () => void; // 새로운 보드 연결 클릭 이벤트
   boardName?: string;
   lastEdited?: string;     // 수정된 날짜 (YYYY.MM.DD)
-  onDelete?: () => void;   // 세팅 버튼 클릭 → 삭제 임의로 구현
+  onDelete?: () => void;   // 세팅 버튼 클릭 → 삭제
   onOpen?: () => void;     // 보드 이름 클릭 시 대시보드 열기
+  spaceType?: "personal" | "team"; // 스페이스 타입
 }
 
 export default function FrmThumbnailBoard({
@@ -18,6 +20,7 @@ export default function FrmThumbnailBoard({
   lastEdited,
   onDelete,
   onOpen,
+  spaceType = "personal",
 }: FrmThumbnailBoardProps) {
   const today = new Date();
   const fallbackDate = today.toISOString().slice(0, 10).replace(/-/g, '.');
@@ -43,13 +46,13 @@ export default function FrmThumbnailBoard({
             {/* 좌측: 텍스트 영역 */}
             <div className="flex flex-col gap-[2px]">
               <span
-                onClick={onOpen}
+                onClick={() => onOpen?.()} 
                 className="
                   font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px]
-                  text-[#D8D8D8] cursor-pointer
+                  text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition
                 "
               >
-                {boardName || '모니터링 보드 A'}
+                {boardName || (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
                 <span className="font-geist text-[14px] font-light leading-[150%] text-[#AEAEAE]">
@@ -78,7 +81,7 @@ export default function FrmThumbnailBoard({
               text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition
             "
           >
-            새로운 보드 연결하기 +
+            {spaceType === "team" ? "팀 보드 연결하기 +" : "새로운 보드 연결하기 +"}
           </span>
         </div>
       )}
