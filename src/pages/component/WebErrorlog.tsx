@@ -1,4 +1,18 @@
+// src/pages/component/WebErrorLog.tsx
+import { useLogStore } from "../../utils/logstore";
+
 export default function WebErrorLog() {
+  const { webLogs } = useLogStore();
+
+  // HTTP 상태 코드 카운트
+  const counts: Record<string, number> = {};
+  webLogs.forEach((log) => {
+    counts[log.status] = (counts[log.status] || 0) + 1;
+  });
+
+  const error400 = counts["400"] || 0;
+  const error500 = counts["500"] || 0;
+
   return (
     <div
       className="
@@ -32,7 +46,7 @@ export default function WebErrorLog() {
             leading-[130%]
           "
         >
-          45
+          {error400}
         </span>
       </div>
 
@@ -59,7 +73,7 @@ export default function WebErrorLog() {
             leading-[130%]
           "
         >
-          290
+          {error500}
         </span>
       </div>
     </div>

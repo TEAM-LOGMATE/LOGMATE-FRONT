@@ -1,6 +1,7 @@
 import { PieChart, Sector } from "recharts";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useLogStore } from "../../utils/logstore"; // ✅ logstore 불러오기
 
 const CustomSector = ({
   cx,
@@ -24,38 +25,43 @@ const CustomSector = ({
 );
 
 export default function WebPath() {
-  const [data, setData] = useState([
-    { name: "/home", value: 1200, color: "#3B82F6" },
-    { name: "/login", value: 950, color: "#EF4444" },
-    { name: "/dashboard", value: 870, color: "#FFB663" },
-    { name: "/settings", value: 720, color: "#7B5ED2" },
-    { name: "/about", value: 680, color: "#B3D35C" },
-    { name: "/profile", value: 540, color: "#2BC3C6" },
-    { name: "/admin", value: 420, color: "#335389" },
-    { name: "/contact", value: 350, color: "#AEAEAE" },
-    { name: "/terms", value: 300, color: "#AEAEAE" },
-    { name: "/privacy", value: 250, color: "#D8D8D8" },
-  ]);
-
+  const { webLogs } = useLogStore();
   const [selected, setSelected] = useState<{
     name: string;
     value: number;
     color: string;
   } | null>(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData((prev) =>
-        prev.map((d) => ({
-          ...d,
-          value: Math.floor(Math.random() * 1200) + 100,
-        }))
-      );
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  // ✅ Path별 카운트
+  const counts: Record<string, number> = {};
+  webLogs.forEach((log: any) => {
+    const path = log.url || log.path || "/";
+    counts[path] = (counts[path] || 0) + 1;
+  });
 
-  const sorted = [...data].sort((a, b) => b.value - a.value);
+  // ✅ 상위 10개만 추출 + 고정 색상 매핑
+  const fixedColors = [
+    "#3B82F6", // 파랑
+    "#EF4444", // 빨강
+    "#FFB663", // 주황
+    "#7B5ED2", // 보라
+    "#B3D35C", // 연두
+    "#2BC3C6", // 청록
+    "#335389", // 남색
+    "#AEAEAE", // 회색
+    "#AEAEAE", // 회색 (terms랑 동일)
+    "#D8D8D8", // 밝은 회색
+  ];
+
+  const sorted = Object.entries(counts)
+    .map(([name, value], i) => ({
+      name,
+      value,
+      color: fixedColors[i] || "#888888", // 고정 팔레트
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   let cumulative = 0;
 

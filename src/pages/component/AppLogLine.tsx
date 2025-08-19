@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useLogStore } from "../../utils/logstore"; // 로그 스토어 연결
 
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
@@ -28,36 +29,43 @@ const CustomTick = (props: any) => {
   );
 };
 
-const generateTimeLabels = (count: number, stepMinutes: number) => {
-  const now = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const t = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
-    return t.toTimeString().slice(0, 5); 
-  });
-};
+// 이상 로그 레벨 정의
+const abnormalLevels = ["WARN", "ERROR", "FATAL"];
 
 export default function AppLogLine() {
+  const { appLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
   const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
 
+  // 범위별 데이터 생성
   const generateData = (range: string) => {
-    let labels: string[] = [];
+    const now = new Date();
+    let count = 12;
+    let stepMinutes = 5;
 
-    if (range === "1h") {
-      // 1시간 → 5분 단위 12개
-      labels = generateTimeLabels(12, 5);
-    } else if (range === "6h") {
-      // 6시간 → 30분 단위 12개
-      labels = generateTimeLabels(12, 30);
-    } else {
-      // 12시간 → 1시간 단위 12개
-      labels = generateTimeLabels(12, 60);
-    }
+    if (range === "1h") stepMinutes = 5; // 12칸 = 60분
+    else if (range === "6h") stepMinutes = 30; // 12칸 = 360분
+    else stepMinutes = 60; // 12칸 = 720분
 
-    return labels.map((t) => ({
-      time: t,
-      value: Math.floor(Math.random() * 100),
-    }));
+    return Array.from({ length: count }, (_, i) => {
+      const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
+      const end = new Date(start.getTime() + stepMinutes * 60000);
+
+      // 해당 구간 로그 필터링
+      const abnormalCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return (
+          t >= start &&
+          t < end &&
+          abnormalLevels.includes(log.level.toUpperCase())
+        );
+      }).length;
+
+      return {
+        time: start.toTimeString().slice(0, 5),
+        value: abnormalCount,
+      };
+    });
   };
 
   useEffect(() => {
@@ -65,10 +73,10 @@ export default function AppLogLine() {
 
     const interval = setInterval(() => {
       setChartData(generateData(activeRange));
-    }, 2000);
+    }, 5000); // 5초마다 갱신
 
     return () => clearInterval(interval);
-  }, [activeRange]);
+  }, [activeRange, appLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">

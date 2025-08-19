@@ -1,11 +1,31 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useMemo } from "react";
+import { useLogStore } from "../../utils/logstore"; // logstore에서 webLogs 불러오기
+import type { WebLog } from "../../utils/logstore";
 
 export default function WebAI() {
-  // 예시 데이터 (정상/경고/위험)
+  const webLogs = useLogStore((state) => state.webLogs);
+
+  // 로그를 정상/경고/위험으로 분류
+  const { normal, warning, danger } = useMemo(() => {
+    let normal = 0,
+      warning = 0,
+      danger = 0;
+
+    webLogs.forEach((log: WebLog) => {
+      const score = log.aiScore ?? 0;
+      if (score < 60) normal++;
+      else if (score < 70) warning++;
+      else danger++;
+    });
+
+    return { normal, warning, danger };
+  }, [webLogs]);
+
   const data = [
-    { name: "정상", value: 80, color: "#1BA945" },
-    { name: "위험", value: 15, color: "#FFD058" },
-    { name: "경고", value: 5, color: "#F03838" },
+    { name: "정상", value: normal, color: "#1BA945" },
+    { name: "경고", value: warning, color: "#FFD058" },
+    { name: "위험", value: danger, color: "#F03838" },
   ];
 
   return (
@@ -21,7 +41,7 @@ export default function WebAI() {
           AI 이상 탐지
         </h2>
 
-        {/* 이상탐지 +5 */}
+        {/* 이상탐지 +위험개수 */}
         <div
           className="
             flex h-[24px] px-2 items-center gap-2
@@ -32,7 +52,7 @@ export default function WebAI() {
             이상 탐지
           </span>
           <span className="text-[#FFB3B3] font-['Geist Mono'] text-[14px] font-medium leading-[150%]">
-            +5
+            +{danger}
           </span>
         </div>
       </div>
@@ -44,7 +64,7 @@ export default function WebAI() {
           font-suit
         "
       >
-        정상 : 0~60점, 경고 60~ 70점, 위험 70 점 이상
+        정상 : 0~60점, 경고 60~70점, 위험 70점 이상
       </p>
 
       {/* 원형 차트 */}
@@ -67,18 +87,17 @@ export default function WebAI() {
 
         {/* 범례 */}
         <div className="flex flex-col ml-6 gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-[6px] h-[6px] rounded-[3px] bg-[#1BA945]" />
-            <span className="text-[#D8D8D8] text-[14px] font-medium font-suit">정상</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-[6px] h-[6px] rounded-[3px] bg-[#FFD058]" />
-            <span className="text-[#D8D8D8] text-[14px] font-medium font-suit">위험</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-[6px] h-[6px] rounded-[3px] bg-[#F03838]" />
-            <span className="text-[#D8D8D8] text-[14px] font-medium font-suit">경고</span>
-          </div>
+          {data.map((d, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div
+                className="w-[6px] h-[6px] rounded-[3px]"
+                style={{ backgroundColor: d.color }}
+              />
+              <span className="text-[#D8D8D8] text-[14px] font-medium font-suit">
+                {d.name}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

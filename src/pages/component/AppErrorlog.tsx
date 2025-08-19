@@ -1,4 +1,11 @@
+import { useLogStore } from "../../utils/logstore";
+
 export default function AppErrorLog() {
+  const logs = useLogStore((s) => s.appLogs);
+
+  // ERROR 로그 개수 계산
+  const errorCount = logs.filter((log) => log.level === "ERROR").length;
+
   return (
     <div
       className="
@@ -33,7 +40,7 @@ export default function AppErrorLog() {
           leading-[130%]
         "
       >
-        45
+        {errorCount}
       </span>
     </div>
   );
