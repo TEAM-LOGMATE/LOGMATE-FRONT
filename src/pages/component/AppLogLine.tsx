@@ -29,13 +29,12 @@ const CustomTick = (props: any) => {
   );
 };
 
-// 이상 로그 레벨 정의
-const abnormalLevels = ["WARN", "ERROR", "FATAL"];
-
 export default function AppLogLine() {
   const { appLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
+  const [chartData, setChartData] = useState<
+    { time: string; warn: number; error: number; fatal: number }[]
+  >([]);
 
   // 범위별 데이터 생성
   const generateData = (range: string) => {
@@ -51,19 +50,27 @@ export default function AppLogLine() {
       const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
       const end = new Date(start.getTime() + stepMinutes * 60000);
 
-      // 해당 구간 로그 필터링
-      const abnormalCount = appLogs.filter((log) => {
+      // WARN, ERROR, FATAL 각각 카운트
+      const warnCount = appLogs.filter((log) => {
         const t = new Date(log.timestamp);
-        return (
-          t >= start &&
-          t < end &&
-          abnormalLevels.includes(log.level.toUpperCase())
-        );
+        return t >= start && t < end && log.level.toUpperCase() === "WARN";
+      }).length;
+
+      const errorCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return t >= start && t < end && log.level.toUpperCase() === "ERROR";
+      }).length;
+
+      const fatalCount = appLogs.filter((log) => {
+        const t = new Date(log.timestamp);
+        return t >= start && t < end && log.level.toUpperCase() === "FATAL";
       }).length;
 
       return {
         time: start.toTimeString().slice(0, 5),
-        value: abnormalCount,
+        warn: warnCount,
+        error: errorCount,
+        fatal: fatalCount,
       };
     });
   };
@@ -127,10 +134,27 @@ export default function AppLogLine() {
               contentStyle={{ backgroundColor: "#232323", borderRadius: "6px" }}
               labelStyle={{ color: "#F2F2F2" }}
             />
+            {/* WARN */}
             <Line
               type="linear"
-              dataKey="value"
-              stroke="#FF6969"
+              dataKey="warn"
+              stroke="#FFD058" // 노랑
+              strokeWidth={2}
+              dot={false}
+            />
+            {/* ERROR */}
+            <Line
+              type="linear"
+              dataKey="error"
+              stroke="#FF6969" // 빨강
+              strokeWidth={2}
+              dot={false}
+            />
+            {/* FATAL */}
+            <Line
+              type="linear"
+              dataKey="fatal"
+              stroke="#9B5DE5" // 보라
               strokeWidth={2}
               dot={false}
             />
