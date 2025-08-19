@@ -76,7 +76,7 @@ export default function P_SpacePage() {
       const now = new Date().toISOString();
       return [
         ...prev,
-        { id: Date.now() + Math.random(), name, createdAt: now, modifiedAt: now },
+        { id: Date.now() + Math.random(), name, createdAt: now, modifiedAt: now, spaceType: 'personal' },
       ];
     });
     setPendingFolder(false);
