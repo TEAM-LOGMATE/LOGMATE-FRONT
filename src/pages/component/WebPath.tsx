@@ -1,7 +1,7 @@
 import { PieChart, Sector } from "recharts";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useLogStore } from "../../utils/logstore"; // ✅ logstore 불러오기
+import { useLogStore } from "../../utils/logstore";
 
 const CustomSector = ({
   cx,
@@ -32,14 +32,13 @@ export default function WebPath() {
     color: string;
   } | null>(null);
 
-  // ✅ Path별 카운트
   const counts: Record<string, number> = {};
   webLogs.forEach((log: any) => {
     const path = log.url || log.path || "/";
     counts[path] = (counts[path] || 0) + 1;
   });
 
-  // ✅ 상위 10개만 추출 + 고정 색상 매핑
+  // 색상 팔레트 (고정)
   const fixedColors = [
     "#3B82F6", // 파랑
     "#EF4444", // 빨강
@@ -53,14 +52,15 @@ export default function WebPath() {
     "#D8D8D8", // 밝은 회색
   ];
 
+  // 상위 10개 Path + 고정 팔레트 순서대로 색상 적용
   const sorted = Object.entries(counts)
-    .map(([name, value], i) => ({
-      name,
-      value,
-      color: fixedColors[i] || "#888888", // 고정 팔레트
-    }))
+    .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+    .slice(0, 10)
+    .map((entry, i) => ({
+      ...entry,
+      color: fixedColors[i] || "#888888",
+    }));
 
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   let cumulative = 0;
@@ -137,7 +137,9 @@ export default function WebPath() {
                   background: entry.color,
                 }}
               />
-              <span className="text-[#AEAEAE] text-sm">{entry.name}</span>
+              <span className="text-[#AEAEAE] text-sm">
+                {entry.name} ({entry.value})
+              </span>
             </div>
           ))}
 

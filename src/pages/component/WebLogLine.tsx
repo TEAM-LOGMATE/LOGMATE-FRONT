@@ -40,7 +40,7 @@ const generateTimeLabels = (count: number, stepMinutes: number) => {
 };
 
 export default function WebLogLine() {
-  const { webLogs } = useLogStore(); // ✅ logstore에서 webLogs 가져오기
+  const { webLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
   const [chartData, setChartData] = useState<any[]>([]);
 
@@ -75,7 +75,6 @@ export default function WebLogLine() {
 
       return {
         time: labelTime,
-        // ✅ aiScore 기준으로 경고/위험 판정
         warning: logsAtTime.filter(
           (l) => l.aiScore >= 60 && l.aiScore < 70
         ).length,

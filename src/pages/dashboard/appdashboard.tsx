@@ -1,4 +1,3 @@
-// src/pages/dashboard/AppDashboard.tsx
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import Bar from "../../components/navi/bar";

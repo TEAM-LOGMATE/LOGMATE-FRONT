@@ -1,4 +1,3 @@
-// src/pages/component/WebErrorLog.tsx
 import { useLogStore } from "../../utils/logstore";
 
 export default function WebErrorLog() {

@@ -1,4 +1,3 @@
-// src/pages/component/AppLogger.tsx
 import { PieChart, Sector } from "recharts";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { useEffect } from "react";
@@ -26,7 +25,6 @@ const CustomSector = ({
   />
 );
 
-// 🎯 섹터 애니메이션 전용 컴포넌트
 function AnimatedSector({ entry, start, end, radius, color }: any) {
   const startAngle = useMotionValue(start);
   const endAngle = useMotionValue(end);
