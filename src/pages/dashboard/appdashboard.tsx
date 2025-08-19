@@ -1,8 +1,9 @@
+// src/pages/dashboard/AppDashboard.tsx
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import Bar from "../../components/navi/bar";
 import { useAuth } from "../../utils/AuthContext";
-import { loadFolders } from "../../utils/storage";
+import { loadFolders, loadTeamFolders } from "../../utils/storage"; // 개인 + 팀 둘 다 로드
 import Toggle from "./toggle";
 import WebDashboard from "./webdashboard";
 import AppAll from "../component/AppAll";
@@ -16,12 +17,27 @@ import AppTimeLog from "../component/AppTimeLog";
 
 export default function AppDashboard() {
   const { user } = useAuth();
-  const { folderId, boardId } = useParams<{ folderId: string; boardId: string }>();
+  const { folderId, boardId, teamId } = useParams<{
+    folderId?: string;
+    boardId: string;
+    teamId?: string;
+  }>();
 
   const username = user!.username;
-  const folders = loadFolders(username) || [];
-  const folder = folders.find((f) => f.id === Number(folderId));
-  const board = folder?.boards?.find((b: any) => b.id === Number(boardId));
+
+  // 개인 + 팀 폴더 모두 로드
+  const personalFolders = loadFolders(username) || [];
+  const teamFolders = loadTeamFolders(username) || [];
+
+  // 팀 / 개인 분리 탐색
+  let folder;
+  if (teamId) {
+    folder = teamFolders.find((f) => String(f.id) === String(teamId));
+  } else if (folderId) {
+    folder = personalFolders.find((f) => String(f.id) === String(folderId));
+  }
+
+  const board = folder?.boards?.find((b: any) => String(b.id) === String(boardId));
 
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -35,7 +51,7 @@ export default function AppDashboard() {
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
       {/* 왼쪽 Bar */}
-      <Bar username={username} activePage={null} activeFolderId={folderId} />
+      <Bar username={username} activePage={null} activeFolderId={String(folder.id)} />
 
       {/* 오른쪽 메인 영역 */}
       <div className="flex flex-col flex-1 px-10 pt-10 overflow-y-auto">
