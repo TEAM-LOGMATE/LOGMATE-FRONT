@@ -70,6 +70,15 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* 팀 스페이스 보드(AppDashboard) */}
+      <Route
+        path="/team/:teamId/:boardId"
+        element={
+          <ProtectedRoute fallback={<div style={{ color: '#fff' }}>Loading...</div>}>
+            <AppDashboard />
+          </ProtectedRoute>
+        }
+      />
 
       {/* 내 정보 */}
       <Route
