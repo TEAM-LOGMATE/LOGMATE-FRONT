@@ -68,7 +68,12 @@ export default function FolderPage() {
   const handleAddFolder = () => {
     updateFolders((prev) => [
       ...prev,
-      { id: Date.now() + Math.random(), name: '새 폴더', boards: [] as Board[] },
+       {
+    id: Date.now() + Math.random(),
+    name: '새 폴더',
+    boards: [] as Board[],
+    spaceType: 'personal', 
+  },
     ]);
   };
 
@@ -117,7 +122,7 @@ export default function FolderPage() {
   };
 
   return (
-    <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
+    <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-y-auto">
       <Bar
         username={username}
         folders={folders}
