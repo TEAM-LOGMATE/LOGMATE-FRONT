@@ -1,4 +1,3 @@
-// src/components/frm/frm-thumbnail-board.tsx
 import AgentStatusUnresponsive from '../text/agent-status-unresponse';
 import BtnLink from '../btn/btn-link';
 import BtnSetting from '../btn/btn-setting';

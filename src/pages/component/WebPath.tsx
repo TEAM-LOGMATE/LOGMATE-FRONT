@@ -1,6 +1,6 @@
 import { PieChart, Sector } from "recharts";
-import { motion, useMotionValue, animate } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useMotionValue, animate } from "framer-motion";
+import { useEffect, useState, useMemo } from "react";
 import { useLogStore } from "../../utils/logstore";
 
 const CustomSector = ({
@@ -24,19 +24,51 @@ const CustomSector = ({
   />
 );
 
+function AnimatedSector({
+  entry,
+  start,
+  end,
+  radius,
+  onClick,
+}: {
+  entry: { name: string; value: number; color: string };
+  start: number;
+  end: number;
+  radius: number;
+  onClick: (e: any) => void;
+}) {
+  const startAngle = useMotionValue(start);
+  const endAngle = useMotionValue(end);
+  const outerRadius = useMotionValue(radius);
+
+  useEffect(() => {
+    animate(startAngle, start, { duration: 1, ease: "easeInOut" });
+    animate(endAngle, end, { duration: 1, ease: "easeInOut" });
+    animate(outerRadius, radius, { duration: 1, ease: "easeInOut" });
+  }, [start, end, radius]);
+
+  return (
+    <g style={{ pointerEvents: "auto", cursor: "pointer" }} onClick={onClick}>
+      <CustomSector
+        cx={150}
+        cy={90}
+        innerRadius={40}
+        startAngle={startAngle.get()}
+        endAngle={endAngle.get()}
+        outerRadius={outerRadius.get()}
+        fill={entry.color}
+      />
+    </g>
+  );
+}
+
 export default function WebPath() {
-  const { webLogs } = useLogStore();
+  const { webLogs = [] } = useLogStore();
   const [selected, setSelected] = useState<{
     name: string;
     value: number;
     color: string;
   } | null>(null);
-
-  const counts: Record<string, number> = {};
-  webLogs.forEach((log: any) => {
-    const path = log.url || log.path || "/";
-    counts[path] = (counts[path] || 0) + 1;
-  });
 
   // 색상 팔레트 (고정)
   const fixedColors = [
@@ -52,19 +84,28 @@ export default function WebPath() {
     "#D8D8D8", // 밝은 회색
   ];
 
-  // 상위 10개 Path + 고정 팔레트 순서대로 색상 적용
-  const sorted = Object.entries(counts)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10)
-    .map((entry, i) => ({
-      ...entry,
-      color: fixedColors[i] || "#888888",
-    }));
+  // 데이터 집계 + 정렬
+  const sorted = useMemo(() => {
+    const counts: Record<string, number> = {};
+    webLogs.forEach((log: any) => {
+      const path = log.url || log.path || "/";
+      counts[path] = (counts[path] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+      .map((entry, i) => ({
+        ...entry,
+        color: fixedColors[i] || "#888888",
+      }));
+  }, [webLogs]);
 
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
-  let cumulative = 0;
 
+  // 각 섹터를 계산
+  let cumulative = 0;
   const sectors = sorted.map((entry, index) => {
     const start = 90 - (cumulative / total) * 360;
     cumulative += entry.value;
@@ -75,35 +116,18 @@ export default function WebPath() {
     const scale = entry.value / Math.max(...sorted.map((d) => d.value));
     const radius = minRadius + maxExtra * scale;
 
-    const startAngle = useMotionValue(start);
-    const endAngle = useMotionValue(end);
-    const outerRadius = useMotionValue(radius);
-
-    useEffect(() => {
-      animate(startAngle, start, { duration: 1, ease: "easeInOut" });
-      animate(endAngle, end, { duration: 1, ease: "easeInOut" });
-      animate(outerRadius, radius, { duration: 1, ease: "easeInOut" });
-    }, [start, end, radius]);
-
     return (
-      <g
+      <AnimatedSector
         key={index}
-        style={{ pointerEvents: "auto", cursor: "pointer" }}
+        entry={entry}
+        start={start}
+        end={end}
+        radius={radius}
         onClick={(e) => {
           e.stopPropagation();
           setSelected(entry);
         }}
-      >
-        <CustomSector
-          cx={150}
-          cy={90}
-          innerRadius={40}
-          startAngle={startAngle.get()}
-          endAngle={endAngle.get()}
-          outerRadius={outerRadius.get()}
-          fill={entry.color}
-        />
-      </g>
+      />
     );
   });
 
