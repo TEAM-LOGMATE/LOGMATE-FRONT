@@ -200,38 +200,46 @@ export default function LandingPage() {
           <FeatureSection />
         </motion.div>
 
-        {/* Footer */}
-        <motion.footer
-          className="flex items-center justify-center gap-2"
-          style={{ height: '64px', alignSelf: 'stretch', background: '#1C1C1C' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.4, duration: 0.6 }}
+      {/* Footer */}
+      <motion.footer
+        className="flex items-center justify-center gap-2"
+        style={{ height: '64px', alignSelf: 'stretch', background: '#1C1C1C' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4, duration: 0.6 }}
+      >
+        <span
+          style={{
+            color: '#FAFAFA',
+            fontFamily: 'SUIT',
+            fontSize: '16px',
+            fontWeight: 500,
+            lineHeight: '150%',
+            letterSpacing: '-0.4px',
+          }}
         >
-          <span
-            style={{
-              color: '#FAFAFA',
-              fontFamily: 'SUIT',
-              fontSize: '16px',
-              fontWeight: 500,
-              lineHeight: '150%',
-              letterSpacing: '-0.4px',
-            }}
-          >
-            오픈소스로 신뢰와 투명성을
-          </span>
-          <span
-            style={{
-              color: '#FAFAFA',
-              fontFamily: 'Geist',
-              fontSize: '16px',
-              fontWeight: 400,
-              lineHeight: '150%',
-            }}
-          >
-            GitHub
-          </span>
-        </motion.footer>
+          오픈소스로 신뢰와 투명성을
+        </span>
+
+        {/* GitHub 링크로 변경 */}
+        <a
+          href="https://github.com/TEAM-LOGMATE"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: 'var(--Brand-Secondary, #2BBD39)',
+            fontFamily: 'Geist',
+            fontSize: '16px',
+            fontStyle: 'normal',
+            fontWeight: 400,
+            lineHeight: '150%', // 24px
+            textDecoration: 'none', // 밑줄 제거
+          }}
+        >
+          GitHub
+        </a>
+      </motion.footer>
+
       </div>
     </div>
   );
