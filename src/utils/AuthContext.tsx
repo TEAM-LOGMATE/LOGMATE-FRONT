@@ -1,4 +1,3 @@
-// src/utils/AuthContext.tsx
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode, ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
