@@ -33,7 +33,7 @@
 ## 📂 프로젝트 아카이브
 
 프로젝트의 기능 명세서와 구조는 아래 링크에서 확인하실 수 있습니다.  
-👉 [LOGMATE-FRONT/wiki](링크-주소-여기-수정)
+👉 [LOGMATE-FRONT/wiki](https://github.com/TEAM-LOGMATE/LOGMATE-FRONT/wiki)
 
 ---
 
