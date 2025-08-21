@@ -27,32 +27,35 @@ export default function AppLiveLog() {
 
       {/* 데이터 행 (12줄 고정) */}
       <div className="flex flex-col">
-        {logs.map((row, idx) => (
-          <div key={idx} className="flex border-b border-[#2A2A2A] last:border-none">
-            <div
-              className={`flex w-[200px] h-[36px] justify-center items-center bg-[#171717] 
-              ${idx === 11 ? "rounded-bl-md" : ""}`}
-            >
-              <span className="text-[#D8D8D8] text-[14px] font-light font-['Geist_Mono']">
-                {row.timestamp}
-              </span>
+        {Array.from({ length: 12 }).map((_, idx) => {
+          const row = logs[idx]; // 로그가 있으면 값 채우고, 없으면 undefined
+          return (
+            <div key={idx} className="flex border-b border-[#2A2A2A] last:border-none">
+              <div
+                className={`flex w-[200px] h-[36px] justify-center items-center bg-[#171717] 
+                ${idx === 11 ? "rounded-bl-md" : ""}`}
+              >
+                <span className="text-[#D8D8D8] text-[14px] font-light font-['Geist_Mono']">
+                  {row ? row.timestamp : ""}
+                </span>
+              </div>
+              <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
+                <span className="text-[#D8D8D8] text-[14px]">{row ? row.level : ""}</span>
+              </div>
+              <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
+                <span className="text-[#D8D8D8] text-[14px]">{row ? row.logger : ""}</span>
+              </div>
+              <div
+                className={`flex flex-1 h-[36px] justify-center items-center bg-[#171717] 
+                ${idx === 11 ? "rounded-br-md" : ""}`}
+              >
+                <span className="text-[#D8D8D8] text-[14px] truncate">
+                  {row ? row.message : ""}
+                </span>
+              </div>
             </div>
-            <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-              <span className="text-[#D8D8D8] text-[14px]">{row.level}</span>
-            </div>
-            <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-              <span className="text-[#D8D8D8] text-[14px]">{row.logger}</span>
-            </div>
-            <div
-              className={`flex flex-1 h-[36px] justify-center items-center bg-[#171717] 
-              ${idx === 11 ? "rounded-br-md" : ""}`}
-            >
-              <span className="text-[#D8D8D8] text-[14px] truncate">
-                {row.message}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
