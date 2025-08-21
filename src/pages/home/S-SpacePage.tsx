@@ -11,6 +11,7 @@ import DashboardMake from '../dashboard/dashboardmake';
 import { storage, type Folder, loadFolders } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
+import type { Variants } from 'framer-motion';
 
 type TeamMember = {
   name: string;
@@ -26,6 +27,7 @@ type TeamMeta = {
 const teamFoldersKey = (username: string) => `teamFolders:${username}`;
 const teamMetaKey = (username: string, teamId: number | string) =>
   `teamMeta:${username}:${teamId}`;
+const teamSortKey = (username: string) => `sortOrder:${username}:team`;
 
 export default function S_SpacePage() {
   const { user } = useAuth();
@@ -75,10 +77,19 @@ export default function S_SpacePage() {
     });
   };
 
+  // 최초 로드 시 sortOrder도 storage에서 불러오기
   useEffect(() => {
+    const savedSort = storage.get<'newest' | 'oldest'>(teamSortKey(username), 'newest');
+    setSortOrder(savedSort);
     const loaded = storage.get<Folder[]>(teamFoldersKey(username), []);
-    setFolders(sortFolders(loaded, sortOrder));
-  }, [username, sortOrder]);
+    setFolders(sortFolders(loaded, savedSort));
+  }, [username]);
+
+  // sortOrder 변경 시 storage에도 저장
+  useEffect(() => {
+    storage.set(teamSortKey(username), sortOrder);
+    setFolders((prev) => sortFolders(prev, sortOrder));
+  }, [sortOrder, username]);
 
   const isValidFolderName = (raw: string) => {
     const name = (raw ?? '').trim();
@@ -91,7 +102,7 @@ export default function S_SpacePage() {
     const now = new Date().toISOString();
     updateFolders((prev) => [
       ...prev,
-      { id: newId, name: '새 팀', createdAt: now, modifiedAt: now, spaceType: 'team'},
+      { id: newId, name: '새 팀', createdAt: now, modifiedAt: now, spaceType: 'team' },
     ]);
     setNewTeamId(newId);
     setShowMakeTeam(true);
@@ -182,6 +193,17 @@ export default function S_SpacePage() {
     setEditingTeamId(null);
   };
 
+  // 애니메이션 variants
+  const folderVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: 'easeOut' },
+    },
+    exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
+  };
+
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-hidden">
       <Bar
@@ -209,30 +231,46 @@ export default function S_SpacePage() {
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
-          <BtnSort onSortChange={(order) => setSortOrder(order)} />
+          <BtnSort spaceType="team" onSortChange={(order) => setSortOrder(order)} />
           <BtnPoint onClick={handleAddFolder}>새 팀 추가 +</BtnPoint>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px]">
-          {folders.map((folder) => (
-            <FrmFolder
-              key={folder.id}
-              spaceType="team"
-              name={folder.name}
-              onOpenTeamSettings={() => openTeamSettings(Number(folder.id), folder.name)}
-              onLeaveTeam={() => handleDeleteFolder(folder.id)}
-              onClickName={() => navigate(`/team/${folder.id}`)}
-              onAddBoard={() => {
-                setSelectedFolderId(Number(folder.id));
-                setShowDashboardMake(true);
-              }}
-            />
-          ))}
-        </div>
+        {/* 폴더 리스트 */}
+        <motion.div
+          layout
+          className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
+        >
+          <AnimatePresence>
+            {folders.map((folder) => (
+              <motion.div
+                key={folder.id}
+                layout
+                style={{ overflow: 'visible' }}
+                variants={folderVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <FrmFolder
+                  spaceType="team"
+                  name={folder.name}
+                  onOpenTeamSettings={() => openTeamSettings(Number(folder.id), folder.name)}
+                  onLeaveTeam={() => handleDeleteFolder(folder.id)}
+                  onClickName={() => navigate(`/team/${folder.id}`)}
+                  onAddBoard={() => {
+                    setSelectedFolderId(Number(folder.id));
+                    setShowDashboardMake(true);
+                  }}
+                  boards={(folder as any).boards || []}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       </motion.div>
 
+      {/* 모달들 (FrmMakeTeam, FrmTeamEdit, DashboardMake) 그대로 유지 */}
       <AnimatePresence>
-        {/* 팀 만들기 모달 */}
         {showMakeTeam && (
           <motion.div
             key="makeTeamModal"
@@ -262,7 +300,6 @@ export default function S_SpacePage() {
           </motion.div>
         )}
 
-        {/* 팀 설정 모달 */}
         {showTeamSettings && editingTeamId != null && (
           <motion.div
             key="teamSettingsModal"
@@ -301,7 +338,6 @@ export default function S_SpacePage() {
           </motion.div>
         )}
 
-        {/* DashboardMake 모달 */}
         {showDashboardMake && selectedFolderId != null && (
           <motion.div
             key="dashboardMakeModal"
