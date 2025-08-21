@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import Bar from "../../components/navi/bar";
 import { useAuth } from "../../utils/AuthContext";
 import { loadFolders, loadTeamFolders } from "../../utils/storage"; // 개인 + 팀 둘 다 로드
@@ -15,21 +15,47 @@ import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
 
 export default function AppDashboard() {
-  const { user } = useAuth();
+  const location = useLocation();
+  const [params] = useSearchParams();
+
+  // 임베드(썸네일) 판별: ?thumb=1 이거나 iFrame 내부
+  const isThumb = params.get("thumb") === "1";
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  const isEmbed = isThumb || inIframe;
+
+  // 인증 가드: 임베드는 전부 우회, 일반 화면만 보호
+  const { isLoading, isAuthed, user } = useAuth();
+  if (!isEmbed) {
+    if (isLoading) return null;
+    if (!isAuthed || !user) {
+      return (
+        <Navigate
+          to="/login"
+          replace
+          state={{ from: location.pathname + location.search }}
+        />
+      );
+    }
+  }
+
   const { folderId, boardId, teamId } = useParams<{
     folderId?: string;
     boardId: string;
     teamId?: string;
   }>();
 
-  const username = user!.username;
+  // 임베드일 땐 user가 null일 수 있으니 폴백 처리
+  const username =
+    user?.username ??
+    localStorage.getItem("username") ??
+    "사용자";
 
   // 개인 + 팀 폴더 모두 로드
   const personalFolders = loadFolders(username) || [];
   const teamFolders = loadTeamFolders(username) || [];
 
   // 팀 / 개인 분리 탐색
-  let folder;
+  let folder: any | undefined;
   if (teamId) {
     folder = teamFolders.find((f) => String(f.id) === String(teamId));
   } else if (folderId) {
@@ -47,8 +73,11 @@ export default function AppDashboard() {
 
   const spaceType = folder.spaceType === "team" ? "팀 스페이스" : "개인 스페이스";
 
+  // (선택) 임베드에서는 폴링/애니 끄기
+  // if (isEmbed) { stopPolling?.(); disableAnimations?.(); }
+
   return (
-    <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
+    <div className={`flex w-screen h-screen bg-[#0F0F0F] text-white font-suit`}>
       {/* 왼쪽 Bar */}
       <Bar username={username} activePage={null} activeFolderId={String(folder.id)} />
 
@@ -67,7 +96,7 @@ export default function AppDashboard() {
             {board.name}
           </h1>
 
-          <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
 
         {/* App / Web 내용 */}

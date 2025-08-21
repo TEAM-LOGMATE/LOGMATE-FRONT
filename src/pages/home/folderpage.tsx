@@ -14,11 +14,13 @@ interface Board {
   id: number;
   name: string;
   logPath?: string;
+  status?: "collecting" | "unresponsive" | "before"; 
 }
 
 export default function FolderPage() {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  const { isLoading, isAuthed, user } = useAuth();
+  if (isLoading) return null;
+  if (!isAuthed || !user) return <Navigate to="/login" replace />;
 
   const username = user.username;
   const { folderId } = useParams<{ folderId: string }>();
@@ -35,11 +37,8 @@ export default function FolderPage() {
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    if (folderId) {
-      setActivePage(null);
-    } else {
-      setActivePage('personal');
-    }
+    if (folderId) setActivePage(null);
+    else setActivePage('personal');
   }, [folderId]);
 
   useEffect(() => {
@@ -106,7 +105,16 @@ export default function FolderPage() {
     updateFolders((prev) =>
       prev.map((folder) =>
         folder.id === currentFolder.id
-          ? { ...folder, boards: [...(folder.boards || []), board] }
+          ? {
+              ...folder,
+              boards: [
+                ...(folder.boards || []),
+                {
+                  ...board,
+                  status: "collecting",
+                },
+              ],
+            }
           : folder
       )
     );
@@ -180,16 +188,16 @@ export default function FolderPage() {
               key={board.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.3,
-                delay: idx * 0.05,
-              }}
+              transition={{ duration: 0.3, delay: idx * 0.05 }}
             >
               <FrmThumbnailBoard
+                boardId={board.id}
                 connected={true}
                 boardName={board.name}
                 onDelete={() => handleDeleteBoard(board.id)}
                 onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
+                previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
+                statusType={board.status}
               />
             </motion.div>
           ))}
@@ -211,18 +219,15 @@ export default function FolderPage() {
       {/* DashboardMake 모달 */}
       {isDashboardMakeOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* 배경 (어두운 레이어) */}
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setIsDashboardMakeOpen(false)}
           />
-
-          {/* 모달 본체 */}
           <div className="relative z-10">
             <DashboardMake
               onClose={() => setIsDashboardMakeOpen(false)}
               onCreate={(board) => {
-                handleAddBoard(board);
+                handleAddBoard({ ...board, status: "collecting" }); 
                 setIsDashboardMakeOpen(false);
               }}
             />

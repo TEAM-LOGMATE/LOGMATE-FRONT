@@ -19,7 +19,7 @@ export default function P_SpacePage() {
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [pendingFolder, setPendingFolder] = useState(false);
-  const [_pendingDraft, setPendingDraft] = useState('');
+  const [pendingDraft, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
@@ -68,19 +68,24 @@ export default function P_SpacePage() {
   const handleConfirmAdd = (finalName: string) => {
     const name = (finalName ?? '').trim();
     if (!name) {
-      handleCancelAdd(); // 이름 없으면 폴더 생성 취소
+      handleCancelAdd();
       return;
     }
-    updateFolders((prev) => {
-      if (prev.length >= MAX_SPACES) return prev;
-      const now = new Date().toISOString();
-      return [
-        ...prev,
-        { id: Date.now() + Math.random(), name, createdAt: now, modifiedAt: now, spaceType: 'personal' },
-      ];
-    });
-    setPendingFolder(false);
+
+    const now = new Date().toISOString();
+    updateFolders((prev) => [
+      {
+        id: Date.now() + Math.random(),
+        name,
+        createdAt: now,
+        modifiedAt: now,
+        spaceType: 'personal',
+      },
+      ...prev,
+    ]);
+
     setPendingDraft('');
+    setPendingFolder(false);
   };
 
   const handleDeleteFolder = (id: string | number) => {
@@ -88,22 +93,19 @@ export default function P_SpacePage() {
   };
 
   // 초기 로드 애니메이션
-  const folderVariantsInitial: Variants = {
+  const folderVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: 'easeOut' },
+    },
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
-  };
-
-  // 신규 생성 애니메이션
-  const folderVariantsNew: Variants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: 'easeOut' } },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15, ease: 'easeIn' } },
   };
 
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-[#0F0F0F] text-white font-suit">
-      {/* Bar 고정 (애니메이션 없음) */}
+      {/* Bar 고정 */}
       <Bar
         username={username}
         folders={folders}
@@ -112,7 +114,7 @@ export default function P_SpacePage() {
         activePage="personal"
       />
 
-      {/* 오른쪽 콘텐츠만 애니메이션 */}
+      {/* 오른쪽 콘텐츠 */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,18 +134,21 @@ export default function P_SpacePage() {
           <BtnPoint onClick={handleAddFolder}>새 폴더 추가 +</BtnPoint>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible">
-          {/* 초기 로드된 폴더 */}
+        <motion.div
+          layout 
+          className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
+        >
+          {/* 기존 폴더 */}
           <AnimatePresence>
             {folders.map((folder) => (
               <motion.div
                 key={folder.id}
+                layout 
                 style={{ overflow: 'visible' }}
-                variants={folderVariantsInitial}
+                variants={folderVariants}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                layout
               >
                 <FrmFolder
                   spaceType="personal"
@@ -156,17 +161,17 @@ export default function P_SpacePage() {
             ))}
           </AnimatePresence>
 
-          {/* 새로 생성되는 폴더 */}
+          {/* 새 폴더 입력칸 */}
           <AnimatePresence>
             {pendingFolder && (
               <motion.div
                 key="pending-folder"
+                layout
                 style={{ overflow: 'visible' }}
-                variants={folderVariantsNew}
+                variants={folderVariants}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                layout
               >
                 <FrmFolder
                   spaceType="personal"
@@ -174,13 +179,13 @@ export default function P_SpacePage() {
                   containerRef={pendingCardRef}
                   onDraftChange={setPendingDraft}
                   onCancel={handleCancelAdd}
-                  onRename={handleConfirmAdd} // 새 폴더 생성 시에만 이름 입력 가능
+                  onRename={handleConfirmAdd}
                   boards={[]}
                 />
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

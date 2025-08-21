@@ -150,14 +150,23 @@ export default function LandingPage() {
                 <BtnDownload label="대시보드 시작하기" primary onClick={() => navigate('/login')} />
               </motion.div>
 
-              {/* Agent 다운로드 버튼 */}
-              <motion.div
-                style={{ borderRadius: '12px', display: 'inline-block' }}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-              >
-                <BtnDownload label="Agent 서버 다운로드" />
-              </motion.div>
+          {/* Agent 다운로드 버튼 */}
+          <motion.div
+            style={{ borderRadius: '12px', display: 'inline-block' }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: 'spring', stiffness: 200 }}
+          >
+            <BtnDownload
+              label="Agent 다운로드"
+              onClick={() => {
+                const link = document.createElement("a");
+                link.href = "/TailMate-1.0.0.jar"; 
+                link.download = "TailMate-1.0.0.jar";
+                link.click();
+              }}
+            />
+          </motion.div>
+
             </div>
           </motion.div>
 

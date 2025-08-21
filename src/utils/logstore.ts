@@ -1,5 +1,8 @@
 import { create } from "zustand";
 
+// -----------------------------
+// 타입 정의
+// -----------------------------
 export interface AppLog {
   timestamp: string;
   level: string;
@@ -23,17 +26,92 @@ export interface WebLog {
 interface LogState {
   appLogs: AppLog[];
   webLogs: WebLog[];
-  addAppLog: (log: AppLog) => void;
-  addWebLog: (log: WebLog) => void;
+  addAppLog: (log: Omit<AppLog, "timestamp">) => void;
+  addWebLog: (log: Omit<WebLog, "timestamp">) => void;
   reset: () => void;
 }
 
+// -----------------------------
+// 로그 제너레이터 import
+// -----------------------------
+import { generateAppLog, generateWebLog } from "./mockGenerator";
+
+// -----------------------------
+// 초기 시드 데이터
+// -----------------------------
+const now = new Date();
+
+// 현재 시간 기준 12개
+const currentAppLogs: AppLog[] = Array.from({ length: 12 }, () => ({
+  ...generateAppLog(),
+  timestamp: new Date().toISOString(),
+}));
+const currentWebLogs: WebLog[] = Array.from({ length: 12 }, () => ({
+  ...generateWebLog(),
+  timestamp: new Date().toISOString(),
+}));
+
+// 과거 시간 기준 50개 (1분 간격)
+const pastAppLogs: AppLog[] = Array.from({ length: 50 }, (_, i) => {
+  const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
+  return { ...generateAppLog(), timestamp: pastTime.toISOString() };
+});
+const pastWebLogs: WebLog[] = Array.from({ length: 50 }, (_, i) => {
+  const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
+  return { ...generateWebLog(), timestamp: pastTime.toISOString() };
+});
+
+// 합치기
+const initialAppLogs = [...pastAppLogs, ...currentAppLogs];
+const initialWebLogs = [...pastWebLogs, ...currentWebLogs];
+
+// -----------------------------
+// Zustand Store
+// -----------------------------
 export const useLogStore = create<LogState>((set) => ({
-  appLogs: [],
-  webLogs: [],
+  appLogs: initialAppLogs,
+  webLogs: initialWebLogs,
+
   addAppLog: (log) =>
-    set((state) => ({ appLogs: [log, ...state.appLogs].slice(0, 50) })), // 최근 50개만 유지
+    set((state) => {
+      const newLog = { ...log, timestamp: new Date().toISOString() };
+      return {
+        appLogs: [newLog, ...state.appLogs], // 🔥 cutoff 필터 제거
+      };
+    }),
+
   addWebLog: (log) =>
-    set((state) => ({ webLogs: [log, ...state.webLogs].slice(0, 50) })),
-  reset: () => set({ appLogs: [], webLogs: [] }),
+    set((state) => {
+      const newLog = { ...log, timestamp: new Date().toISOString() };
+      return {
+        webLogs: [newLog, ...state.webLogs], // 🔥 cutoff 필터 제거
+      };
+    }),
+
+  reset: () => {
+    const now = new Date();
+
+    const currentAppLogs: AppLog[] = Array.from({ length: 12 }, () => ({
+      ...generateAppLog(),
+      timestamp: new Date().toISOString(),
+    }));
+    const currentWebLogs: WebLog[] = Array.from({ length: 12 }, () => ({
+      ...generateWebLog(),
+      timestamp: new Date().toISOString(),
+    }));
+
+    const pastAppLogs: AppLog[] = Array.from({ length: 50 }, (_, i) => {
+      const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
+      return { ...generateAppLog(), timestamp: pastTime.toISOString() };
+    });
+    const pastWebLogs: WebLog[] = Array.from({ length: 50 }, (_, i) => {
+      const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
+      return { ...generateWebLog(), timestamp: pastTime.toISOString() };
+    });
+
+    return {
+      appLogs: [...pastAppLogs, ...currentAppLogs],
+      webLogs: [...pastWebLogs, ...currentWebLogs],
+    };
+  },
 }));
