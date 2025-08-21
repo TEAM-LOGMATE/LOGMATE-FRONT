@@ -132,10 +132,10 @@ export default function FrmFolder({
   return (
     <div
       ref={containerRef}
-      className="w-[340px] h-[300px] flex flex-col items-start gap-[12px] font-suit text-white relative"
+      className="w-[340px] min-h-[320px] flex flex-col items-start gap-[12px] font-suit text-white relative"
     >
-      {/* 썸네일 */}
-      <div className="flex-1 w-full grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
+      {/* 썸네일 (고정 높이) */}
+      <div className="w-full h-[200px] grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
         {boardsToShow.map((_, idx) => (
           <div key={idx} className="flex-1 rounded-[4px] bg-[#171717]" />
         ))}
@@ -169,7 +169,9 @@ export default function FrmFolder({
                   spellCheck={false}
                 />
                 {errorMessage && (
-                  <span className="text-[14px] leading-[21px] text-red-500">{errorMessage}</span>
+                  <span className="text-[14px] leading-[21px] text-red-500 transition-none">
+                    {errorMessage}
+                  </span>
                 )}
               </>
             ) : (
