@@ -22,6 +22,8 @@ export const storage = {
   },
 };
 
+export type BoardStatus = "collecting" | "unresponsive" | "before";
+
 export type Folder = {
   id: number;
   name: string;
@@ -29,10 +31,12 @@ export type Folder = {
   modifiedAt?: string;  // 폴더 수정 시 기록
   description?: string; // 폴더 설명
   spaceType: "personal" | "team"; // 개인 스페이스 또는 팀 스페이스
-  boards?: {    
+  boards?: {
     id: number;
     name: string;
     logPath?: string;
+    lastEdited?: string;
+    status?: BoardStatus; // 상태 필드 추가
   }[];
 };
 
@@ -42,7 +46,14 @@ export const foldersKey = (username: string) => `folders:${username}`;
 export function loadFolders(username: string): Folder[] {
   const data = storage.get<Folder[]>(foldersKey(username), []);
   // 저장된 spaceType 있으면 유지, 없으면 personal
-  return data.map(f => ({ ...f, spaceType: f.spaceType ?? "personal" }));
+  return data.map(f => ({
+    ...f,
+    spaceType: f.spaceType ?? "personal",
+    boards: f.boards?.map(b => ({
+      ...b,
+      status: b.status ?? "before", // 기본 상태 "before"
+    })),
+  }));
 }
 
 export function saveFolders(username: string, folders: Folder[]): void {
@@ -55,7 +66,14 @@ export const teamFoldersKey = (username: string) => `teamFolders:${username}`;
 export function loadTeamFolders(username: string): Folder[] {
   const data = storage.get<Folder[]>(teamFoldersKey(username), []);
   // 저장된 spaceType 있으면 유지, 없으면 team
-  return data.map(f => ({ ...f, spaceType: f.spaceType ?? "team" }));
+  return data.map(f => ({
+    ...f,
+    spaceType: f.spaceType ?? "team",
+    boards: f.boards?.map(b => ({
+      ...b,
+      status: b.status ?? "before", //기본 상태 "before"
+    })),
+  }));
 }
 
 export function saveTeamFolders(username: string, folders: Folder[]): void {
