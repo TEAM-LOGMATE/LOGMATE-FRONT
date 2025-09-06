@@ -1,4 +1,3 @@
-import React from 'react';
 import IconBlind from '../icon/icon-blind';
 import IconSign from '../icon/icon-sign';
 

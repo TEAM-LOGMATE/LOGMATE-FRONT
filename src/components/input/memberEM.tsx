@@ -1,4 +1,3 @@
-import React from 'react';
 import BtnInviteLink from '../btn/btn-invitelink';
 import BtnAddMember from '../btn/btn-addmember';
 

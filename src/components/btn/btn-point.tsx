@@ -1,5 +1,3 @@
-import React from 'react';
-
 type BtnPointProps = {
   onClick?: () => void;
   children: React.ReactNode;

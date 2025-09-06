@@ -1,5 +1,3 @@
-import React from 'react';
-
 type SnsLoginButtonProps = {
   type: 'github' | 'google';
   children: React.ReactNode;
