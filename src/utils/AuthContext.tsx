@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { ReactNode, ReactElement } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { api } from '../api/axiosInstance';
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode, ReactElement } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { api } from "../api/axiosInstance";
 
 export type User = { username: string; email: string };
 
@@ -19,9 +19,9 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const LS_KEY = 'authUser';
-const TOKEN_KEY = 'access_token';
-const USE_MOCK = import.meta.env.VITE_USE_MOCK?.toLowerCase() === 'true';
+const LS_KEY = "authUser";
+const TOKEN_KEY = "access_token";
+const USE_MOCK = import.meta.env.VITE_USE_MOCK?.toLowerCase() === "true";
 
 // ── helpers
 function readUserFromStorage(): User | null {
@@ -29,7 +29,7 @@ function readUserFromStorage(): User | null {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw);
-    if (p && typeof p.username === 'string' && typeof p.email === 'string') return p as User;
+    if (p && typeof p.username === "string" && typeof p.email === "string") return p as User;
     return null;
   } catch {
     return null;
@@ -39,18 +39,18 @@ function writeUserToStorage(u: User | null) {
   try {
     if (u) {
       localStorage.setItem(LS_KEY, JSON.stringify(u));
-      localStorage.setItem('username', u.username);
+      localStorage.setItem("username", u.username);
     } else {
       localStorage.removeItem(LS_KEY);
-      localStorage.removeItem('username');
+      localStorage.removeItem("username");
     }
   } catch {}
 }
 function detectEmbed(): boolean {
   try {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === "undefined") return false;
     const qs = new URLSearchParams(window.location.search);
-    const isThumb = qs.get('thumb') === '1';
+    const isThumb = qs.get("thumb") === "1";
     const inIframe = window.self !== window.top;
     return isThumb || inIframe;
   } catch {
@@ -60,24 +60,24 @@ function detectEmbed(): boolean {
 function parseJwtPayload(token?: string): any | null {
   try {
     if (!token) return null;
-    const base = token.split('.')[1];
+    const base = token.split(".")[1];
     if (!base) return null;
-    const json = atob(base.replace(/-/g, '+').replace(/_/g, '/'));
+    const json = atob(base.replace(/-/g, "+").replace(/_/g, "/"));
     return JSON.parse(json);
   } catch {
     return null;
   }
 }
 function synthesizeUser(token?: string): User {
-  const fromLS = localStorage.getItem('username') || '';
+  const fromLS = localStorage.getItem("username") || "";
   const payload = parseJwtPayload(token);
   const email =
     (payload && (payload.email || payload.mail)) ||
-    (fromLS ? `${fromLS}@local` : 'viewer@local');
+    (fromLS ? `${fromLS}@local` : "viewer@local");
   const username =
     fromLS ||
-    (payload && (payload.username || payload.name || (payload.email?.split('@')[0] ?? 'viewer'))) ||
-    'viewer';
+    (payload && (payload.username || payload.name || (payload.email?.split("@")[0] ?? "viewer"))) ||
+    "viewer";
   return { username, email };
 }
 
@@ -94,14 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const isEmbed = detectEmbed();
         const stored = readUserFromStorage();
-        const token: string | undefined = localStorage.getItem(TOKEN_KEY) ?? undefined; // 🔧 타입 교정
+        const token: string | undefined = localStorage.getItem(TOKEN_KEY) ?? undefined;
 
         if (USE_MOCK) {
           if (alive) setUser(stored);
           return;
         }
 
-        // 임베드(썸네일/iframe)일 때는 네트워크 확인을 SKIP하고 즉시 유저 확정
+        // 임베드(썸네일/iframe)일 때는 네트워크 확인을 SKIP
         if (isEmbed) {
           const u = stored ?? synthesizeUser(token);
           if (alive) {
@@ -117,9 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         try {
-          const res = await api.get('/auth/me');
+          const res = await api.get("/api/auth/me");
           if (alive) {
-            const u: User = { username: res.data.username, email: res.data.email };
+            const u: User = { username: res.data.name, email: res.data.email };
             setUser(u);
             writeUserToStorage(u);
           }
@@ -143,23 +143,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (USE_MOCK) {
       const storedUser = readUserFromStorage();
       if (storedUser && storedUser.email === email) {
-        setUser(storedUser); writeUserToStorage(storedUser);
+        setUser(storedUser);
+        writeUserToStorage(storedUser);
       } else {
-        const u: User = { username: email.split('@')[0], email };
-        setUser(u); writeUserToStorage(u);
+        const u: User = { username: email.split("@")[0], email };
+        setUser(u);
+        writeUserToStorage(u);
       }
       return;
     }
     try {
-      const res = await api.post('/users/login', { email, password });
+      const res = await api.post("/api/auth/login", { email, password });
       if (res.data?.token) {
         localStorage.setItem(TOKEN_KEY, res.data.token);
-        const me = await api.get('/auth/me');
-        const u: User = { username: me.data.username, email: me.data.email };
-        setUser(u); writeUserToStorage(u);
+        const me = await api.get("/api/auth/me");
+        const u: User = { username: me.data.name, email: me.data.email };
+        setUser(u);
+        writeUserToStorage(u);
       }
     } catch (err) {
-      setError('로그인 실패');
+      setError("로그인 실패");
       throw err;
     }
   };
@@ -167,24 +170,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setError(null);
     if (USE_MOCK) {
-      setUser(null); writeUserToStorage(null); return;
+      setUser(null);
+      writeUserToStorage(null);
+      return;
     }
-    try { await api.post('/users/logout'); } finally {
-      setUser(null); writeUserToStorage(null); localStorage.removeItem(TOKEN_KEY);
-    }
+    // 서버에 logout API 없음 → 프론트에서 토큰만 제거
+    setUser(null);
+    writeUserToStorage(null);
+    localStorage.removeItem(TOKEN_KEY);
   };
 
   const signup = async (username: string, email: string, password: string) => {
     setError(null);
     if (USE_MOCK) {
-      const u: User = { username: username.trim() || '사용자', email: email.trim() };
-      setUser(u); writeUserToStorage(u); return;
+      const u: User = { username: username.trim() || "사용자", email: email.trim() };
+      setUser(u);
+      writeUserToStorage(u);
+      return;
     }
     try {
-      await api.post('/users/signup', { name: username, email, password });
-      await login(email, password);
+      await api.post("/api/users/signup", { name: username, email, password });
+      await login(email, password); // 회원가입 후 자동 로그인
     } catch (err) {
-      setError('회원가입 실패'); throw err;
+      setError("회원가입 실패");
+      throw err;
     }
   };
 
@@ -197,7 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       signup,
-      setUserUnsafe: (u) => { setUser(u); writeUserToStorage(u); },
+      setUserUnsafe: (u) => {
+        setUser(u);
+        writeUserToStorage(u);
+      },
       error,
     }),
     [user, isLoading, error]
@@ -208,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
 
@@ -226,13 +238,15 @@ export function ProtectedRoute({
   const isEmbed = (() => {
     try {
       const q = new URLSearchParams(location.search);
-      const byQuery = q.get('thumb') === '1';
-      const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+      const byQuery = q.get("thumb") === "1";
+      const inIframe = typeof window !== "undefined" && window.self !== window.top;
       return byQuery || inIframe;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   })();
 
-  if (isEmbed) return children;           // 미리보기는 인증 체크 생략
+  if (isEmbed) return children; // 미리보기는 인증 체크 생략
   if (isLoading) return <>{fallback}</>;
   if (!isAuthed)
     return (
