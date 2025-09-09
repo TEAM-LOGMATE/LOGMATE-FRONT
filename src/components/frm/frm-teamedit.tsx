@@ -6,8 +6,15 @@ import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
 
 type Role = 'teamAdmin' | 'member' | 'viewer';
-
 type Member = {
+  userId: number;
+  name: string;
+  email: string;
+  role: Role;
+};
+
+type UiMember = {
+  userId?: number;
   name: string;
   email: string;
   role: Role;
@@ -17,10 +24,10 @@ type FrmTeamEditProps = {
   initialName: string;
   initialDescription?: string;
   initialMembers: Member[];
-  currentRole: Role; 
+  currentRole: Role;
   onSubmit?: (data: { name: string; description: string; members: Member[] }) => void;
   onClose?: () => void;
-  onDelete?: () => void;    // 관리자 전용
+  onDelete?: () => void; // 관리자 전용
   onLeaveTeam?: () => void; // 멤버/뷰어 전용
 };
 
@@ -36,25 +43,39 @@ export default function FrmTeamEdit({
 }: FrmTeamEditProps) {
   const [teamName, setTeamName] = useState(initialName);
   const [teamDesc, setTeamDesc] = useState(initialDescription);
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+
+  const [members, setMembers] = useState<UiMember[]>(
+    initialMembers.map((m) => ({
+      userId: m.userId,
+      name: m.name,
+      email: m.email,
+      role: m.role,
+    }))
+  );
 
   const isAdmin = currentRole === 'teamAdmin';
   const isReadOnly = !isAdmin;
 
   const handleSubmit = () => {
-    // 비관리자도 설명 수정은 가능 → 그대로 onSubmit 전달 (백엔드/상위에서 권한체크 가능)
     if (isAdmin) {
       if (!teamName.trim() || members.length === 0) return;
     } else {
-      // 멤버/뷰어: 이름/멤버는 읽기 전용이므로 필수 검증에서 제외
       if (teamDesc.trim() === '') return;
     }
-    onSubmit?.({ name: teamName, description: teamDesc, members });
+
+    const apiMembers: Member[] = members.map((m, idx) => ({
+      userId: m.userId ?? idx + 1, // 없으면 fallback
+      name: m.name,
+      email: m.email,
+      role: m.role,
+    }));
+
+    onSubmit?.({ name: teamName, description: teamDesc, members: apiMembers });
   };
 
   const isSaveActive = isAdmin
     ? teamName.trim() !== '' && members.length > 0
-    : teamDesc.trim() !== ''; // 멤버/뷰어는 설명만 수정 가능
+    : teamDesc.trim() !== '';
 
   return (
     <div
@@ -80,7 +101,7 @@ export default function FrmTeamEdit({
         팀 설정
       </h2>
 
-      {/* 팀 이름 (관리자만 수정 가능) */}
+      {/* 팀 이름 */}
       <div className="w-full">
         <label
           className="
@@ -99,7 +120,7 @@ export default function FrmTeamEdit({
         />
       </div>
 
-      {/* 팀 설명 (모두 수정 가능) */}
+      {/* 팀 설명 */}
       <div className="w-full">
         <label
           className="
@@ -130,17 +151,23 @@ export default function FrmTeamEdit({
         <div className="mt-[8px]">
           <FrmMemberList
             members={members}
-            readOnly={isReadOnly} // 역할변경/삭제만 막기 용도
+            readOnly={isReadOnly}
             onMemberAdd={(email) => {
               const trimmed = email.trim();
               if (!isValidEmail(trimmed)) return;
-              // (옵션) 중복 방지
               setMembers((prev) => {
                 if (prev.some((m) => m.email === trimmed)) return prev;
-                return [...prev, { name: '팀원명', email: trimmed, role: 'member' }];
+                return [
+                  ...prev,
+                  {
+                    userId: Date.now(), // 임시 ID
+                    name: '팀원명',
+                    email: trimmed,
+                    role: 'member',
+                  },
+                ];
               });
             }}
-            // ⬇️ 역할 변경/삭제는 관리자만
             onRoleChange={
               isAdmin
                 ? (index, newRole) => {
@@ -161,7 +188,7 @@ export default function FrmTeamEdit({
         </div>
       </div>
 
-      {/* 저장하기 버튼 */}
+      {/* 저장 버튼 */}
       <div className="relative w-full h-[48px]">
         <div className="absolute left-1/2 -translate-x-1/2">
           <BtnSign2Small onClick={handleSubmit} isActive={isSaveActive}>
@@ -170,7 +197,7 @@ export default function FrmTeamEdit({
         </div>
       </div>
 
-      {/* 하단 행동 텍스트: 관리자=팀 삭제하기 / 멤버·뷰어=팀 나가기 */}
+      {/* 하단 행동 텍스트 */}
       <div className="relative w-full h-[28px]">
         <div
           className="absolute left-1/2 -translate-x-1/2"
@@ -180,7 +207,7 @@ export default function FrmTeamEdit({
             fontSize: '14px',
             fontStyle: 'normal',
             fontWeight: 500,
-            lineHeight: '150%', // 21px
+            lineHeight: '150%',
             letterSpacing: '-0.4px',
             display: 'flex',
             width: '72px',

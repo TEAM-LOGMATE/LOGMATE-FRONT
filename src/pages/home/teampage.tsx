@@ -7,10 +7,22 @@ import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import BtnSort from '../../components/btn/btn-sort';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
+import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, loadTeamFolders, saveTeamFolders, type Folder } from '../../utils/storage';
-import { MAX_SPACES } from '../../utils/validate';
+import { getTeams, createTeam } from '../../api/teams';
+import { getDashboards, createDashboard } from '../../api/dashboard';
 
+// 타입 불러오기
+import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
+
+// UI → API Role 매핑
+const roleMap: Record<UiRole, ApiRole> = {
+  teamAdmin: 'ADMIN',
+  member: 'MEMBER',
+  viewer: 'VIEWER',
+};
+
+// 서버에서 내려줄 상태값 타입 정의
 type BoardStatus = 'collecting' | 'unresponsive' | 'before';
 
 interface Board {
@@ -18,7 +30,8 @@ interface Board {
   name: string;
   lastEdited?: string;
   logPath?: string;
-  statusType: BoardStatus; // 정규화 후 항상 존재
+  sendTo?: string;
+  status?: BoardStatus;
 }
 
 export default function TeamPage() {
@@ -27,7 +40,8 @@ export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
 
-  const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
+  const [teamFolders, setTeamFolders] = useState<any[]>([]);
+  const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showDashboardMake, setShowDashboardMake] = useState(false);
@@ -35,93 +49,76 @@ export default function TeamPage() {
   const [showToast, setShowToast] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-  // 초기 로드
+  // 새 팀 생성 모달 상태
+  const [showMakeTeam, setShowMakeTeam] = useState(false);
+
+  // 초기 로드: 팀 & 대시보드 불러오기
   useEffect(() => {
     if (!user) return;
-    const local = loadTeamFolders(username) || [];
-    setTeamFolders(local);
 
-    const hasLocalCurrent = !!teamId && local.some((f) => String(f.id) === String(teamId));
-    setLoading(!hasLocalCurrent ? false : false); // 일단 로컬만 쓰므로 즉시 false
-  }, [user, username, teamId]);
+    const fetchTeams = async () => {
+      try {
+        const res = await getTeams();
+        setTeamFolders(res);
 
-  const handleAddTeamFolder = () => {
-    setTeamFolders((prev) => {
-      if (prev.length >= MAX_SPACES) return prev;
-      const newFolder: Folder = {
-        id: Date.now(),
-        name: '새 팀',
-        createdAt: new Date().toISOString(),
-        spaceType: 'team',
-        boards: [],
-      };
-      const updated = [...prev, newFolder];
-      if (user) saveTeamFolders(username, updated);
-      return updated;
-    });
-  };
-
-  const handleRemoveTeamFolder = (folderId?: number | string) => {
-    if (!folderId) return;
-    setTeamFolders((prev) => {
-      const updated = prev.filter((f) => String(f.id) !== String(folderId));
-      if (user) saveTeamFolders(username, updated);
-      return updated;
-    });
-  };
-
-  const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
-
-  useEffect(() => {
-    if (!user) return;
-    if (!loading && teamId && !currentTeam) {
-      navigate('/team', { replace: true });
-    }
-  }, [user, loading, teamId, currentTeam, navigate]);
-
-  // ---- 정규화 유틸: status/statusType 혼재 → 항상 statusType으로 맞춤 ----
-  const normalizeBoard = (raw: any): Board => {
-    const status: BoardStatus =
-      (raw?.statusType as BoardStatus) ??
-      (raw?.status as BoardStatus) ??
-      'before';
-    return {
-      id: Number(raw?.id),
-      name: String(raw?.name ?? ''),
-      lastEdited: raw?.lastEdited,
-      logPath: raw?.logPath,
-      statusType: status,
+        if (teamId) {
+          const team = res.find((t: any) => String(t.id) === String(teamId));
+          if (team) {
+            const dashboards = await getDashboards(Number(teamId));
+            setBoards(dashboards.data);
+          }
+        }
+      } catch (err) {
+        console.error('팀/대시보드 불러오기 실패:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-  };
-  // ----------------------------------------------------------------------
 
-  // 보드 목록 (정규화 + 정렬)
-  const boards: Board[] = useMemo(() => {
-    const list = (currentTeam?.boards ?? []).map(normalizeBoard);
-    return list.sort((a, b) => {
+    fetchTeams();
+  }, [user, teamId]);
+
+  // 보드 생성
+  const handleCreateBoard = async (boardData: any) => {
+    if (!teamId) return;
+    try {
+      const res = await createDashboard(Number(teamId), {
+        name: boardData.name,
+        logPath: boardData.logPath,
+        sendTo: boardData.sendTo,
+      });
+      setBoards((prev) => [...prev, res.data]);
+      setShowDashboardMake(false);
+      setShowToast(true);
+    } catch (err) {
+      console.error('보드 생성 실패:', err);
+    }
+  };
+
+  // 보드 정렬
+  const sortedBoards = useMemo(() => {
+    return [...boards].sort((a, b) => {
       const aTime = a.lastEdited ? new Date(a.lastEdited).getTime() : 0;
       const bTime = b.lastEdited ? new Date(b.lastEdited).getTime() : 0;
       return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
     });
-  }, [currentTeam, sortOrder]);
+  }, [boards, sortOrder]);
 
   if (!user) return <Navigate to="/login" replace />;
   if (loading) return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
+
+  const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
   if (!teamId || !currentTeam) return null;
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
       <Bar
         username={username}
-        folders={loadFolders(username)}
         teamFolders={teamFolders}
-        activePage={!teamId ? 'team' : undefined}
+        activePage="team"
         activeFolderId={teamId}
-        onAddTeamFolder={handleAddTeamFolder}
-        onRemoveTeamFolder={handleRemoveTeamFolder}
-        onSelectFolder={(id) => {
-          navigate(`/team/${id}`, { replace: true });
-        }}
+        onAddTeamFolder={() => setShowMakeTeam(true)} // 모달 열기
+        onSelectFolder={(id) => navigate(`/team/${id}`, { replace: true })}
       />
 
       <div className="flex flex-col flex-1 p-6 gap-6">
@@ -136,17 +133,9 @@ export default function TeamPage() {
             <div onClick={() => navigate('/team', { replace: true })} className="cursor-pointer">
               <BtnBigArrow />
             </div>
-            <h1 className="text-[28px] font-bold leading-[135%] tracking-[-0.4px] text-[#F2F2F2]">
-              {currentTeam.name}
-            </h1>
+            <h1 className="text-[28px] font-bold text-[#F2F2F2]">{currentTeam.name}</h1>
             <BtnSort onSortChange={(order) => setSortOrder(order)} />
           </div>
-
-          {currentTeam.description && (
-            <p className="text-[14px] font-bold leading-[150%] tracking-[-0.4px] ml-[12px] text-[#AEAEAE]">
-              {currentTeam.description}
-            </p>
-          )}
         </motion.div>
 
         {/* 썸네일 목록 */}
@@ -160,7 +149,7 @@ export default function TeamPage() {
           }}
         >
           <AnimatePresence>
-            {boards.map((b, idx) => (
+            {sortedBoards.map((b, idx) => (
               <motion.div
                 key={b.id}
                 layout
@@ -175,28 +164,9 @@ export default function TeamPage() {
                   spaceType="team"
                   boardName={b.name}
                   previewPath={`/team/${currentTeam.id}/${b.id}?thumb=1`}
-                  statusType={b.statusType}
+                  statusType={b.status || 'before'}
                   lastEdited={b.lastEdited}
                   onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
-                  // 상태 클릭 시 상위/스토리지 반영
-                  onChangeStatus={(newStatus) => {
-                    setTeamFolders((prev) => {
-                      const updated = prev.map((team) =>
-                        String(team.id) === String(currentTeam.id)
-                          ? {
-                              ...team,
-                              boards: (team.boards ?? []).map((board: any) =>
-                                Number(board.id) === b.id
-                                  ? { ...board, statusType: newStatus }
-                                  : board
-                              ),
-                            }
-                          : team
-                      );
-                      saveTeamFolders(username, updated);
-                      return updated;
-                    });
-                  }}
                 />
               </motion.div>
             ))}
@@ -234,38 +204,51 @@ export default function TeamPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: -20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            >
-              <DashboardMake
-                onClose={() => {
-                  setShowDashboardMake(false);
-                  setSelectedFolderId(null);
-                }}
-                onCreate={(board) => {
-                  const newBoard: Board = {
-                    ...normalizeBoard(board),
-                    lastEdited: new Date().toISOString(),
-                    statusType: 'before', // 새 보드는 '대시보드 준비 중'
-                  };
-                  setTeamFolders((prev) => {
-                    const updated = prev.map((team) =>
-                      String(team.id) === String(selectedFolderId)
-                        ? { ...team, boards: [...(team.boards ?? []), newBoard] }
-                        : team
-                    );
-                    saveTeamFolders(username, updated);
-                    return updated;
+            <DashboardMake
+              onClose={() => {
+                setShowDashboardMake(false);
+                setSelectedFolderId(null);
+              }}
+              onCreate={handleCreateBoard}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FrmMakeTeam 모달 */}
+      <AnimatePresence>
+        {showMakeTeam && (
+          <motion.div
+            key="makeTeamModal"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FrmMakeTeam
+              onClose={() => setShowMakeTeam(false)}
+              onSubmit={async (data: { name: string; description: string; members: UiMember[] }) => {
+                try {
+                  // UI → API 변환 (userId가 없을 경우 임시로 0)
+                  const apiMembers: ApiMember[] = data.members.map((m) => ({
+                    userId: m.userId ?? 0, // 임시 방편
+                    role: roleMap[m.role],
+                  }));
+
+                  const res = await createTeam({
+                    name: data.name,
+                    description: data.description,
+                    members: apiMembers,
                   });
-                  setShowDashboardMake(false);
-                  setSelectedFolderId(null);
-                  setShowToast(true);
-                }}
-              />
-            </motion.div>
+
+                  setTeamFolders((prev) => [...prev, res.data]);
+                  setShowMakeTeam(false);
+                } catch (err) {
+                  console.error('팀 생성 실패:', err);
+                }
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
