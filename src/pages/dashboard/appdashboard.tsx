@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import Bar from "../../components/navi/bar";
+import type { Folder } from "../../utils/type";
 import { useAuth } from "../../utils/AuthContext";
-import { loadFolders, loadTeamFolders } from "../../utils/storage"; // 개인 + 팀 둘 다 로드
 import Toggle from "./toggle";
 import WebDashboard from "./webdashboard";
 import AppAll from "../component/AppAll";
@@ -14,16 +14,20 @@ import AppLiveLog from "../component/AppLiveLog";
 import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
 
+// API
+import { getTeams } from "../../api/teams";
+import { getDashboards } from "../../api/dashboard";
+
 export default function AppDashboard() {
   const location = useLocation();
   const [params] = useSearchParams();
 
-  // 임베드(썸네일) 판별: ?thumb=1 이거나 iFrame 내부
+  // 임베드(썸네일) 판별
   const isThumb = params.get("thumb") === "1";
   const inIframe = typeof window !== "undefined" && window.self !== window.top;
   const isEmbed = isThumb || inIframe;
 
-  // 인증 가드: 임베드는 전부 우회, 일반 화면만 보호
+  // 인증 가드
   const { isLoading, isAuthed, user } = useAuth();
   if (!isEmbed) {
     if (isLoading) return null;
@@ -44,25 +48,62 @@ export default function AppDashboard() {
     teamId?: string;
   }>();
 
-  // 임베드일 땐 user가 null일 수 있으니 폴백 처리
-  const username =
-    user?.username ??
-    localStorage.getItem("username") ??
-    "사용자";
+  // 임베드일 때는 user가 null일 수 있음 → fallback
+  const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
 
-  // 개인 + 팀 폴더 모두 로드
-  const personalFolders = loadFolders(username) || [];
-  const teamFolders = loadTeamFolders(username) || [];
+  // 개인 스페이스 (API 없음 → 빈 배열)
+  const [personalFolders] = useState<Folder[]>([]);
+
+  // 팀 스페이스 (API 연동)
+  const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const teamData = await getTeams();
+        const withDashboards: Folder[] = await Promise.all(
+          teamData.map(async (team: any) => {
+            try {
+              const dashboards = await getDashboards(team.id);
+              return {
+                id: team.id,
+                name: team.name,
+                description: team.description,
+                spaceType: "team" as const,
+                boards: dashboards.data?.map((db: any) => ({
+                  id: db.id,
+                  name: db.name,
+                  logPath: db.logPath,
+                  status: "before" as const, // 기본 상태
+                })) || [],
+              };
+            } catch {
+              return {
+                id: team.id,
+                name: team.name,
+                description: team.description,
+                spaceType: "team" as const,
+                boards: [],
+              };
+            }
+          })
+        );
+        setTeamFolders(withDashboards);
+      } catch (err) {
+        console.error("팀/대시보드 불러오기 실패:", err);
+      }
+    };
+    fetchTeams();
+  }, []);
 
   // 팀 / 개인 분리 탐색
-  let folder: any | undefined;
+  let folder: Folder | undefined;
   if (teamId) {
-    folder = teamFolders.find((f) => String(f.id) === String(teamId));
+    folder = teamFolders.find((f: Folder) => String(f.id) === String(teamId));
   } else if (folderId) {
-    folder = personalFolders.find((f) => String(f.id) === String(folderId));
+    folder = personalFolders.find((f: Folder) => String(f.id) === String(folderId));
   }
 
-  const board = folder?.boards?.find((b: any) => String(b.id) === String(boardId));
+  const board = folder?.boards?.find((b) => String(b.id) === String(boardId));
 
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -72,9 +113,6 @@ export default function AppDashboard() {
   }
 
   const spaceType = folder.spaceType === "team" ? "팀 스페이스" : "개인 스페이스";
-
-  // (선택) 임베드에서는 폴링/애니 끄기
-  // if (isEmbed) { stopPolling?.(); disableAnimations?.(); }
 
   return (
     <div className={`flex w-screen h-screen bg-[#0F0F0F] text-white font-suit`}>
@@ -95,8 +133,7 @@ export default function AppDashboard() {
           <h1 className="text-[28px] font-bold text-[#F2F2F2] leading-[135%] tracking-[-0.4px]">
             {board.name}
           </h1>
-
-        <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
 
         {/* App / Web 내용 */}
@@ -111,13 +148,11 @@ export default function AppDashboard() {
                   <AppAll />
                   <AppErrorLog />
                 </div>
-
-                {/* 나머지 카드 */}
                 <AppLevel />
                 <AppLogger />
               </div>
 
-              {/* 아래 영역도 전부 카드묶음 폭에 맞춤 */}
+              {/* 아래 영역 */}
               <div className="w-full max-w-[1385px] flex flex-col gap-6">
                 <SearchRefresh onRefresh={() => setRefreshKey((k) => k + 1)} />
                 <AppLiveLog key={refreshKey} />

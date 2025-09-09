@@ -6,12 +6,14 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, type Folder } from '../../utils/storage';
+import type { Folder } from '../../utils/type';
+
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
   const { user, login, error: authError } = useAuth();
 
+  // 로그인 안 된 상태라면 로그인 페이지로 리다이렉트
   if (!user) return <Navigate to="/login" replace />;
 
   const username = user.username;
@@ -24,12 +26,11 @@ export default function MyInfoPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [folders, setFolders] = useState<Folder[]>([]);
-
-  // 폴더 로드
   useEffect(() => {
-    setFolders(loadFolders(username));
+    setFolders([]);
   }, [username]);
 
+  // 인증 에러 처리
   useEffect(() => {
     if (authError) {
       setErrorMessage(authError);
@@ -37,17 +38,19 @@ export default function MyInfoPage() {
     }
   }, [authError]);
 
+  // 에러 메시지 3초 뒤 자동 사라짐
   useEffect(() => {
     if (!errorMessage) return;
     const t = setTimeout(() => setErrorMessage(null), 3000);
     return () => clearTimeout(t);
   }, [errorMessage]);
 
+  // 비밀번호 확인 후 내 정보 수정 페이지로 이동
   const handleUpdate = async () => {
     const pwd = password.trim();
     if (!pwd) {
       setErrorMessage('비밀번호를 입력해 주세요.');
-      setErrorTrigger((t) => t + 1); 
+      setErrorTrigger((t) => t + 1);
       return;
     }
     try {
@@ -57,7 +60,7 @@ export default function MyInfoPage() {
       navigate('/edit-info');
     } catch {
       setErrorMessage('비밀번호가 올바르지 않습니다.');
-      setErrorTrigger((t) => t + 1); 
+      setErrorTrigger((t) => t + 1);
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +72,7 @@ export default function MyInfoPage() {
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        folders={folders}
+        folders={folders} // 현재는 빈 배열 전달
         onAddFolder={() => {}}
         onRemoveFolder={() => {}}
         activePage="myinfo"

@@ -5,11 +5,17 @@ export const api = axios.create({
   withCredentials: false, // 쿠키 인증이면 true
 });
 
-// 요청 인터셉터 - 토큰 자동 첨부
+// 요청 인터셉터 - 토큰 자동 첨부 (로그인/회원가입은 제외)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
-  if (token) {
+
+  // 로그인/회원가입 API는 토큰 필요 없음
+  const skipAuthUrls = ["/users/login", "/users/signup"];
+  const shouldSkip = skipAuthUrls.some((url) => config.url?.includes(url));
+
+  if (token && !shouldSkip) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });

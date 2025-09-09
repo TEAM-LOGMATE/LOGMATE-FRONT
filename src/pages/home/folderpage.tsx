@@ -7,14 +7,25 @@ import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
 import ToastMessage from '../dashboard/toastmessage';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, saveFolders, foldersKey, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
 
+// API
+import { getPersonalFolders } from '../../api/folders';
+
+// 개인 스페이스 보드 타입
 interface Board {
   id: number;
   name: string;
   logPath?: string;
-  status?: "collecting" | "unresponsive" | "before"; 
+  status?: 'collecting' | 'unresponsive' | 'before';
+}
+
+// 개인 스페이스 폴더 타입
+interface Folder {
+  id: number;
+  name: string;
+  boards: Board[];
+  spaceType: 'personal';
 }
 
 export default function FolderPage() {
@@ -42,44 +53,44 @@ export default function FolderPage() {
   }, [folderId]);
 
   useEffect(() => {
-    const loaded = loadFolders(username);
-    setFolders(loaded);
-    setLoading(false);
-  }, [username]);
-
-  useEffect(() => {
-    const key = foldersKey(username);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== key) return;
-      setFolders(loadFolders(username));
+    const fetchFolders = async () => {
+      try {
+        if (!user) return;
+        const data = await getPersonalFolders(user.id);
+        setFolders(
+          (data || []).map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            boards: f.boards || [],
+            spaceType: 'personal',
+          }))
+        );
+      } catch (err) {
+        console.error('개인 폴더 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [username]);
+    fetchFolders();
+  }, [user]);
 
-  const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
+  const handleAddFolder = () => {
     setFolders((prev) => {
-      const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev;
-      saveFolders(username, candidate);
-      return candidate;
+      if (prev.length >= MAX_SPACES) return prev;
+      return [
+        ...prev,
+        {
+          id: Date.now(),
+          name: '새 폴더',
+          boards: [],
+          spaceType: 'personal',
+        },
+      ];
     });
   };
 
-  const handleAddFolder = () => {
-    updateFolders((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        name: '새 폴더',
-        boards: [] as Board[],
-        spaceType: 'personal',
-      },
-    ]);
-  };
-
   const handleRemoveFolder = () => {
-    updateFolders((prev) => prev.slice(0, -1));
+    setFolders((prev) => prev.slice(0, -1));
   };
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
@@ -98,11 +109,11 @@ export default function FolderPage() {
     return null;
   }
 
-  const boards: Board[] = (currentFolder as any).boards || [];
+  const boards: Board[] = currentFolder.boards || [];
 
   // 새 보드 추가
   const handleAddBoard = (board: Board) => {
-    updateFolders((prev) =>
+    setFolders((prev) =>
       prev.map((folder) =>
         folder.id === currentFolder.id
           ? {
@@ -111,7 +122,7 @@ export default function FolderPage() {
                 ...(folder.boards || []),
                 {
                   ...board,
-                  status: "collecting",
+                  status: 'collecting',
                 },
               ],
             }
@@ -123,7 +134,7 @@ export default function FolderPage() {
 
   // 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
-    updateFolders((prev) =>
+    setFolders((prev) =>
       prev.map((folder) =>
         folder.id === currentFolder.id
           ? { ...folder, boards: (folder.boards || []).filter((b) => b.id !== boardId) }
@@ -227,7 +238,7 @@ export default function FolderPage() {
             <DashboardMake
               onClose={() => setIsDashboardMakeOpen(false)}
               onCreate={(board) => {
-                handleAddBoard({ ...board, status: "collecting" }); 
+                handleAddBoard({ ...board, status: 'collecting' });
                 setIsDashboardMakeOpen(false);
               }}
             />

@@ -1,3 +1,4 @@
+// src/pages/home/P_SpacePage.tsx
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -6,9 +7,28 @@ import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
 import BtnPoint from '../../components/btn/btn-point';
 import FrmFolder from '../../components/frm/frm-folder';
-import { loadFolders, saveFolders, type Folder } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
+
+// API
+import { createPersonalFolder, getPersonalFolders, deleteFolder, updateFolder } from '../../api/folders';
+
+// Folder/Board 타입 정의
+interface Board {
+  id: number;
+  name: string;
+  logPath?: string;
+  status?: 'collecting' | 'unresponsive' | 'before';
+}
+
+interface Folder {
+  id: number;
+  name: string;
+  createdAt?: string;
+  modifiedAt?: string;
+  spaceType: 'personal';
+  boards?: Board[];
+}
 
 export default function P_SpacePage() {
   const { user } = useAuth();
@@ -23,7 +43,6 @@ export default function P_SpacePage() {
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-  // 페이지 진입 시 스크롤 제거
   useEffect(() => {
     const original = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -39,20 +58,18 @@ export default function P_SpacePage() {
       return order === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-  const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
-    setFolders((prev) => {
-      const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev;
-      const sorted = sortFolders(candidate, sortOrder);
-      saveFolders(username, sorted);
-      return sorted;
-    });
+  const fetchFolders = async () => {
+    try {
+      const data = await getPersonalFolders(user.id);
+      setFolders(sortFolders(data, sortOrder));
+    } catch (err) {
+      console.error('개인 폴더 불러오기 실패:', err);
+    }
   };
 
   useEffect(() => {
-    const loaded = loadFolders(username);
-    setFolders(sortFolders(loaded, sortOrder));
-  }, [username, sortOrder]);
+    fetchFolders();
+  }, [user, sortOrder]);
 
   const handleAddFolder = () => {
     if (folders.length >= MAX_SPACES) return;
@@ -65,34 +82,42 @@ export default function P_SpacePage() {
     setPendingDraft('');
   };
 
-  const handleConfirmAdd = (finalName: string) => {
+  const handleConfirmAdd = async (finalName: string) => {
     const name = (finalName ?? '').trim();
     if (!name) {
       handleCancelAdd();
       return;
     }
 
-    const now = new Date().toISOString();
-    updateFolders((prev) => [
-      {
-        id: Date.now() + Math.random(),
-        name,
-        createdAt: now,
-        modifiedAt: now,
-        spaceType: 'personal',
-      },
-      ...prev,
-    ]);
+    try {
+      await createPersonalFolder(user.id, name);
+      await fetchFolders(); // 생성 후 서버 데이터 다시 불러오기
+    } catch (err) {
+      console.error('폴더 생성 실패:', err);
+    }
 
     setPendingDraft('');
     setPendingFolder(false);
   };
 
-  const handleDeleteFolder = (id: string | number) => {
-    updateFolders((prev) => prev.filter((f) => f.id !== Number(id)));
+  const handleRenameFolder = async (id: number, newName: string) => {
+    try {
+      await updateFolder(id, newName);
+      await fetchFolders(); // 수정 후 서버 데이터 다시 불러오기
+    } catch (err) {
+      console.error('폴더 수정 실패:', err);
+    }
   };
 
-  // 초기 로드 애니메이션
+  const handleDeleteFolder = async (id: string | number) => {
+    try {
+      await deleteFolder(Number(id));
+      await fetchFolders(); // 삭제 후 서버 데이터 다시 불러오기
+    } catch (err) {
+      console.error('폴더 삭제 실패:', err);
+    }
+  };
+
   const folderVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -105,7 +130,6 @@ export default function P_SpacePage() {
 
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-[#0F0F0F] text-white font-suit">
-      {/* Bar 고정 */}
       <Bar
         username={username}
         folders={folders}
@@ -114,7 +138,6 @@ export default function P_SpacePage() {
         activePage="personal"
       />
 
-      {/* 오른쪽 콘텐츠 */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -135,15 +158,14 @@ export default function P_SpacePage() {
         </div>
 
         <motion.div
-          layout 
+          layout
           className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
         >
-          {/* 기존 폴더 */}
           <AnimatePresence>
             {folders.map((folder) => (
               <motion.div
-                key={folder.id}
-                layout 
+                key={Number(folder.id)}
+                layout
                 style={{ overflow: 'visible' }}
                 variants={folderVariants}
                 initial="hidden"
@@ -154,14 +176,14 @@ export default function P_SpacePage() {
                   spaceType="personal"
                   name={folder.name}
                   onDelete={() => handleDeleteFolder(folder.id)}
+                  onRename={(newName) => handleRenameFolder(folder.id, newName)}
                   onClickName={() => navigate(`/personal/${folder.id}`)}
-                  boards={(folder as any).boards || []}
+                  boards={folder.boards || []}
                 />
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {/* 새 폴더 입력칸 */}
           <AnimatePresence>
             {pendingFolder && (
               <motion.div
