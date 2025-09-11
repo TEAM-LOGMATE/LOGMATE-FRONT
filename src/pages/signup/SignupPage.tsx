@@ -12,7 +12,6 @@ import {
 } from '../../utils/validate';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { loadFolders, saveFolders } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import Logo from '../../components/icon/logo';
 
@@ -36,6 +35,7 @@ export default function SignupPage() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 유효성 검사
   const isFormValid =
     username.trim() !== '' &&
     email.trim() !== '' &&
@@ -46,6 +46,7 @@ export default function SignupPage() {
     isValidPassword(password) &&
     doPasswordsMatch(password, passwordConfirm);
 
+  // 회원가입 버튼 클릭
   const handleClick = async () => {
     if (!isFormValid) {
       setErrorMessage('모든 정보를 올바르게 입력해 주세요.');
@@ -55,15 +56,16 @@ export default function SignupPage() {
 
     try {
       await signup(username.trim(), email.trim().toLowerCase(), password);
-
-      const existing = loadFolders(username);
-      if (!Array.isArray(existing) || existing.length === 0) {
-        saveFolders(username, []);
+      navigate('/login'); // 회원가입 성공 → 로그인 화면 이동
+    } catch (err: any) {
+      console.error(err);
+      if (err.response?.status === 400) {
+        setErrorMessage('이미 사용 중인 이메일입니다.');
+      } else if (err.response?.status === 500) {
+        setErrorMessage('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      } else {
+        setErrorMessage('네트워크 오류가 발생했습니다.');
       }
-      navigate('/login');
-    } catch (e) {
-      console.error(e);
-      setErrorMessage('문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
       setTimeout(() => setErrorMessage(''), 3000);
     }
   };
@@ -90,7 +92,6 @@ export default function SignupPage() {
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">
           {/* 로고 + 제목 */}
           <div className="flex flex-col items-center gap-[20px]">
-            {/* 로고 */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -98,7 +99,6 @@ export default function SignupPage() {
             >
               <Logo width={24} height={28} />
             </motion.div>
-
             <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
               새 계정 만들기
             </h1>
@@ -108,7 +108,7 @@ export default function SignupPage() {
           <div className="flex flex-col items-start gap-[20px] w-full">
             {/* 사용자 이름 */}
             <div className="flex flex-col gap-[12px] w-full">
-              <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              <label className="text-[#F2F2F2] text-[14px] font-medium">
                 사용자 이름 <span className="text-[#FF6F6F]">*</span>
               </label>
               <Input54
@@ -125,7 +125,7 @@ export default function SignupPage() {
 
             {/* 이메일 */}
             <div className="flex flex-col gap-[12px] w-full">
-              <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              <label className="text-[#F2F2F2] text-[14px] font-medium">
                 이메일 <span className="text-[#FF6F6F]">*</span>
               </label>
               <Input54
@@ -143,7 +143,7 @@ export default function SignupPage() {
 
             {/* 비밀번호 */}
             <div className="flex flex-col gap-[12px] w-full">
-              <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              <label className="text-[#F2F2F2] text-[14px] font-medium">
                 비밀번호 <span className="text-[#FF6F6F]">*</span>
               </label>
               <Input54
@@ -175,7 +175,7 @@ export default function SignupPage() {
 
             {/* 비밀번호 확인 */}
             <div className="flex flex-col gap-[12px] w-full">
-              <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              <label className="text-[#F2F2F2] text-[14px] font-medium">
                 비밀번호 확인 <span className="text-[#FF6F6F]">*</span>
               </label>
               <Input54
@@ -187,10 +187,7 @@ export default function SignupPage() {
                 onDone={setShowPasswordConfirm}
                 showIcon={true}
               />
-              <span
-                aria-live="polite"
-                className="min-h-[16px] text-[12px] mt-[4px] text-[#FF6F6F]"
-              >
+              <span aria-live="polite" className="min-h-[16px] text-[12px] mt-[4px] text-[#FF6F6F]">
                 {passwordConfirm.length > 0 && !doPasswordsMatch(password, passwordConfirm)
                   ? '비밀번호가 일치하지 않습니다.'
                   : <span className="invisible">유효성 검사 메시지 자리</span>}
@@ -220,8 +217,7 @@ export default function SignupPage() {
           <div className="flex items-center gap-[14px]">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                         text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center
-                         cursor-pointer hover:text-white transition"
+                         text-[#AEAEAE] text-[14px] font-suit cursor-pointer hover:text-white transition"
               onClick={() => navigate('/login')}
             >
               로그인하기
@@ -232,7 +228,7 @@ export default function SignupPage() {
               </svg>
             </div>
             <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                         text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center">
+                         text-[#AEAEAE] text-[14px]">
               비밀번호 찾기
             </div>
           </div>

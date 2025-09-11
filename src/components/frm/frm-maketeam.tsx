@@ -4,16 +4,13 @@ import FrmMemberList from './frm-memberlist';
 import BtnX from '../btn/btn-x';
 import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
+import type { UiMember, UiRole } from '../../utils/type';
 
 type FrmMakeTeamProps = {
   onSubmit?: (data: {
     name: string;
     description: string;
-    members: {
-      name: string;
-      email: string;
-      role: 'teamAdmin' | 'member' | 'viewer';
-    }[];
+    members: UiMember[];
   }) => void;
   onClose?: () => void;
 };
@@ -21,15 +18,14 @@ type FrmMakeTeamProps = {
 export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
   const [teamName, setTeamName] = useState('');
   const [teamDesc, setTeamDesc] = useState('');
-  const [members, setMembers] = useState<
-    { name: string; email: string; role: 'teamAdmin' | 'member' | 'viewer' }[]
-  >([]);
+  const [members, setMembers] = useState<UiMember[]>([]);
 
+  // 팀 만들기 클릭 → 부모(S_SpacePage)로 값 전달
   const handleSubmit = () => {
     if (!teamName.trim() || members.length === 0) return;
     onSubmit?.({
-      name: teamName,
-      description: teamDesc,
+      name: teamName.trim(),
+      description: teamDesc.trim(),
       members,
     });
   };
@@ -82,10 +78,9 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
       <div className="w-full">
         <label
           className="
-            block
+            block mb-[8px]
             text-[var(--Gray-200,#D8D8D8)]
             font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-            mb-[8px]
           "
         >
           팀 설명
@@ -115,7 +110,11 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
               if (isValidEmail(email)) {
                 setMembers((prev) => [
                   ...prev,
-                  { name: '팀원명', email, role: 'member' },
+                  {
+                    name: '팀원명',
+                    email,
+                    role: 'member' as UiRole, // 기본 역할은 'member'
+                  },
                 ]);
               }
             }}
@@ -135,10 +134,7 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
 
       {/* 팀 만들기 버튼 */}
       <div className="w-full flex justify-center mt-[24px]">
-        <BtnSign2Small
-          onClick={handleSubmit}
-          isActive={isCreateTeamActive}
-        >
+        <BtnSign2Small onClick={handleSubmit} isActive={isCreateTeamActive}>
           팀 만들기
         </BtnSign2Small>
       </div>

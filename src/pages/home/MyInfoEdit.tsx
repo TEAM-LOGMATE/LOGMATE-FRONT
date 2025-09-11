@@ -57,7 +57,9 @@ export default function MyInfoEditPage() {
       return;
     }
 
+    //id 포함하도록 수정
     setUserUnsafe?.({
+      id: user.id,
       username,
       email: newEmail.trim().toLowerCase(),
     });

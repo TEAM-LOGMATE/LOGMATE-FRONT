@@ -1,5 +1,5 @@
 import { PieChart, Sector } from "recharts";
-import { motion, useMotionValue, animate } from "framer-motion";
+import { useMotionValue, animate } from "framer-motion";
 import { useEffect } from "react";
 import { useLogStore } from "../../utils/logstore";
 
@@ -25,7 +25,7 @@ const CustomSector = ({
   />
 );
 
-function AnimatedSector({ entry, start, end, radius, color }: any) {
+function AnimatedSector({ start, end, radius, color }: any) {
   const startAngle = useMotionValue(start);
   const endAngle = useMotionValue(end);
   const outerRadius = useMotionValue(radius);

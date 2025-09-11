@@ -7,14 +7,16 @@ import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
 import ToastMessage from '../dashboard/toastmessage';
 import { useAuth } from '../../utils/AuthContext';
-import { loadFolders, saveFolders, foldersKey, type Folder } from '../../utils/storage';
 import { MAX_SPACES } from '../../utils/validate';
+import { getPersonalFolders } from '../../api/folders';
+import { useFolderStore } from '../../utils/folderStore';
 
+// 개인 스페이스 보드 타입
 interface Board {
   id: number;
   name: string;
   logPath?: string;
-  status?: "collecting" | "unresponsive" | "before"; 
+  status?: 'collecting' | 'unresponsive' | 'before';
 }
 
 export default function FolderPage() {
@@ -26,67 +28,67 @@ export default function FolderPage() {
   const { folderId } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
 
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { folders, setFolders } = useFolderStore();
 
+  const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team' | null>(
-    folderId ? null : 'personal'
+    folderId ? 'personal' : 'personal'
   );
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    if (folderId) setActivePage(null);
-    else setActivePage('personal');
-  }, [folderId]);
-
-  useEffect(() => {
-    const loaded = loadFolders(username);
-    setFolders(loaded);
-    setLoading(false);
-  }, [username]);
-
-  useEffect(() => {
-    const key = foldersKey(username);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== key) return;
-      setFolders(loadFolders(username));
+    const fetchFolders = async () => {
+      try {
+        if (!user) return;
+        const data = await getPersonalFolders(user.id);
+        setFolders(
+          (data || []).map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            boards: f.boards || [],
+            spaceType: 'personal' as const,
+          }))
+        );
+      } catch (err) {
+        console.error('개인 폴더 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [username]);
+    fetchFolders();
+  }, [user, setFolders]);
 
-  const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
+  // 폴더 추가
+  const handleAddFolder = () => {
     setFolders((prev) => {
-      const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev;
-      saveFolders(username, candidate);
-      return candidate;
+      if (prev.length >= MAX_SPACES) return prev;
+      return [
+        ...prev,
+        {
+          id: Date.now(),
+          name: '새 폴더',
+          boards: [],
+          spaceType: 'personal' as const,
+        },
+      ];
     });
   };
 
-  const handleAddFolder = () => {
-    updateFolders((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        name: '새 폴더',
-        boards: [] as Board[],
-        spaceType: 'personal',
-      },
-    ]);
-  };
-
+  // 폴더 삭제
   const handleRemoveFolder = () => {
-    updateFolders((prev) => prev.slice(0, -1));
+    setFolders((prev) => prev.slice(0, -1));
   };
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
 
+  // 무한 루프 방지: 없는 폴더 접근 시 personal로 이동
   useEffect(() => {
     if (!loading && folders.length > 0 && folderId && !currentFolder) {
-      navigate('/personal');
+      if (window.location.pathname !== '/personal') {
+        navigate('/personal');
+      }
     }
   }, [loading, folders, folderId, currentFolder, navigate]);
 
@@ -98,11 +100,11 @@ export default function FolderPage() {
     return null;
   }
 
-  const boards: Board[] = (currentFolder as any).boards || [];
+  const boards: Board[] = currentFolder.boards || [];
 
-  // 새 보드 추가
+  // 보드 추가
   const handleAddBoard = (board: Board) => {
-    updateFolders((prev) =>
+    setFolders((prev) =>
       prev.map((folder) =>
         folder.id === currentFolder.id
           ? {
@@ -111,7 +113,7 @@ export default function FolderPage() {
                 ...(folder.boards || []),
                 {
                   ...board,
-                  status: "collecting",
+                  status: 'collecting',
                 },
               ],
             }
@@ -123,10 +125,13 @@ export default function FolderPage() {
 
   // 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
-    updateFolders((prev) =>
+    setFolders((prev) =>
       prev.map((folder) =>
         folder.id === currentFolder.id
-          ? { ...folder, boards: (folder.boards || []).filter((b) => b.id !== boardId) }
+          ? {
+              ...folder,
+              boards: (folder.boards || []).filter((b) => b.id !== boardId),
+            }
           : folder
       )
     );
@@ -136,14 +141,13 @@ export default function FolderPage() {
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-y-auto">
       <Bar
         username={username}
-        folders={folders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleRemoveFolder}
-        activePage={activePage}
-        activeFolderId={folderId}
+        activePage="personal"
+        activeFolderId={folderId ? Number(folderId) : null}
         onSelectPage={(page) => setActivePage(page)}
         onSelectFolder={(id) => {
-          setActivePage(null);
+          setActivePage('personal');
           navigate(`/personal/${id}`, { replace: true });
         }}
       />
@@ -157,12 +161,7 @@ export default function FolderPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div
-            onClick={() => {
-              navigate('/personal', { replace: true });
-            }}
-            className="cursor-pointer"
-          >
+          <div onClick={() => navigate('/personal', { replace: true })} className="cursor-pointer">
             <BtnBigArrow />
           </div>
           <h1
@@ -208,10 +207,7 @@ export default function FolderPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <FrmThumbnailBoard
-              connected={false}
-              onAddBoard={() => setIsDashboardMakeOpen(true)}
-            />
+            <FrmThumbnailBoard connected={false} onAddBoard={() => setIsDashboardMakeOpen(true)} />
           </motion.div>
         </div>
       </div>
@@ -219,15 +215,12 @@ export default function FolderPage() {
       {/* DashboardMake 모달 */}
       {isDashboardMakeOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setIsDashboardMakeOpen(false)}
-          />
-          <div className="relative z-10">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDashboardMakeOpen(false)} />
+          <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
             <DashboardMake
               onClose={() => setIsDashboardMakeOpen(false)}
               onCreate={(board) => {
-                handleAddBoard({ ...board, status: "collecting" }); 
+                handleAddBoard({ ...board, status: 'collecting' });
                 setIsDashboardMakeOpen(false);
               }}
             />

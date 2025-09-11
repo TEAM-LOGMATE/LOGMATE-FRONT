@@ -16,7 +16,7 @@ export default function PreviewBox() {
       }}
     >
       <img
-        src="public/Web 2.png" 
+        src="/Web2.png" 
         alt="미리보기"
         style={{
           width: "100%",

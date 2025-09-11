@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
@@ -8,26 +9,13 @@ import FrmFolder from '../../components/frm/frm-folder';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
-import { storage, type Folder, loadFolders } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
-import { MAX_SPACES } from '../../utils/validate';
-import type { Variants } from 'framer-motion';
+import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
+import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
+import { useFolderStore } from '../../utils/folderStore';
 
-type TeamMember = {
-  name: string;
-  email: string;
-  role: 'teamAdmin' | 'member' | 'viewer';
-};
-
-type TeamMeta = {
-  description: string;
-  members: TeamMember[];
-};
-
-const teamFoldersKey = (username: string) => `teamFolders:${username}`;
-const teamMetaKey = (username: string, teamId: number | string) =>
-  `teamMeta:${username}:${teamId}`;
-const teamSortKey = (username: string) => `sortOrder:${username}:team`;
+const toApiRole = (role: UiRole): ApiRole =>
+  role === 'teamAdmin' ? 'ADMIN' : role === 'member' ? 'MEMBER' : 'VIEWER';
 
 export default function S_SpacePage() {
   const { user } = useAuth();
@@ -36,164 +24,90 @@ export default function S_SpacePage() {
   const username = user.username;
   const navigate = useNavigate();
   const { folderId } = useParams<{ folderId: string }>();
-
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const { teamFolders: teams, setTeamFolders } = useFolderStore();
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-
   const [showMakeTeam, setShowMakeTeam] = useState(false);
-  const [newTeamId, setNewTeamId] = useState<number | null>(null);
-
   const [showTeamSettings, setShowTeamSettings] = useState(false);
-  const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
-  const [editInitialName, setEditInitialName] = useState<string>('');
-  const [editInitialDesc, setEditInitialDesc] = useState<string>('');
-  const [editInitialMembers, setEditInitialMembers] = useState<TeamMember[]>([]);
-
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
+  // 팀 불러오기
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
+    const fetchTeams = async () => {
+      try {
+        const res = await getTeams();
+        setTeamFolders(res.map((t: any) => ({ ...t, spaceType: 'team' })));
+      } catch (err) {
+        console.error('팀 불러오기 실패:', err);
+      }
     };
-  }, []);
+    fetchTeams();
+  }, [setTeamFolders]);
 
-  const sortFolders = (data: Folder[], order: 'newest' | 'oldest') =>
+  // 팀 정렬
+  const sortTeams = (data: Team[], order: 'newest' | 'oldest') =>
     [...data].sort((a, b) => {
-      const dateA = new Date(a.modifiedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.modifiedAt || b.createdAt || 0).getTime();
+      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
       return order === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-  const updateFolders = (updater: (prev: Folder[]) => Folder[]) => {
-    setFolders((prev) => {
-      const candidate = updater(prev);
-      if (candidate.length > MAX_SPACES) return prev;
-      const sorted = sortFolders(candidate, sortOrder);
-      storage.set(teamFoldersKey(username), sorted);
-      return sorted;
-    });
-  };
-
-  // 최초 로드 시 sortOrder도 storage에서 불러오기
   useEffect(() => {
-    const savedSort = storage.get<'newest' | 'oldest'>(teamSortKey(username), 'newest');
-    setSortOrder(savedSort);
-    const loaded = storage.get<Folder[]>(teamFoldersKey(username), []);
-    setFolders(sortFolders(loaded, savedSort));
-  }, [username]);
+    setTeamFolders((prev) => sortTeams(prev, sortOrder));
+  }, [sortOrder, setTeamFolders]);
 
-  // sortOrder 변경 시 storage에도 저장
-  useEffect(() => {
-    storage.set(teamSortKey(username), sortOrder);
-    setFolders((prev) => sortFolders(prev, sortOrder));
-  }, [sortOrder, username]);
-
-  const isValidFolderName = (raw: string) => {
-    const name = (raw ?? '').trim();
-    return !!name && name !== '새 팀';
-  };
-
-  const handleAddFolder = () => {
-    if (folders.length >= MAX_SPACES) return;
-    const newId = Date.now() + Math.random();
-    const now = new Date().toISOString();
-    updateFolders((prev) => [
-      ...prev,
-      { id: newId, name: '새 팀', createdAt: now, modifiedAt: now, spaceType: 'team' },
-    ]);
-    setNewTeamId(newId);
+  // 팀 추가
+  const handleAddTeam = () => {
     setShowMakeTeam(true);
   };
 
-  const handleDeleteFolder = (id: string | number) => {
-    storage.remove(teamMetaKey(username, id));
-    updateFolders((prev) => prev.filter((f) => f.id !== Number(id)));
+  // 팀 삭제 (= 팀 나가기)
+  const handleDeleteTeam = async (id: string | number) => {
+    try {
+      await deleteTeam(Number(id)); // 서버 API 호출
+      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id))); // 상태 갱신
+    } catch (err) {
+      console.error('팀 삭제 실패:', err);
+    }
   };
 
-  const handleRenameFolder = (id: number, newName: string) => {
-    if (!isValidFolderName(newName)) return;
-    updateFolders((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? { ...f, name: newName.trim(), modifiedAt: new Date().toISOString() }
-          : f
-      )
-    );
-  };
+  // 팀 수정
+  const handleTeamEditSubmit = async (data: {
+    name: string;
+    description: string;
+    members: UiMember[];
+  }) => {
+    if (!editingTeam) return;
+    try {
+      const apiMembers: ApiMember[] = data.members.map((m) => ({
+        email: m.email,
+        role: toApiRole(m.role),
+      }));
 
-  const handleMakeTeamSubmit = (data: { name: string; description: string; members: TeamMember[] }) => {
-    if (newTeamId != null) {
-      updateFolders((prev) =>
-        prev.map((f) =>
-          f.id === newTeamId
-            ? {
-                ...f,
-                name: data.name,
-                description: data.description,
-                modifiedAt: new Date().toISOString(),
-              }
-            : f
+      const updated = await updateTeam(editingTeam.id, {
+        name: data.name,
+        description: data.description,
+        members: apiMembers,
+      });
+
+      setTeamFolders((prev) =>
+        prev.map((t) =>
+          t.id === editingTeam.id ? { ...updated, spaceType: 'team' } : t
         )
       );
-      const meta: TeamMeta = {
-        description: data.description ?? '',
-        members: data.members ?? [],
-      };
-      storage.set(teamMetaKey(username, newTeamId), meta);
+      setShowTeamSettings(false);
+      setEditingTeam(null);
+    } catch (err) {
+      console.error('팀 수정 실패:', err);
     }
-    setShowMakeTeam(false);
-    setNewTeamId(null);
   };
 
-  const openTeamSettings = (teamId: number, teamName: string) => {
-    const meta = storage.get<TeamMeta>(teamMetaKey(username, teamId), {
-      description: '',
-      members: [],
-    });
-    setEditingTeamId(teamId);
-    setEditInitialName(teamName);
-    setEditInitialDesc(meta.description || '');
-    setEditInitialMembers(meta.members || []);
+  const openTeamSettings = (team: Team) => {
+    setEditingTeam(team);
     setShowTeamSettings(true);
   };
 
-  const handleTeamEditSubmit = (data: { name: string; description: string; members: TeamMember[] }) => {
-    if (editingTeamId == null) return;
-
-    updateFolders((prev) =>
-      prev.map((f) =>
-        f.id === editingTeamId
-          ? {
-              ...f,
-              name: data.name,
-              description: data.description,
-              modifiedAt: new Date().toISOString(),
-            }
-          : f
-      )
-    );
-
-    const meta: TeamMeta = {
-      description: data.description ?? '',
-      members: data.members ?? [],
-    };
-    storage.set(teamMetaKey(username, editingTeamId), meta);
-
-    setShowTeamSettings(false);
-    setEditingTeamId(null);
-  };
-
-  const handleTeamDeleteFromEdit = () => {
-    if (editingTeamId == null) return;
-    handleDeleteFolder(editingTeamId);
-    setShowTeamSettings(false);
-    setEditingTeamId(null);
-  };
-
-  // 애니메이션 variants
   const folderVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -208,12 +122,10 @@ export default function S_SpacePage() {
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        folders={loadFolders(username)}
-        teamFolders={folders}
         activePage="team"
         activeFolderId={folderId || null}
-        onAddTeamFolder={handleAddFolder}
-        onRemoveTeamFolder={handleDeleteFolder}
+        onAddTeamFolder={handleAddTeam}
+        onRemoveTeamFolder={handleDeleteTeam}
       />
 
       <motion.div
@@ -226,24 +138,24 @@ export default function S_SpacePage() {
         <div className="relative flex items-start w-fit">
           <h1 className="text-[28px] font-bold text-[#F2F2F2]">팀 스페이스</h1>
           <span className="absolute left-[calc(100%+16px)] top-[7px] text-[16px] text-[#888] whitespace-nowrap">
-            {folders.length}개 팀 참여중
+            {teams.length}개 팀 참여중
           </span>
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
           <BtnSort spaceType="team" onSortChange={(order) => setSortOrder(order)} />
-          <BtnPoint onClick={handleAddFolder}>새 팀 추가 +</BtnPoint>
+          <BtnPoint onClick={handleAddTeam}>새 팀 추가 +</BtnPoint>
         </div>
 
-        {/* 폴더 리스트 */}
+        {/* 팀 리스트 */}
         <motion.div
           layout
           className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
         >
           <AnimatePresence>
-            {folders.map((folder) => (
+            {teams.map((team) => (
               <motion.div
-                key={folder.id}
+                key={team.id}
                 layout
                 style={{ overflow: 'visible' }}
                 variants={folderVariants}
@@ -253,15 +165,11 @@ export default function S_SpacePage() {
               >
                 <FrmFolder
                   spaceType="team"
-                  name={folder.name}
-                  onOpenTeamSettings={() => openTeamSettings(Number(folder.id), folder.name)}
-                  onLeaveTeam={() => handleDeleteFolder(folder.id)}
-                  onClickName={() => navigate(`/team/${folder.id}`)}
-                  onAddBoard={() => {
-                    setSelectedFolderId(Number(folder.id));
-                    setShowDashboardMake(true);
-                  }}
-                  boards={(folder as any).boards || []}
+                  name={team.name}
+                  onOpenTeamSettings={() => openTeamSettings(team)}
+                  onLeaveTeam={() => handleDeleteTeam(team.id)} // ✅ 팀 나가기 = 팀 삭제
+                  onClickName={() => navigate(`/team/${team.id}`)}
+                  boards={(team as any).boards || []}
                 />
               </motion.div>
             ))}
@@ -269,7 +177,7 @@ export default function S_SpacePage() {
         </motion.div>
       </motion.div>
 
-      {/* 모달들 (FrmMakeTeam, FrmTeamEdit, DashboardMake) 그대로 유지 */}
+      {/* 팀 생성 모달 */}
       <AnimatePresence>
         {showMakeTeam && (
           <motion.div
@@ -287,20 +195,42 @@ export default function S_SpacePage() {
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
               <FrmMakeTeam
-                onSubmit={handleMakeTeamSubmit}
-                onClose={() => {
-                  if (newTeamId != null) {
-                    handleDeleteFolder(newTeamId);
-                    setNewTeamId(null);
+                onSubmit={async (data) => {
+                  try {
+                    const apiMembers: ApiMember[] = [
+                      {
+                        email: user.email,
+                        role: 'ADMIN',
+                      },
+                      ...data.members.map((m) => ({
+                        email: m.email,
+                        role: toApiRole(m.role),
+                      })),
+                    ];
+
+                    const newTeam = await createTeam({
+                      name: data.name,
+                      description: data.description,
+                      members: apiMembers,
+                    });
+
+                    // ✅ 반드시 newTeam.data 사용
+                    setTeamFolders((prev) => [
+                      ...prev,
+                      { ...newTeam.data, spaceType: 'team' },
+                    ]);
+                    setShowMakeTeam(false);
+                  } catch (err) {
+                    console.error('팀 생성 실패:', err);
                   }
-                  setShowMakeTeam(false);
                 }}
+                onClose={() => setShowMakeTeam(false)}
               />
             </motion.div>
           </motion.div>
         )}
 
-        {showTeamSettings && editingTeamId != null && (
+        {showTeamSettings && editingTeam && (
           <motion.div
             key="teamSettingsModal"
             className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
@@ -316,23 +246,21 @@ export default function S_SpacePage() {
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
               <FrmTeamEdit
-                initialName={editInitialName}
-                initialDescription={editInitialDesc}
-                initialMembers={editInitialMembers}
+                initialName={editingTeam.name}
+                initialDescription={editingTeam.description || ''}
+                initialMembers={(editingTeam.members || []).map((m: any) => ({
+                  name: m.name ?? '',
+                  email: m.email ?? '',
+                  role: m.role,
+                }))}
                 currentRole="teamAdmin"
                 onSubmit={handleTeamEditSubmit}
                 onClose={() => {
                   setShowTeamSettings(false);
-                  setEditingTeamId(null);
+                  setEditingTeam(null);
                 }}
-                onDelete={handleTeamDeleteFromEdit}
-                onLeaveTeam={() => {
-                  if (editingTeamId != null) {
-                    handleDeleteFolder(editingTeamId);
-                    setShowTeamSettings(false);
-                    setEditingTeamId(null);
-                  }
-                }}
+                onDelete={() => handleDeleteTeam(editingTeam.id)}
+                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)} // ✅ 동일하게 처리
               />
             </motion.div>
           </motion.div>
@@ -347,26 +275,10 @@ export default function S_SpacePage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: -20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            >
-              <DashboardMake
-                onClose={() => setShowDashboardMake(false)}
-                onCreate={(board) => {
-                  updateFolders((prev) =>
-                    prev.map((f) =>
-                      f.id === selectedFolderId
-                        ? { ...f, boards: [...(f.boards || []), board] }
-                        : f
-                    )
-                  );
-                  setShowDashboardMake(false);
-                }}
-              />
-            </motion.div>
+            <DashboardMake
+              onClose={() => setShowDashboardMake(false)}
+              onCreate={() => {}}
+            />
           </motion.div>
         )}
       </AnimatePresence>
