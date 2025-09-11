@@ -41,7 +41,7 @@ export const updateFolder = async (folderId: number, name: string) => {
   return res.data.data; // 수정된 폴더 객체
 };
 
-// 폴더 삭제 (개인/팀 공통) ✅ DELETE로 수정
+// 폴더 삭제 (개인/팀 공통)
 export const deleteFolder = async (folderId: number) => {
   const token = localStorage.getItem("access_token");
   const res = await api.delete(`/api/folders/${folderId}`, {
@@ -49,5 +49,5 @@ export const deleteFolder = async (folderId: number) => {
       Authorization: `Bearer ${token}`,
     },
   });
-  return res.data; // {status, message, data: null ...}
+  return res.data;
 };
