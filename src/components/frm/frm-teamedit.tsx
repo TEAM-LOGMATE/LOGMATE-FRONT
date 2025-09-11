@@ -6,12 +6,6 @@ import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
 
 type Role = 'teamAdmin' | 'member' | 'viewer';
-type Member = {
-  userId: number;
-  name: string;
-  email: string;
-  role: Role;
-};
 
 type UiMember = {
   userId?: number;
@@ -23,12 +17,12 @@ type UiMember = {
 type FrmTeamEditProps = {
   initialName: string;
   initialDescription?: string;
-  initialMembers: Member[];
+  initialMembers: UiMember[]; 
   currentRole: Role;
-  onSubmit?: (data: { name: string; description: string; members: Member[] }) => void;
+  onSubmit?: (data: { name: string; description: string; members: UiMember[] }) => void;
   onClose?: () => void;
-  onDelete?: () => void; // 관리자 전용
-  onLeaveTeam?: () => void; // 멤버/뷰어 전용
+  onDelete?: () => void; 
+  onLeaveTeam?: () => void;
 };
 
 export default function FrmTeamEdit({
@@ -44,14 +38,7 @@ export default function FrmTeamEdit({
   const [teamName, setTeamName] = useState(initialName);
   const [teamDesc, setTeamDesc] = useState(initialDescription);
 
-  const [members, setMembers] = useState<UiMember[]>(
-    initialMembers.map((m) => ({
-      userId: m.userId,
-      name: m.name,
-      email: m.email,
-      role: m.role,
-    }))
-  );
+  const [members, setMembers] = useState<UiMember[]>(initialMembers);
 
   const isAdmin = currentRole === 'teamAdmin';
   const isReadOnly = !isAdmin;
@@ -63,14 +50,8 @@ export default function FrmTeamEdit({
       if (teamDesc.trim() === '') return;
     }
 
-    const apiMembers: Member[] = members.map((m, idx) => ({
-      userId: m.userId ?? idx + 1, // 없으면 fallback
-      name: m.name,
-      email: m.email,
-      role: m.role,
-    }));
 
-    onSubmit?.({ name: teamName, description: teamDesc, members: apiMembers });
+    onSubmit?.({ name: teamName, description: teamDesc, members });
   };
 
   const isSaveActive = isAdmin
@@ -78,37 +59,20 @@ export default function FrmTeamEdit({
     : teamDesc.trim() !== '';
 
   return (
-    <div
-      className="
-        relative
-        flex flex-col items-center w-full max-w-[800px]
-        p-[40px] gap-[24px]
-        bg-[#0F0F0F] rounded-[12px]
-      "
-    >
+    <div className="relative flex flex-col items-center w-full max-w-[800px] p-[40px] gap-[24px] bg-[#0F0F0F] rounded-[12px]">
       {/* 닫기 버튼 */}
       <div className="absolute top-[16px] right-[16px]">
         <BtnX onClick={onClose} />
       </div>
 
       {/* 제목 */}
-      <h2
-        className="
-          text-[var(--Gray-100,#F2F2F2)] text-center
-          font-suit text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-        "
-      >
+      <h2 className="text-[var(--Gray-100,#F2F2F2)] text-center font-suit text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
         팀 설정
       </h2>
 
       {/* 팀 이름 */}
       <div className="w-full">
-        <label
-          className="
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀 이름 <span className="text-[var(--Alert-Red,#D46F6F)]">*</span>
         </label>
         <Input48
@@ -122,12 +86,7 @@ export default function FrmTeamEdit({
 
       {/* 팀 설명 */}
       <div className="w-full">
-        <label
-          className="
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀 설명
         </label>
         <Input48
@@ -139,12 +98,7 @@ export default function FrmTeamEdit({
 
       {/* 팀원 리스트 */}
       <div className="w-full">
-        <label
-          className="
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀원 리스트 <span className="text-[var(--Alert-Red,#D46F6F)]">*</span>
         </label>
 
@@ -160,7 +114,6 @@ export default function FrmTeamEdit({
                 return [
                   ...prev,
                   {
-                    userId: Date.now(), // 임시 ID
                     name: '팀원명',
                     email: trimmed,
                     role: 'member',
@@ -205,7 +158,6 @@ export default function FrmTeamEdit({
             color: 'var(--Gray-400, #888)',
             fontFamily: 'SUIT',
             fontSize: '14px',
-            fontStyle: 'normal',
             fontWeight: 500,
             lineHeight: '150%',
             letterSpacing: '-0.4px',
