@@ -7,12 +7,10 @@ import SpaceNameS from './spacename-s';
 import Logo from '../../components/icon/logo';
 
 import { MAX_SPACES } from '../../utils/validate';
-import type { Folder, Team } from '../../utils/type';
+import { useFolderStore } from '../../utils/folderStore';
 
 interface BarProps {
   username: string;
-  folders?: Folder[];
-  teamFolders?: Team[];
   onAddFolder?: () => void;
   onAddTeamFolder?: () => void;
   onRemoveFolder?: (folderId: string | number) => void;
@@ -25,8 +23,6 @@ interface BarProps {
 
 export default function Bar({
   username,
-  folders = [],
-  teamFolders = [],
   onAddFolder,
   onAddTeamFolder,
   onRemoveFolder,
@@ -41,6 +37,9 @@ export default function Bar({
 
   const navigate = useNavigate();
   const { folderId: routeFolderId } = useParams<{ folderId: string }>();
+
+  // 전역 스토어에서 folders/teamFolders 가져오기
+  const { folders, teamFolders } = useFolderStore();
 
   const handleAddSpaceNameG = () => {
     if (activePage !== 'personal') return;
@@ -57,13 +56,14 @@ export default function Bar({
   };
 
   const handleFolderClick = (folderId: number | string) => {
-    onSelectFolder?.(folderId);
+    onSelectPage?.('personal'); // 페이지 상태 갱신
+    onSelectFolder?.(folderId); // 폴더 상태 갱신
     navigate(`/personal/${folderId}`, { replace: true });
   };
 
   const handleTeamFolderClick = (folderId: number | string) => {
-    onSelectFolder?.(folderId);
     onSelectPage?.('team');
+    onSelectFolder?.(folderId);
     navigate(`/team/${folderId}`, { replace: true });
   };
 
@@ -100,11 +100,13 @@ export default function Bar({
           onSelectPage?.('personal');
           navigate('/personal');
         }}
-        active={activePage === 'personal'}
+        active={activePage === 'personal' && !activeFolderId}
       />
       <div className={isOpenG ? '' : 'hidden'}>
         {folders.map((folder) => {
-          const isActiveFolder = String(folder.id) === String(activeFolderId ?? routeFolderId);
+          const isActiveFolder =
+            activePage === 'personal' &&
+            String(folder.id) === String(activeFolderId ?? routeFolderId);
           return (
             <SpaceNameG
               key={Number(folder.id)}
@@ -126,11 +128,13 @@ export default function Bar({
           onSelectPage?.('team');
           navigate('/team');
         }}
-        active={activePage === 'team'}
+        active={activePage === 'team' && !activeFolderId}
       />
       <div className={isOpenS ? '' : 'hidden'}>
         {teamFolders.map((folder) => {
-          const isActiveFolder = String(folder.id) === String(activeFolderId ?? routeFolderId);
+          const isActiveFolder =
+            activePage === 'team' &&
+            String(folder.id) === String(activeFolderId ?? routeFolderId);
           return (
             <SpaceNameS
               key={Number(folder.id)}

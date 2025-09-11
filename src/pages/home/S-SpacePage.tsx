@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
@@ -9,11 +10,10 @@ import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
-import type { Variants } from 'framer-motion';
 import { getTeams, createTeam, updateTeam } from '../../api/teams';
 import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
+import { useFolderStore } from '../../utils/folderStore';
 
-// API 변환 함수 (대문자로 맞춤)
 const toApiRole = (role: UiRole): ApiRole =>
   role === 'teamAdmin' ? 'ADMIN' : role === 'member' ? 'MEMBER' : 'VIEWER';
 
@@ -24,14 +24,11 @@ export default function S_SpacePage() {
   const username = user.username;
   const navigate = useNavigate();
   const { folderId } = useParams<{ folderId: string }>();
-
-  const [teams, setTeams] = useState<Team[]>([]);
+  const { teamFolders: teams, setTeamFolders } = useFolderStore();
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-
   const [showMakeTeam, setShowMakeTeam] = useState(false);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
@@ -40,15 +37,15 @@ export default function S_SpacePage() {
     const fetchTeams = async () => {
       try {
         const res = await getTeams();
-        setTeams(res.map((t: any) => ({ ...t, spaceType: 'team' })));
+        setTeamFolders(res.map((t: any) => ({ ...t, spaceType: 'team' })));
       } catch (err) {
         console.error('팀 불러오기 실패:', err);
       }
     };
     fetchTeams();
-  }, []);
+  }, [setTeamFolders]);
 
-  // 팀 정렬 (updatedAt 없으면 createdAt 사용)
+  // 팀 정렬
   const sortTeams = (data: Team[], order: 'newest' | 'oldest') =>
     [...data].sort((a, b) => {
       const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
@@ -57,17 +54,17 @@ export default function S_SpacePage() {
     });
 
   useEffect(() => {
-    setTeams((prev) => sortTeams(prev, sortOrder));
-  }, [sortOrder]);
+    setTeamFolders((prev) => sortTeams(prev, sortOrder));
+  }, [sortOrder, setTeamFolders]);
 
-  // 팀 추가 (모달만 열기)
+  // 팀 추가
   const handleAddTeam = () => {
     setShowMakeTeam(true);
   };
 
-  // 팀 삭제 (임시)
+  // 팀 삭제
   const handleDeleteTeam = (id: string | number) => {
-    setTeams((prev) => prev.filter((t) => t.id !== Number(id)));
+    setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id)));
   };
 
   // 팀 수정
@@ -79,7 +76,7 @@ export default function S_SpacePage() {
     if (!editingTeam) return;
     try {
       const apiMembers: ApiMember[] = data.members.map((m) => ({
-        userId: m.userId ?? 0, // undefined → 0 임시 처리
+        email: m.email,
         role: toApiRole(m.role),
       }));
 
@@ -89,7 +86,7 @@ export default function S_SpacePage() {
         members: apiMembers,
       });
 
-      setTeams((prev) =>
+      setTeamFolders((prev) =>
         prev.map((t) =>
           t.id === editingTeam.id ? { ...updated, spaceType: 'team' } : t
         )
@@ -101,7 +98,6 @@ export default function S_SpacePage() {
     }
   };
 
-  // 팀 설정 열기
   const openTeamSettings = (team: Team) => {
     setEditingTeam(team);
     setShowTeamSettings(true);
@@ -121,7 +117,6 @@ export default function S_SpacePage() {
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        teamFolders={teams}
         activePage="team"
         activeFolderId={folderId || null}
         onAddTeamFolder={handleAddTeam}
@@ -199,11 +194,11 @@ export default function S_SpacePage() {
                   try {
                     const apiMembers: ApiMember[] = [
                       {
-                        userId: user.id, // 현재 로그인 유저 = 관리자
+                        email: user.email,
                         role: 'ADMIN',
                       },
                       ...data.members.map((m) => ({
-                        userId: m.userId ?? 0, // undefined → 0 임시 처리
+                        email: m.email,
                         role: toApiRole(m.role),
                       })),
                     ];
@@ -214,7 +209,10 @@ export default function S_SpacePage() {
                       members: apiMembers,
                     });
 
-                    setTeams((prev) => [...prev, { ...newTeam, spaceType: 'team' }]);
+                    setTeamFolders((prev) => [
+                      ...prev,
+                      { ...newTeam, spaceType: 'team' },
+                    ]);
                     setShowMakeTeam(false);
                   } catch (err) {
                     console.error('팀 생성 실패:', err);
@@ -244,9 +242,7 @@ export default function S_SpacePage() {
               <FrmTeamEdit
                 initialName={editingTeam.name}
                 initialDescription={editingTeam.description || ''}
-                // 타입 강제 제거 → 빌드 통과용(API 추가시 수정 예정)
                 initialMembers={(editingTeam.members || []).map((m: any) => ({
-                  userId: m.userId ?? 0,
                   name: m.name ?? '',
                   email: m.email ?? '',
                   role: m.role,
@@ -273,7 +269,10 @@ export default function S_SpacePage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <DashboardMake onClose={() => setShowDashboardMake(false)} onCreate={() => {}} />
+            <DashboardMake
+              onClose={() => setShowDashboardMake(false)}
+              onCreate={() => {}}
+            />
           </motion.div>
         )}
       </AnimatePresence>

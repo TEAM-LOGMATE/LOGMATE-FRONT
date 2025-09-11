@@ -6,8 +6,7 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
-import type { Folder } from '../../utils/type';
-
+import { useFolderStore } from '../../utils/folderStore';
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
@@ -24,11 +23,6 @@ export default function MyInfoPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorTrigger, setErrorTrigger] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-
-  const [folders, setFolders] = useState<Folder[]>([]);
-  useEffect(() => {
-    setFolders([]);
-  }, [username]);
 
   // 인증 에러 처리
   useEffect(() => {
@@ -72,10 +66,12 @@ export default function MyInfoPage() {
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
       <Bar
         username={username}
-        folders={folders} // 현재는 빈 배열 전달
+        activePage="myinfo"
+        activeFolderId={null}
         onAddFolder={() => {}}
         onRemoveFolder={() => {}}
-        activePage="myinfo"
+        onAddTeamFolder={() => {}}
+        onRemoveTeamFolder={() => {}}
       />
 
       {/* 메인 컨텐츠에만 애니메이션 적용 */}

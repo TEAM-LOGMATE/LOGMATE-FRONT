@@ -1,13 +1,11 @@
-// utils/type.ts
-
 /* ===========================
    API 타입 정의 (백엔드와 통신할 때)
    =========================== */
 export type ApiRole = 'ADMIN' | 'MEMBER' | 'VIEWER';  
 
 export type ApiMember = {
-  userId: number;          
-  role: ApiRole;
+  email: string;  
+  role?: ApiRole;
   remove?: boolean;
 };
 
@@ -26,7 +24,7 @@ export type ApiTeam = {
 export type UiRole = 'teamAdmin' | 'member' | 'viewer';
 
 export type UiMember = {
-  userId?: number;  
+  userId?: number;  // 프론트에서만 쓰는 선택적 값 (백엔드로 안 보냄)
   name: string;
   email: string;
   role: UiRole;

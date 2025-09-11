@@ -11,11 +11,9 @@ import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
 import { getTeams, createTeam } from '../../api/teams';
 import { getDashboards, createDashboard } from '../../api/dashboard';
-
-// 타입 불러오기
+import { useFolderStore } from '../../utils/folderStore';
 import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 
-// UI → API Role 매핑
 const roleMap: Record<UiRole, ApiRole> = {
   teamAdmin: 'ADMIN',
   member: 'MEMBER',
@@ -39,11 +37,10 @@ export default function TeamPage() {
   const username = user?.username ?? '';
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-
-  const [teamFolders, setTeamFolders] = useState<any[]>([]);
+  const { teamFolders, setTeamFolders } = useFolderStore();
+  const [activeFolderId, setActiveFolderId] = useState<string | number | null>(teamId ?? null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -56,12 +53,13 @@ export default function TeamPage() {
   useEffect(() => {
     if (!user) return;
 
-    const fetchTeams = async () => {
+    const fetchTeamsAndBoards = async () => {
       try {
         const res = await getTeams();
         setTeamFolders(res);
 
         if (teamId) {
+          setActiveFolderId(teamId);
           const team = res.find((t: any) => String(t.id) === String(teamId));
           if (team) {
             const dashboards = await getDashboards(Number(teamId));
@@ -75,8 +73,8 @@ export default function TeamPage() {
       }
     };
 
-    fetchTeams();
-  }, [user, teamId]);
+    fetchTeamsAndBoards();
+  }, [user, teamId, setTeamFolders]);
 
   // 보드 생성
   const handleCreateBoard = async (boardData: any) => {
@@ -114,11 +112,13 @@ export default function TeamPage() {
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
       <Bar
         username={username}
-        teamFolders={teamFolders}
         activePage="team"
-        activeFolderId={teamId}
-        onAddTeamFolder={() => setShowMakeTeam(true)} // 모달 열기
-        onSelectFolder={(id) => navigate(`/team/${id}`, { replace: true })}
+        activeFolderId={activeFolderId} 
+        onAddTeamFolder={() => setShowMakeTeam(true)} 
+        onSelectFolder={(id) => {
+          setActiveFolderId(id); 
+          navigate(`/team/${id}`, { replace: true });
+        }}
       />
 
       <div className="flex flex-col flex-1 p-6 gap-6">
@@ -230,9 +230,8 @@ export default function TeamPage() {
               onClose={() => setShowMakeTeam(false)}
               onSubmit={async (data: { name: string; description: string; members: UiMember[] }) => {
                 try {
-                  // UI → API 변환 (userId가 없을 경우 임시로 0)
                   const apiMembers: ApiMember[] = data.members.map((m) => ({
-                    userId: m.userId ?? 0, // 임시 방편
+                    email: m.email,
                     role: roleMap[m.role],
                   }));
 

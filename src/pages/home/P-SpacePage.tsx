@@ -1,4 +1,3 @@
-// src/pages/home/P_SpacePage.tsx
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -9,25 +8,21 @@ import BtnPoint from '../../components/btn/btn-point';
 import FrmFolder from '../../components/frm/frm-folder';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
+import {
+  createPersonalFolder,
+  getPersonalFolders,
+  deleteFolder,
+  updateFolder,
+} from '../../api/folders';
+import { getTeams } from '../../api/teams';
+import { useFolderStore } from '../../utils/folderStore';
 
-// API
-import { createPersonalFolder, getPersonalFolders, deleteFolder, updateFolder } from '../../api/folders';
-
-// Folder/Board 타입 정의
+// Board 타입 정의
 interface Board {
   id: number;
   name: string;
   logPath?: string;
   status?: 'collecting' | 'unresponsive' | 'before';
-}
-
-interface Folder {
-  id: number;
-  name: string;
-  createdAt?: string;
-  modifiedAt?: string;
-  spaceType: 'personal';
-  boards?: Board[];
 }
 
 export default function P_SpacePage() {
@@ -36,8 +31,8 @@ export default function P_SpacePage() {
 
   const username = user.username;
   const navigate = useNavigate();
-
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const { folders, setFolders, setTeamFolders } = useFolderStore();
+  const [activeFolderId, setActiveFolderId] = useState<string | number | null>(null);
   const [pendingFolder, setPendingFolder] = useState(false);
   const [_, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
@@ -51,24 +46,29 @@ export default function P_SpacePage() {
     };
   }, []);
 
-  const sortFolders = (data: Folder[], order: 'newest' | 'oldest') =>
+  const sortFolders = (data: typeof folders, order: 'newest' | 'oldest') =>
     [...data].sort((a, b) => {
-      const dateA = new Date(a.modifiedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.modifiedAt || b.createdAt || 0).getTime();
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return order === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-  const fetchFolders = async () => {
+  const fetchData = async () => {
     try {
+      // 개인 폴더 불러오기
       const data = await getPersonalFolders(user.id);
       setFolders(sortFolders(data, sortOrder));
+
+      // 팀 폴더 불러오기
+      const teams = await getTeams();
+      setTeamFolders(teams.map((t: any) => ({ ...t, spaceType: 'team' })));
     } catch (err) {
-      console.error('개인 폴더 불러오기 실패:', err);
+      console.error('폴더/팀 불러오기 실패:', err);
     }
   };
 
   useEffect(() => {
-    fetchFolders();
+    fetchData();
   }, [user, sortOrder]);
 
   const handleAddFolder = () => {
@@ -91,7 +91,7 @@ export default function P_SpacePage() {
 
     try {
       await createPersonalFolder(user.id, name);
-      await fetchFolders(); // 생성 후 서버 데이터 다시 불러오기
+      await fetchData(); // 생성 후 서버 데이터 다시 불러오기
     } catch (err) {
       console.error('폴더 생성 실패:', err);
     }
@@ -103,7 +103,7 @@ export default function P_SpacePage() {
   const handleRenameFolder = async (id: number, newName: string) => {
     try {
       await updateFolder(id, newName);
-      await fetchFolders(); // 수정 후 서버 데이터 다시 불러오기
+      await fetchData(); // 수정 후 서버 데이터 다시 불러오기
     } catch (err) {
       console.error('폴더 수정 실패:', err);
     }
@@ -112,7 +112,7 @@ export default function P_SpacePage() {
   const handleDeleteFolder = async (id: string | number) => {
     try {
       await deleteFolder(Number(id));
-      await fetchFolders(); // 삭제 후 서버 데이터 다시 불러오기
+      await fetchData(); // 삭제 후 서버 데이터 다시 불러오기
     } catch (err) {
       console.error('폴더 삭제 실패:', err);
     }
@@ -132,10 +132,14 @@ export default function P_SpacePage() {
     <div className="flex w-screen h-screen overflow-hidden bg-[#0F0F0F] text-white font-suit">
       <Bar
         username={username}
-        folders={folders}
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleDeleteFolder}
         activePage="personal"
+        activeFolderId={activeFolderId} 
+        onSelectFolder={(id) => {
+          setActiveFolderId(id);
+          navigate(`/personal/${id}`);
+        }}
       />
 
       <motion.div
@@ -177,7 +181,10 @@ export default function P_SpacePage() {
                   name={folder.name}
                   onDelete={() => handleDeleteFolder(folder.id)}
                   onRename={(newName) => handleRenameFolder(folder.id, newName)}
-                  onClickName={() => navigate(`/personal/${folder.id}`)}
+                  onClickName={() => {
+                    setActiveFolderId(folder.id);
+                    navigate(`/personal/${folder.id}`);
+                  }}
                   boards={folder.boards || []}
                 />
               </motion.div>
