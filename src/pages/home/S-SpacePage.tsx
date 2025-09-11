@@ -10,7 +10,7 @@ import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
-import { getTeams, createTeam, updateTeam } from '../../api/teams';
+import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
 import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 import { useFolderStore } from '../../utils/folderStore';
 
@@ -62,9 +62,14 @@ export default function S_SpacePage() {
     setShowMakeTeam(true);
   };
 
-  // 팀 삭제
-  const handleDeleteTeam = (id: string | number) => {
-    setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id)));
+  // 팀 삭제 (= 팀 나가기)
+  const handleDeleteTeam = async (id: string | number) => {
+    try {
+      await deleteTeam(Number(id)); // 서버 API 호출
+      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id))); // 상태 갱신
+    } catch (err) {
+      console.error('팀 삭제 실패:', err);
+    }
   };
 
   // 팀 수정
@@ -162,7 +167,7 @@ export default function S_SpacePage() {
                   spaceType="team"
                   name={team.name}
                   onOpenTeamSettings={() => openTeamSettings(team)}
-                  onLeaveTeam={() => handleDeleteTeam(team.id)}
+                  onLeaveTeam={() => handleDeleteTeam(team.id)} // ✅ 팀 나가기 = 팀 삭제
                   onClickName={() => navigate(`/team/${team.id}`)}
                   boards={(team as any).boards || []}
                 />
@@ -209,9 +214,10 @@ export default function S_SpacePage() {
                       members: apiMembers,
                     });
 
+                    // ✅ 반드시 newTeam.data 사용
                     setTeamFolders((prev) => [
                       ...prev,
-                      { ...newTeam, spaceType: 'team' },
+                      { ...newTeam.data, spaceType: 'team' },
                     ]);
                     setShowMakeTeam(false);
                   } catch (err) {
@@ -254,7 +260,7 @@ export default function S_SpacePage() {
                   setEditingTeam(null);
                 }}
                 onDelete={() => handleDeleteTeam(editingTeam.id)}
-                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
+                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)} // ✅ 동일하게 처리
               />
             </motion.div>
           </motion.div>

@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
-import BtnSort from '../../components/btn/btn-sort';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
@@ -20,7 +19,6 @@ const roleMap: Record<UiRole, ApiRole> = {
   viewer: 'VIEWER',
 };
 
-// 서버에서 내려줄 상태값 타입 정의
 type BoardStatus = 'collecting' | 'unresponsive' | 'before';
 
 interface Board {
@@ -44,12 +42,9 @@ export default function TeamPage() {
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-  // 새 팀 생성 모달 상태
   const [showMakeTeam, setShowMakeTeam] = useState(false);
 
-  // 초기 로드: 팀 & 대시보드 불러오기
   useEffect(() => {
     if (!user) return;
 
@@ -76,7 +71,6 @@ export default function TeamPage() {
     fetchTeamsAndBoards();
   }, [user, teamId, setTeamFolders]);
 
-  // 보드 생성
   const handleCreateBoard = async (boardData: any) => {
     if (!teamId) return;
     try {
@@ -93,14 +87,13 @@ export default function TeamPage() {
     }
   };
 
-  // 보드 정렬
   const sortedBoards = useMemo(() => {
     return [...boards].sort((a, b) => {
       const aTime = a.lastEdited ? new Date(a.lastEdited).getTime() : 0;
       const bTime = b.lastEdited ? new Date(b.lastEdited).getTime() : 0;
-      return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
+      return bTime - aTime;
     });
-  }, [boards, sortOrder]);
+  }, [boards]);
 
   if (!user) return <Navigate to="/login" replace />;
   if (loading) return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
@@ -113,32 +106,34 @@ export default function TeamPage() {
       <Bar
         username={username}
         activePage="team"
-        activeFolderId={activeFolderId} 
-        onAddTeamFolder={() => setShowMakeTeam(true)} 
+        activeFolderId={activeFolderId}
+        onAddTeamFolder={() => setShowMakeTeam(true)}
         onSelectFolder={(id) => {
-          setActiveFolderId(id); 
+          setActiveFolderId(id);
           navigate(`/team/${id}`, { replace: true });
         }}
       />
 
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 상단 */}
         <motion.div
           className="flex flex-col gap-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-4">
             <div onClick={() => navigate('/team', { replace: true })} className="cursor-pointer">
               <BtnBigArrow />
             </div>
-            <h1 className="text-[28px] font-bold text-[#F2F2F2]">{currentTeam.name}</h1>
-            <BtnSort onSortChange={(order) => setSortOrder(order)} />
+            <div className="flex flex-col">
+              <h1 className="text-[28px] font-bold text-[#F2F2F2]">{currentTeam.name}</h1>
+              {currentTeam.description && (
+                <p className="text-[#AEAEAE] text-[16px] mt-1">{currentTeam.description}</p>
+              )}
+            </div>
           </div>
         </motion.div>
 
-        {/* 썸네일 목록 */}
         <div
           className="grid gap-x-10 gap-y-10 flex-1"
           style={{
@@ -171,7 +166,6 @@ export default function TeamPage() {
               </motion.div>
             ))}
 
-            {/* + 버튼 */}
             <motion.div
               key="add-board-btn"
               layout
@@ -193,7 +187,6 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* DashboardMake 모달 */}
       <AnimatePresence>
         {showDashboardMake && selectedFolderId != null && (
           <motion.div
@@ -215,7 +208,6 @@ export default function TeamPage() {
         )}
       </AnimatePresence>
 
-      {/* FrmMakeTeam 모달 */}
       <AnimatePresence>
         {showMakeTeam && (
           <motion.div
@@ -252,7 +244,6 @@ export default function TeamPage() {
         )}
       </AnimatePresence>
 
-      {/* ToastMessage */}
       <AnimatePresence>
         {showToast && (
           <motion.div
