@@ -55,19 +55,17 @@ export default function SignupPage() {
     }
 
     try {
-      // API 호출 (AuthContext.signup → POST /api/users/signup)
       await signup(username.trim(), email.trim().toLowerCase(), password);
-
-      // 기존: localStorage 에 폴더 저장 (삭제)
-      // const existing = loadFolders(username);
-      // if (!Array.isArray(existing) || existing.length === 0) {
-      //   saveFolders(username, []);
-      // }
-
       navigate('/login'); // 회원가입 성공 → 로그인 화면 이동
-    } catch (e) {
-      console.error(e);
-      setErrorMessage('문제가 발생했어요. 잠시 후 다시 시도해 주세요.');
+    } catch (err: any) {
+      console.error(err);
+      if (err.response?.status === 400) {
+        setErrorMessage('이미 사용 중인 이메일입니다.');
+      } else if (err.response?.status === 500) {
+        setErrorMessage('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      } else {
+        setErrorMessage('네트워크 오류가 발생했습니다.');
+      }
       setTimeout(() => setErrorMessage(''), 3000);
     }
   };
