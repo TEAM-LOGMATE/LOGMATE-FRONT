@@ -55,7 +55,13 @@ export default function LoginPage() {
       await login(e, password);
       navigate('/personal');
     } catch (err: any) {
-      emitError(err?.message ?? '');
+      if (err.response?.status === 400 || err.response?.status === 401) {
+        emitError('이메일이나 비밀번호가 올바르지 않습니다.');
+      } else if (err.response?.status === 500) {
+        emitError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        emitError('네트워크 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -96,7 +102,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-          <Logo width={24} height={28} />
+            <Logo width={24} height={28} />
           </motion.div>
 
           <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
