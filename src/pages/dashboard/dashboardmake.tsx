@@ -7,14 +7,28 @@ import AdvancedSettings from './advancedsetting';
 
 interface DashboardMakeProps {
   onClose?: () => void;
-  onCreate?: (board: { id: number; name: string; logPath: string }) => void;
+  onCreate?: (board: {
+    id: number;
+    name: string;
+    logPath: string;
+    logType: string;
+    timezone: string;
+  }) => void;
 }
+
+const logTypes = ['springboot', 'nginx', 'apache'];
+const timezones = ['Asia/Seoul', 'UTC', 'America/New_York', 'Europe/London'];
 
 export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
   const [boardName, setBoardName] = useState('');
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false); 
+  // 드롭다운 상태
+  const [logType, setLogType] = useState('springboot');
+  const [timezone, setTimezone] = useState('Asia/Seoul');
+  const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
+  const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
 
   const isFormValid = logPath.trim() !== '' && boardName.trim() !== '';
 
@@ -24,6 +38,8 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
       id: Date.now(),
       name: boardName,
       logPath,
+      logType,
+      timezone,
     };
     onCreate?.(newBoard);
     onClose?.();
@@ -84,7 +100,7 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
         {/* 로그 유형 + 타임존 */}
         <div className="mt-6 flex gap-4">
           {/* 로그 유형 */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <label className="mb-2 flex items-center gap-1">
               <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
                 로그 유형
@@ -92,16 +108,35 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
               <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] 
-              rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px]
+                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              onClick={() => setIsLogTypeOpen((prev) => !prev)}
             >
-              <span className="text-[#F2F2F2] font-[SUIT]">springboot</span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{logType}</span>
               <BtnDropdown />
             </div>
+
+            {isLogTypeOpen && (
+              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
+                {logTypes.map((type) => (
+                  <li
+                    key={type}
+                    className="flex h-[48px] items-center px-[20px] text-[var(--Gray-100,#F2F2F2)] 
+                               hover:bg-[var(--Gray-500,#535353)] cursor-pointer"
+                    onClick={() => {
+                      setLogType(type);
+                      setIsLogTypeOpen(false);
+                    }}
+                  >
+                    {type}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* 타임존 */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <label className="mb-2 flex items-center gap-1">
               <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
                 타임존
@@ -109,19 +144,38 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
               <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] 
-              rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px]
+                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              onClick={() => setIsTimezoneOpen((prev) => !prev)}
             >
-              <span className="text-[#F2F2F2] font-[SUIT]">Asia/Seoul</span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{timezone}</span>
               <BtnDropdown />
             </div>
+
+            {isTimezoneOpen && (
+              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
+                {timezones.map((tz) => (
+                  <li
+                    key={tz}
+                    className="flex h-[48px] items-center px-[20px] text-[var(--Gray-100,#F2F2F2)] 
+                               hover:bg-[var(--Gray-500,#535353)] cursor-pointer"
+                    onClick={() => {
+                      setTimezone(tz);
+                      setIsTimezoneOpen(false);
+                    }}
+                  >
+                    {tz}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
         {/* 고급 설정 버튼 */}
         <div
           className="mt-4 flex items-center justify-center gap-1 cursor-pointer"
-          onClick={() => setIsAdvancedOpen((prev) => !prev)} // 토글
+          onClick={() => setIsAdvancedOpen((prev) => !prev)}
         >
           <span className="text-[#888] font-[SUIT] font-medium text-[16px] leading-[150%] tracking-[-0.4px]">
             고급 설정
