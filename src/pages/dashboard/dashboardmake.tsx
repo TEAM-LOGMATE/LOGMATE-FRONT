@@ -6,25 +6,23 @@ import BtnDropdown from '../../components/btn/btn-dropdown';
 import AdvancedSettings from './advancedsetting';
 
 interface DashboardMakeProps {
+  folderId: number;
   onClose?: () => void;
   onCreate?: (board: {
-    id: number;
     name: string;
     logPath: string;
-    logType: string;
-    timezone: string;
+    sendTo: string;
   }) => void;
 }
 
 const logTypes = ['springboot', 'nginx', 'apache'];
 const timezones = ['Asia/Seoul', 'UTC', 'America/New_York', 'Europe/London'];
 
-export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps) {
+export default function DashboardMake({ folderId, onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
   const [boardName, setBoardName] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
-  // 드롭다운 상태
   const [logType, setLogType] = useState('springboot');
   const [timezone, setTimezone] = useState('Asia/Seoul');
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
@@ -34,40 +32,29 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
 
   const handleCreate = () => {
     if (!isFormValid) return;
-    const newBoard = {
-      id: Date.now(),
+
+    const sendTo = "http://localhost:8081/stream"; // 기본값 (명세 기반)
+    onCreate?.({
       name: boardName,
       logPath,
-      logType,
-      timezone,
-    };
-    onCreate?.(newBoard);
+      sendTo,
+    });
+
     onClose?.();
   };
 
   return (
     <div
-      className="
-        relative flex flex-col items-center
-        w-[840px] px-0 py-10
-        gap-6
-        rounded-[24px]
-        border border-[#353535]
-        bg-[#111]
-      "
+      className="relative flex flex-col items-center
+                 w-[840px] px-0 py-10 gap-6
+                 rounded-[24px] border border-[#353535] bg-[#111]"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* 제목 */}
-      <h2
-        className="
-          text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-          text-[var(--Gray-100,#F2F2F2)] font-[SUIT]
-        "
-      >
+      <h2 className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
+                     text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
         새로운 대시보드
       </h2>
 
-      {/* 입력 영역 */}
       <div className="flex flex-col w-[86%]">
         {/* 로그 파일 경로 */}
         <label className="mb-2 flex items-center gap-1">
@@ -117,7 +104,8 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
             </div>
 
             {isLogTypeOpen && (
-              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
+              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
+                             bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {logTypes.map((type) => (
                   <li
                     key={type}
@@ -153,7 +141,8 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
             </div>
 
             {isTimezoneOpen && (
-              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
+              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
+                             bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {timezones.map((tz) => (
                   <li
                     key={tz}
@@ -172,7 +161,7 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
           </div>
         </div>
 
-        {/* 고급 설정 버튼 */}
+        {/* 고급 설정 */}
         <div
           className="mt-4 flex items-center justify-center gap-1 cursor-pointer"
           onClick={() => setIsAdvancedOpen((prev) => !prev)}
@@ -183,7 +172,6 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
           <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
         </div>
 
-        {/* 고급 설정 컴포넌트 */}
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
             <AdvancedSettings />
@@ -191,7 +179,7 @@ export default function DashboardMake({ onClose, onCreate }: DashboardMakeProps)
         )}
       </div>
 
-      {/* 보드 만들기 버튼 */}
+      {/* 버튼 */}
       <div>
         <BtnSign2Small isActive={isFormValid} onClick={handleCreate}>
           보드 만들기
