@@ -11,6 +11,7 @@ import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
 import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
+import { createDashboard } from '../../api/dashboard';
 import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 import { useFolderStore } from '../../utils/folderStore';
 
@@ -57,16 +58,11 @@ export default function S_SpacePage() {
     setTeamFolders((prev) => sortTeams(prev, sortOrder));
   }, [sortOrder, setTeamFolders]);
 
-  // 팀 추가
-  const handleAddTeam = () => {
-    setShowMakeTeam(true);
-  };
-
   // 팀 삭제 (= 팀 나가기)
   const handleDeleteTeam = async (id: string | number) => {
     try {
-      await deleteTeam(Number(id)); // 서버 API 호출
-      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id))); // 상태 갱신
+      await deleteTeam(Number(id));
+      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id)));
     } catch (err) {
       console.error('팀 삭제 실패:', err);
     }
@@ -124,7 +120,7 @@ export default function S_SpacePage() {
         username={username}
         activePage="team"
         activeFolderId={folderId || null}
-        onAddTeamFolder={handleAddTeam}
+        onAddTeamFolder={() => setShowMakeTeam(true)}
         onRemoveTeamFolder={handleDeleteTeam}
       />
 
@@ -144,7 +140,7 @@ export default function S_SpacePage() {
 
         <div className="flex gap-[12px] mt-[28px]">
           <BtnSort spaceType="team" onSortChange={(order) => setSortOrder(order)} />
-          <BtnPoint onClick={handleAddTeam}>새 팀 추가 +</BtnPoint>
+          <BtnPoint onClick={() => setShowMakeTeam(true)}>새 팀 추가 +</BtnPoint>
         </div>
 
         {/* 팀 리스트 */}
@@ -167,9 +163,13 @@ export default function S_SpacePage() {
                   spaceType="team"
                   name={team.name}
                   onOpenTeamSettings={() => openTeamSettings(team)}
-                  onLeaveTeam={() => handleDeleteTeam(team.id)} // ✅ 팀 나가기 = 팀 삭제
+                  onLeaveTeam={() => handleDeleteTeam(team.id)}
                   onClickName={() => navigate(`/team/${team.id}`)}
                   boards={(team as any).boards || []}
+                  onAddBoard={() => {
+                    setSelectedFolderId(Number(team.id));
+                    setShowDashboardMake(true);
+                  }}
                 />
               </motion.div>
             ))}
@@ -214,7 +214,6 @@ export default function S_SpacePage() {
                       members: apiMembers,
                     });
 
-                    // ✅ 반드시 newTeam.data 사용
                     setTeamFolders((prev) => [
                       ...prev,
                       { ...newTeam.data, spaceType: 'team' },
@@ -260,7 +259,7 @@ export default function S_SpacePage() {
                   setEditingTeam(null);
                 }}
                 onDelete={() => handleDeleteTeam(editingTeam.id)}
-                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)} // ✅ 동일하게 처리
+                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
               />
             </motion.div>
           </motion.div>
@@ -276,8 +275,30 @@ export default function S_SpacePage() {
             transition={{ duration: 0.3 }}
           >
             <DashboardMake
-              onClose={() => setShowDashboardMake(false)}
-              onCreate={() => {}}
+              folderId={selectedFolderId}
+              onClose={() => {
+                setShowDashboardMake(false);
+                setSelectedFolderId(null);
+              }}
+              onCreate={async (board) => {
+                try {
+                  const res = await createDashboard(selectedFolderId, {
+                    name: board.name,
+                    logPath: board.logPath,
+                    sendTo: board.sendTo,
+                  });
+                  setTeamFolders((prev) =>
+                    prev.map((team) =>
+                      team.id === selectedFolderId
+                        ? { ...team, boards: [...(team.boards || []), res.data] }
+                        : team
+                    )
+                  );
+                  setShowDashboardMake(false);
+                } catch (err) {
+                  console.error('팀 대시보드 생성 실패:', err);
+                }
+              }}
             />
           </motion.div>
         )}

@@ -9,14 +9,22 @@ import ToastMessage from '../dashboard/toastmessage';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
 import { getPersonalFolders } from '../../api/folders';
+import { getDashboards, createDashboard } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
-// 개인 스페이스 보드 타입
 interface Board {
   id: number;
   name: string;
   logPath?: string;
+  sendTo?: string;
+  lastModified?: string;
   status?: 'collecting' | 'unresponsive' | 'before';
+}
+
+interface NewBoard {
+  name: string;
+  logPath: string;
+  sendTo: string;
 }
 
 export default function FolderPage() {
@@ -31,17 +39,27 @@ export default function FolderPage() {
   const { folders, setFolders } = useFolderStore();
 
   const [loading, setLoading] = useState(true);
-  const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team' | null>(
-    folderId ? 'personal' : 'personal'
-  );
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team'>('personal');
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  const fetchDashboards = async () => {
+    if (!user || !folderId) return;
+    try {
+      const dashboards = await getDashboards(Number(folderId));
+      setBoards(dashboards.data || []);
+    } catch (err) {
+      console.error('대시보드 조회 실패:', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchFolders = async () => {
+    const fetchData = async () => {
       try {
-        if (!user) return;
+        if (!user || !folderId) return;
+
         const data = await getPersonalFolders(user.id);
         setFolders(
           (data || []).map((f: any) => ({
@@ -51,35 +69,16 @@ export default function FolderPage() {
             spaceType: 'personal' as const,
           }))
         );
+
+        await fetchDashboards();
       } catch (err) {
-        console.error('개인 폴더 조회 실패:', err);
+        console.error('폴더/대시보드 조회 실패:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchFolders();
-  }, [user, setFolders]);
-
-  // 폴더 추가
-  const handleAddFolder = () => {
-    setFolders((prev) => {
-      if (prev.length >= MAX_SPACES) return prev;
-      return [
-        ...prev,
-        {
-          id: Date.now(),
-          name: '새 폴더',
-          boards: [],
-          spaceType: 'personal' as const,
-        },
-      ];
-    });
-  };
-
-  // 폴더 삭제
-  const handleRemoveFolder = () => {
-    setFolders((prev) => prev.slice(0, -1));
-  };
+    fetchData();
+  }, [user, folderId, setFolders]);
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
 
@@ -100,52 +99,42 @@ export default function FolderPage() {
     return null;
   }
 
-  const boards: Board[] = currentFolder.boards || [];
-
-  // 보드 추가
-  const handleAddBoard = (board: Board) => {
-    setFolders((prev) =>
-      prev.map((folder) =>
-        folder.id === currentFolder.id
-          ? {
-              ...folder,
-              boards: [
-                ...(folder.boards || []),
-                {
-                  ...board,
-                  status: 'collecting',
-                },
-              ],
-            }
-          : folder
-      )
-    );
-    setShowToast(true);
+  const handleAddBoard = async (board: NewBoard) => {
+    try {
+      await createDashboard(Number(folderId), {
+        name: board.name,
+        logPath: board.logPath,
+        sendTo: board.sendTo,
+      });
+      await fetchDashboards(); // 전체 다시 불러오기
+      setShowToast(true);
+    } catch (err) {
+      console.error('대시보드 생성 실패:', err);
+    }
   };
 
-  // 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
-    setFolders((prev) =>
-      prev.map((folder) =>
-        folder.id === currentFolder.id
-          ? {
-              ...folder,
-              boards: (folder.boards || []).filter((b) => b.id !== boardId),
-            }
-          : folder
-      )
-    );
+    setBoards((prev) => prev.filter((b) => b.id !== boardId));
   };
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-y-auto">
       <Bar
         username={username}
-        onAddFolder={handleAddFolder}
-        onRemoveFolder={handleRemoveFolder}
+        onAddFolder={() => {
+          if (folders.length < MAX_SPACES) {
+            setFolders((prev) => [
+              ...prev,
+              { id: Date.now(), name: '새 폴더', boards: [], spaceType: 'personal' as const },
+            ]);
+          }
+        }}
+        onRemoveFolder={() => setFolders((prev) => prev.slice(0, -1))}
         activePage="personal"
         activeFolderId={folderId ? Number(folderId) : null}
-        onSelectPage={(page) => setActivePage(page)}
+        onSelectPage={(page) => {
+          if (page) setActivePage(page);
+        }}
         onSelectFolder={(id) => {
           setActivePage('personal');
           navigate(`/personal/${id}`, { replace: true });
@@ -190,13 +179,14 @@ export default function FolderPage() {
               transition={{ duration: 0.3, delay: idx * 0.05 }}
             >
               <FrmThumbnailBoard
+                folderId={Number(folderId)}
                 boardId={board.id}
                 connected={true}
                 boardName={board.name}
-                onDelete={() => handleDeleteBoard(board.id)}
+                onDeleted={() => handleDeleteBoard(board.id)}
                 onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
                 previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
-                statusType={board.status}
+                statusType={board.status || 'before'}
               />
             </motion.div>
           ))}
@@ -207,7 +197,12 @@ export default function FolderPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <FrmThumbnailBoard connected={false} onAddBoard={() => setIsDashboardMakeOpen(true)} />
+            <FrmThumbnailBoard
+              folderId={Number(folderId)} // 더미 값
+              boardId={0} // 더미 값
+              connected={false}
+              onAddBoard={() => setIsDashboardMakeOpen(true)}
+            />
           </motion.div>
         </div>
       </div>
@@ -218,9 +213,10 @@ export default function FolderPage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsDashboardMakeOpen(false)} />
           <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
             <DashboardMake
+              folderId={Number(folderId)}
               onClose={() => setIsDashboardMakeOpen(false)}
-              onCreate={(board) => {
-                handleAddBoard({ ...board, status: 'collecting' });
+              onCreate={(board: NewBoard) => {
+                handleAddBoard(board);
                 setIsDashboardMakeOpen(false);
               }}
             />

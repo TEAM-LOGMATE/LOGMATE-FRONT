@@ -9,7 +9,7 @@ import DashboardMake from '../dashboard/dashboardmake';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
 import { getTeams, createTeam } from '../../api/teams';
-import { getDashboards, createDashboard } from '../../api/dashboard';
+import { getDashboards, createDashboard, deleteDashboard } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 
@@ -45,6 +45,15 @@ export default function TeamPage() {
 
   const [showMakeTeam, setShowMakeTeam] = useState(false);
 
+  const fetchDashboards = async (id: number) => {
+    try {
+      const dashboards = await getDashboards(id);
+      setBoards(dashboards.data || []);
+    } catch (err) {
+      console.error("대시보드 조회 실패:", err);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -57,8 +66,7 @@ export default function TeamPage() {
           setActiveFolderId(teamId);
           const team = res.find((t: any) => String(t.id) === String(teamId));
           if (team) {
-            const dashboards = await getDashboards(Number(teamId));
-            setBoards(dashboards.data);
+            await fetchDashboards(Number(teamId));
           }
         }
       } catch (err) {
@@ -74,16 +82,32 @@ export default function TeamPage() {
   const handleCreateBoard = async (boardData: any) => {
     if (!teamId) return;
     try {
-      const res = await createDashboard(Number(teamId), {
+      await createDashboard(Number(teamId), {
         name: boardData.name,
         logPath: boardData.logPath,
         sendTo: boardData.sendTo,
       });
-      setBoards((prev) => [...prev, res.data]);
+
+      // 생성 후 전체 다시 조회 (중복 방지)
+      await fetchDashboards(Number(teamId));
+
       setShowDashboardMake(false);
       setShowToast(true);
     } catch (err) {
       console.error('보드 생성 실패:', err);
+    }
+  };
+
+  // 팀 대시보드 삭제
+  const handleDeleteBoard = async (boardId: number) => {
+    if (!teamId) return;
+    try {
+      await deleteDashboard(Number(teamId), boardId);
+
+      // 삭제 후 전체 다시 조회 (중복 방지)
+      await fetchDashboards(Number(teamId));
+    } catch (err) {
+      console.error("보드 삭제 실패:", err);
     }
   };
 
@@ -154,6 +178,7 @@ export default function TeamPage() {
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
               >
                 <FrmThumbnailBoard
+                  folderId={Number(currentTeam.id)}
                   boardId={b.id}
                   connected={true}
                   spaceType="team"
@@ -162,6 +187,7 @@ export default function TeamPage() {
                   statusType={b.status || 'before'}
                   lastEdited={b.lastEdited}
                   onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
+                  onDeleted={() => handleDeleteBoard(b.id)}
                 />
               </motion.div>
             ))}
@@ -175,6 +201,8 @@ export default function TeamPage() {
               transition={{ duration: 0.3 }}
             >
               <FrmThumbnailBoard
+                folderId={Number(currentTeam.id)}
+                boardId={0}
                 connected={false}
                 spaceType="team"
                 onAddBoard={() => {
@@ -198,6 +226,7 @@ export default function TeamPage() {
             transition={{ duration: 0.3 }}
           >
             <DashboardMake
+              folderId={Number(currentTeam.id)}
               onClose={() => {
                 setShowDashboardMake(false);
                 setSelectedFolderId(null);
