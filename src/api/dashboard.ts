@@ -1,27 +1,37 @@
 import { api } from "./axiosInstance";
 
-// 1. 대시보드 생성 (팀 ID 필요)
+// 대시보드 생성 
 export const createDashboard = async (
-  teamId: number,
+  folderId: number,
   data: {
     name: string;
     logPath: string;
     sendTo: string;
   }
 ) => {
-  const res = await api.post(`/api/teams/${teamId}/dashboards`, data);
+  const token = localStorage.getItem("access_token");
+  const res = await api.post(`/api/folders/${folderId}/dashboards`, data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return res.data;
 };
 
-// 2. 대시보드 조회 (특정 팀의 모든 대시보드)
-export const getDashboards = async (teamId: number) => {
-  const res = await api.get(`/api/teams/${teamId}/dashboards`);
+// 대시보드 조회 (특정 폴더의 모든 대시보드)
+export const getDashboards = async (folderId: number) => {
+  const token = localStorage.getItem("access_token");
+  const res = await api.get(`/api/folders/${folderId}/dashboards`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return res.data;
 };
 
-// 3. 대시보드 수정 (특정 팀의 특정 대시보드)
+// 대시보드 수정 (특정 폴더의 특정 대시보드)
 export const updateDashboard = async (
-  teamId: number,
+  folderId: number,
   dashboardId: number,
   data: {
     name?: string;
@@ -29,14 +39,29 @@ export const updateDashboard = async (
     sendTo?: string;
   }
 ) => {
-  const res = await api.put(`/api/teams/${teamId}/dashboards/${dashboardId}`, data);
+  const token = localStorage.getItem("access_token");
+  const res = await api.put(
+    `/api/folders/${folderId}/dashboards/${dashboardId}`,
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
   return res.data;
 };
 
-/* 
-// ⚠️ 명세서에 "삭제" API 없음 → 추후 백엔드에서 구현되면 사용 가능
-export const deleteDashboard = async (teamId: number, dashboardId: number) => {
-  const res = await api.delete(`/api/teams/${teamId}/dashboards/${dashboardId}`);
+// 대시보드 삭제 (특정 폴더의 특정 대시보드)
+export const deleteDashboard = async (folderId: number, dashboardId: number) => {
+  const token = localStorage.getItem("access_token");
+  const res = await api.delete(
+    `/api/folders/${folderId}/dashboards/${dashboardId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
   return res.data;
 };
-*/
