@@ -38,13 +38,14 @@ export default function FolderPage() {
 
   const { folders, setFolders } = useFolderStore();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // 첫 로딩 여부
   const [boards, setBoards] = useState<Board[]>([]);
   const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team'>('personal');
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  // 📌 대시보드 불러오기
   const fetchDashboards = async () => {
     if (!user || !folderId) return;
     try {
@@ -91,14 +92,11 @@ export default function FolderPage() {
     }
   }, [loading, folders, folderId, currentFolder, navigate]);
 
-  if (loading) {
-    return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
-  }
-
   if (!folderId || !currentFolder) {
     return null;
   }
 
+  // ✅ 보드 추가 (API → 전체 새로고침)
   const handleAddBoard = async (board: NewBoard) => {
     try {
       await createDashboard(Number(folderId), {
@@ -106,13 +104,14 @@ export default function FolderPage() {
         logPath: board.logPath,
         sendTo: board.sendTo,
       });
-      await fetchDashboards(); // 전체 다시 불러오기
+      await fetchDashboards();
       setShowToast(true);
     } catch (err) {
       console.error('대시보드 생성 실패:', err);
     }
   };
 
+  // ✅ 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
     setBoards((prev) => prev.filter((b) => b.id !== boardId));
   };
@@ -171,25 +170,35 @@ export default function FolderPage() {
             alignContent: 'start',
           }}
         >
-          {boards.map((board, idx) => (
-            <motion.div
-              key={board.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: idx * 0.05 }}
-            >
-              <FrmThumbnailBoard
-                folderId={Number(folderId)}
-                boardId={board.id}
-                connected={true}
-                boardName={board.name}
-                onDeleted={() => handleDeleteBoard(board.id)}
-                onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
-                previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
-                statusType={board.status || 'before'}
+          {/* 로딩 중이면 스켈레톤 UI */}
+          {loading && boards.length === 0 ? (
+            [...Array(2)].map((_, idx) => (
+              <div
+                key={idx}
+                className="w-[640px] h-[372px] bg-[#1a1a1a] animate-pulse rounded-2xl"
               />
-            </motion.div>
-          ))}
+            ))
+          ) : (
+            boards.map((board, idx) => (
+              <motion.div
+                key={board.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
+              >
+                <FrmThumbnailBoard
+                  folderId={Number(folderId)}
+                  boardId={board.id}
+                  connected={true}
+                  boardName={board.name}
+                  onDeleted={() => handleDeleteBoard(board.id)}
+                  onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
+                  previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
+                  statusType={board.status || 'before'}
+                />
+              </motion.div>
+            ))
+          )}
 
           {/* 마지막에 항상 + 썸네일 */}
           <motion.div
@@ -198,8 +207,8 @@ export default function FolderPage() {
             transition={{ duration: 0.3 }}
           >
             <FrmThumbnailBoard
-              folderId={Number(folderId)} // 더미 값
-              boardId={0} // 더미 값
+              folderId={Number(folderId)}
+              boardId={0}
               connected={false}
               onAddBoard={() => setIsDashboardMakeOpen(true)}
             />

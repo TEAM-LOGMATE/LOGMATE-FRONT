@@ -1,7 +1,7 @@
 import ToastMessage from '../dashboard/toastmessage';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion'; // ✅ AnimatePresence 제거
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
@@ -42,7 +42,6 @@ export default function TeamPage() {
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
-
   const [showMakeTeam, setShowMakeTeam] = useState(false);
 
   const fetchDashboards = async (id: number) => {
@@ -88,9 +87,7 @@ export default function TeamPage() {
         sendTo: boardData.sendTo,
       });
 
-      // 생성 후 전체 다시 조회 (중복 방지)
       await fetchDashboards(Number(teamId));
-
       setShowDashboardMake(false);
       setShowToast(true);
     } catch (err) {
@@ -98,13 +95,10 @@ export default function TeamPage() {
     }
   };
 
-  // 팀 대시보드 삭제
   const handleDeleteBoard = async (boardId: number) => {
     if (!teamId) return;
     try {
       await deleteDashboard(Number(teamId), boardId);
-
-      // 삭제 후 전체 다시 조회 (중복 방지)
       await fetchDashboards(Number(teamId));
     } catch (err) {
       console.error("보드 삭제 실패:", err);
@@ -120,7 +114,6 @@ export default function TeamPage() {
   }, [boards]);
 
   if (!user) return <Navigate to="/login" replace />;
-  if (loading) return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
 
   const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
   if (!teamId || !currentTeam) return null;
@@ -167,14 +160,20 @@ export default function TeamPage() {
             alignContent: 'start',
           }}
         >
-          <AnimatePresence>
-            {sortedBoards.map((b, idx) => (
+          {/* 로딩 중 스켈레톤 */}
+          {loading && boards.length === 0 ? (
+            [...Array(2)].map((_, idx) => (
+              <div
+                key={idx}
+                className="w-[640px] h-[372px] bg-[#1a1a1a] animate-pulse rounded-2xl"
+              />
+            ))
+          ) : (
+            sortedBoards.map((b, idx) => (
               <motion.div
                 key={b.id}
-                layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
               >
                 <FrmThumbnailBoard
@@ -190,103 +189,78 @@ export default function TeamPage() {
                   onDeleted={() => handleDeleteBoard(b.id)}
                 />
               </motion.div>
-            ))}
+            ))
+          )}
 
-            <motion.div
-              key="add-board-btn"
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FrmThumbnailBoard
-                folderId={Number(currentTeam.id)}
-                boardId={0}
-                connected={false}
-                spaceType="team"
-                onAddBoard={() => {
-                  setSelectedFolderId(Number(currentTeam.id));
-                  setShowDashboardMake(true);
-                }}
-              />
-            </motion.div>
-          </AnimatePresence>
+          {/* + 썸네일 */}
+          <motion.div
+            key="add-board-btn"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FrmThumbnailBoard
+              folderId={Number(currentTeam.id)}
+              boardId={0}
+              connected={false}
+              spaceType="team"
+              onAddBoard={() => {
+                setSelectedFolderId(Number(currentTeam.id));
+                setShowDashboardMake(true);
+              }}
+            />
+          </motion.div>
         </div>
       </div>
 
-      <AnimatePresence>
-        {showDashboardMake && selectedFolderId != null && (
-          <motion.div
-            key="dashboardMakeModal"
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DashboardMake
-              folderId={Number(currentTeam.id)}
-              onClose={() => {
-                setShowDashboardMake(false);
-                setSelectedFolderId(null);
-              }}
-              onCreate={handleCreateBoard}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* DashboardMake 모달 */}
+      {showDashboardMake && selectedFolderId != null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <DashboardMake
+            folderId={Number(currentTeam.id)}
+            onClose={() => {
+              setShowDashboardMake(false);
+              setSelectedFolderId(null);
+            }}
+            onCreate={handleCreateBoard}
+          />
+        </div>
+      )}
 
-      <AnimatePresence>
-        {showMakeTeam && (
-          <motion.div
-            key="makeTeamModal"
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <FrmMakeTeam
-              onClose={() => setShowMakeTeam(false)}
-              onSubmit={async (data: { name: string; description: string; members: UiMember[] }) => {
-                try {
-                  const apiMembers: ApiMember[] = data.members.map((m) => ({
-                    email: m.email,
-                    role: roleMap[m.role],
-                  }));
+      {/* 팀 생성 모달 */}
+      {showMakeTeam && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <FrmMakeTeam
+            onClose={() => setShowMakeTeam(false)}
+            onSubmit={async (data: { name: string; description: string; members: UiMember[] }) => {
+              try {
+                const apiMembers: ApiMember[] = data.members.map((m) => ({
+                  email: m.email,
+                  role: roleMap[m.role],
+                }));
 
-                  const res = await createTeam({
-                    name: data.name,
-                    description: data.description,
-                    members: apiMembers,
-                  });
+                const res = await createTeam({
+                  name: data.name,
+                  description: data.description,
+                  members: apiMembers,
+                });
 
-                  setTeamFolders((prev) => [...prev, res.data]);
-                  setShowMakeTeam(false);
-                } catch (err) {
-                  console.error('팀 생성 실패:', err);
-                }
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+                setTeamFolders((prev) => [...prev, res.data]);
+                setShowMakeTeam(false);
+              } catch (err) {
+                console.error('팀 생성 실패:', err);
+              }
+            }}
+          />
+        </div>
+      )}
 
-      <AnimatePresence>
-        {showToast && (
-          <motion.div
-            key="toast"
-            className="fixed inset-0 flex items-center justify-center bg-black/60 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ToastMessage onCloseToast={() => setShowToast(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 토스트 */}
+      {showToast && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <ToastMessage onCloseToast={() => setShowToast(false)} />
+        </div>
+      )}
     </div>
   );
 }
