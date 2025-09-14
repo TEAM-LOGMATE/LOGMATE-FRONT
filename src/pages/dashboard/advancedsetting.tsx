@@ -13,7 +13,6 @@ export default function AdvancedSettings() {
       <ExporterSettings />
       <FilterSettings />
       <ConfigurationPuller />
-      <AIActive />
     </div>
   );
 }
