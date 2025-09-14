@@ -1,11 +1,12 @@
+import ToastMessage from '../dashboard/toastmessage';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
-import ToastMessage from '../dashboard/toastmessage';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
 import { getPersonalFolders } from '../../api/folders';
@@ -38,14 +39,25 @@ export default function FolderPage() {
 
   const { folders, setFolders } = useFolderStore();
 
-  const [loading, setLoading] = useState(true); // 첫 로딩 여부
+  const [loading, setLoading] = useState(true);
   const [boards, setBoards] = useState<Board[]>([]);
   const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team'>('personal');
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  // 📌 대시보드 불러오기
+  // Variants (보드 전용)
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: 'easeOut' },
+    },
+    exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
+  };
+
+  // 대시보드 불러오기
   const fetchDashboards = async () => {
     if (!user || !folderId) return;
     try {
@@ -96,22 +108,24 @@ export default function FolderPage() {
     return null;
   }
 
-  // ✅ 보드 추가 (API → 전체 새로고침)
+  // 보드 추가
   const handleAddBoard = async (board: NewBoard) => {
     try {
-      await createDashboard(Number(folderId), {
+      const res = await createDashboard(Number(folderId), {
         name: board.name,
         logPath: board.logPath,
         sendTo: board.sendTo,
       });
-      await fetchDashboards();
+
+      const newBoard = res.data;
+      setBoards((prev) => [newBoard, ...prev]); // 새 보드를 맨 앞에 추가
       setShowToast(true);
     } catch (err) {
       console.error('대시보드 생성 실패:', err);
     }
   };
 
-  // ✅ 보드 삭제
+  // 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
     setBoards((prev) => prev.filter((b) => b.id !== boardId));
   };
@@ -161,7 +175,8 @@ export default function FolderPage() {
         </motion.div>
 
         {/* 썸네일 영역 */}
-        <div
+        <motion.div
+          layout
           className="grid gap-x-10 gap-y-10 flex-1"
           style={{
             gridTemplateColumns: 'repeat(auto-fill, 640px)',
@@ -170,56 +185,51 @@ export default function FolderPage() {
             alignContent: 'start',
           }}
         >
-          {/* 로딩 중이면 스켈레톤 UI */}
-          {loading && boards.length === 0 ? (
-            [...Array(2)].map((_, idx) => (
-              <div
-                key={idx}
-                className="w-[640px] h-[372px] bg-[#1a1a1a] animate-pulse rounded-2xl"
-              />
-            ))
-          ) : (
-            boards.map((board, idx) => (
-              <motion.div
-                key={board.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-              >
-                <FrmThumbnailBoard
-                  folderId={Number(folderId)}
-                  boardId={board.id}
-                  connected={true}
-                  boardName={board.name}
-                  onDeleted={() => handleDeleteBoard(board.id)}
-                  onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
-                  previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
-                  statusType={board.status || 'before'}
-                />
-              </motion.div>
-            ))
-          )}
+          {/* 기존 보드들만 애니메이션 */}
+          <AnimatePresence>
+            {!loading &&
+              boards.map((board) => (
+                <motion.div
+                  key={board.id}
+                  layout
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <FrmThumbnailBoard
+                    folderId={Number(folderId)}
+                    boardId={board.id}
+                    connected={true}
+                    boardName={board.name}
+                    onDeleted={() => handleDeleteBoard(board.id)}
+                    onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
+                    previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
+                    statusType={board.status || 'before'}
+                  />
+                </motion.div>
+              ))}
+          </AnimatePresence>
 
-          {/* 마지막에 항상 + 썸네일 */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
+          {/* +카드: 로딩 끝난 뒤에만 렌더링 */}
+          {!loading && (
             <FrmThumbnailBoard
               folderId={Number(folderId)}
               boardId={0}
               connected={false}
               onAddBoard={() => setIsDashboardMakeOpen(true)}
             />
-          </motion.div>
-        </div>
+          )}
+        </motion.div>
       </div>
 
       {/* DashboardMake 모달 */}
       {isDashboardMakeOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDashboardMakeOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsDashboardMakeOpen(false)}
+          />
           <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
             <DashboardMake
               folderId={Number(folderId)}

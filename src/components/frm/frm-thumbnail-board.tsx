@@ -110,6 +110,7 @@ export default function FrmThumbnailBoard({
 
   return (
     <div className="flex flex-col w-[640px] h-[372px] p-4 rounded-[8px] bg-[#171717]">
+      {/* 공통 wrapper 유지 */}
       {connected ? (
         <>
           {/* 상단 상태 (토글) */}
@@ -134,14 +135,7 @@ export default function FrmThumbnailBoard({
                 offsetY={50}
               />
             ) : (
-              <div
-                className="
-                  w-full h-full rounded-[8px]
-                  border border-[#2a2a2a] bg-[#111]
-                  flex items-center justify-center
-                  text-[#888] text-[12px]
-                "
-              >
+              <div className="w-full h-full rounded-[8px] border border-[#2a2a2a] bg-[#111] flex items-center justify-center text-[#888] text-[12px]">
                 {statusType === "unresponsive" ? "에이전트 미응답" : "대시보드 준비 중"}
               </div>
             )}
@@ -152,18 +146,13 @@ export default function FrmThumbnailBoard({
             <div className="flex flex-col gap-[2px]">
               <span
                 onClick={() => onOpen?.()}
-                className="
-                  font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px]
-                  text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition
-                "
+                className="font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px] text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition"
               >
                 {boardName || (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
-                <span className="font-geist text-[14px] font-light leading-[150%] text-[#AEAEAE]">
-                  Edited
-                </span>
-                <span className="font-geist-mono text-[14px] font-light leading-[150%] text-[#AEAEAE]">
+                <span className="font-geist text-[14px] text-[#AEAEAE]">Edited</span>
+                <span className="font-geist-mono text-[14px] text-[#AEAEAE]">
                   {lastEdited || fallbackDate}
                 </span>
               </div>
@@ -186,13 +175,11 @@ export default function FrmThumbnailBoard({
           </div>
         </>
       ) : (
+        // 같은 wrapper 유지, 내용만 바꿈
         <div className="flex flex-1 w-full h-full justify-center items-center">
           <span
             onClick={onAddBoard}
-            className="
-              font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-              text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition
-            "
+            className="font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px] text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition"
           >
             {spaceType === "team" ? "팀 보드 연결하기 +" : "새로운 보드 연결하기 +"}
           </span>

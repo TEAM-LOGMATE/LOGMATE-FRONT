@@ -13,8 +13,6 @@ import SearchRefresh from "../component/searchrefresh";
 import AppLiveLog from "../component/AppLiveLog";
 import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
-
-// API
 import { getTeams } from "../../api/teams";
 import { getDashboards } from "../../api/dashboard";
 
@@ -51,11 +49,37 @@ export default function AppDashboard() {
   // 임베드일 때는 user가 null일 수 있음 → fallback
   const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
 
-  // 개인 스페이스 (API 없음 → 빈 배열)
-  const [personalFolders] = useState<Folder[]>([]);
-
-  // 팀 스페이스 (API 연동)
+  const [personalFolders, setPersonalFolders] = useState<Folder[]>([]);
   const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
+
+  // 개인 스페이스 불러오기
+  useEffect(() => {
+    const fetchPersonal = async () => {
+      if (!folderId) return;
+      try {
+        const dashboards = await getDashboards(Number(folderId));
+        setPersonalFolders([
+          {
+            id: Number(folderId),
+            name: "내 폴더",
+            spaceType: "personal" as const,
+            boards:
+              dashboards.data?.map((db: any) => ({
+                id: db.id,
+                name: db.name,
+                logPath: db.logPath,
+                status: "before" as const,
+              })) || [],
+          },
+        ]);
+      } catch (err) {
+        console.error("개인 대시보드 불러오기 실패:", err);
+      }
+    };
+    if (!teamId) fetchPersonal();
+  }, [folderId, teamId]);
+
+  // 팀 스페이스 불러오기
   useEffect(() => {
     const fetchTeams = async () => {
       try {
@@ -69,12 +93,13 @@ export default function AppDashboard() {
                 name: team.name,
                 description: team.description,
                 spaceType: "team" as const,
-                boards: dashboards.data?.map((db: any) => ({
-                  id: db.id,
-                  name: db.name,
-                  logPath: db.logPath,
-                  status: "before" as const, // 기본 상태
-                })) || [],
+                boards:
+                  dashboards.data?.map((db: any) => ({
+                    id: db.id,
+                    name: db.name,
+                    logPath: db.logPath,
+                    status: "before" as const,
+                  })) || [],
               };
             } catch {
               return {
@@ -117,7 +142,11 @@ export default function AppDashboard() {
   return (
     <div className={`flex w-screen h-screen bg-[#0F0F0F] text-white font-suit`}>
       {/* 왼쪽 Bar */}
-      <Bar username={username} activePage={null} activeFolderId={String(folder.id)} />
+      <Bar
+        username={username}
+        activePage={folder.spaceType === "team" ? "team" : "personal"}
+        activeFolderId={String(folder.id)}
+      />
 
       {/* 오른쪽 메인 영역 */}
       <div className="flex flex-col flex-1 px-10 pt-10 overflow-y-auto">
