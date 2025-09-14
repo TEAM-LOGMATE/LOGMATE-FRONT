@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { api } from '../../api/axiosInstance';
 import Bar from '../../components/navi/bar';
 import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
@@ -10,12 +11,17 @@ import { useAuth } from '../../utils/AuthContext';
 
 export default function MyInfoEditPage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { user, setUserUnsafe } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
 
   const username = user.username;
   const currentEmail = user.email;
+
+  // state 없으면 localStorage fallback
+  const currentPassword =
+    state?.currentPassword || localStorage.getItem('currentPassword');
 
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -45,9 +51,16 @@ export default function MyInfoEditPage() {
     if (newEmail === '') setEmailCheckResult('idle');
   }, [newEmail]);
 
-  const handleSave = () => {
-    if (!newEmail || !newPassword || !confirmPassword) {
-      setErrorMessage('모든 정보를 입력해 주세요.');
+  const handleSave = async () => {
+    if (!currentPassword) {
+      setErrorMessage('비밀번호 인증이 만료되었습니다. 다시 로그인해 주세요.');
+      setTimeout(() => setErrorMessage(''), 3000);
+      navigate('/myinfo');
+      return;
+    }
+
+    if (!newEmail && !newPassword && !confirmPassword) {
+      setErrorMessage('변경할 정보를 입력해 주세요.');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
@@ -57,14 +70,40 @@ export default function MyInfoEditPage() {
       return;
     }
 
-    //id 포함하도록 수정
-    setUserUnsafe?.({
-      id: user.id,
-      username,
-      email: newEmail.trim().toLowerCase(),
-    });
+    try {
+      const body: any = { currentPassword };
 
-    navigate('/myinfo');
+      if (newEmail.trim() && newEmail.trim().toLowerCase() !== currentEmail.toLowerCase()) {
+        body.newEmail = newEmail.trim().toLowerCase();
+      }
+      if (newPassword.trim()) {
+        body.newPassword = newPassword.trim();
+      }
+
+      const res = await api.put('/api/users/mypage', body);
+
+      if (res.data.status === 200) {
+        const { token, userId, email, userName } = res.data.data;
+
+        // 새 토큰 저장
+        localStorage.setItem('access_token', token);
+
+        // AuthContext 업데이트
+        setUserUnsafe?.({
+          id: userId,
+          username: userName,
+          email,
+        });
+
+        // currentPassword 정리
+        localStorage.removeItem('currentPassword');
+
+        navigate('/myinfo');
+      }
+    } catch (err) {
+      setErrorMessage('정보 수정에 실패했습니다. 다시 시도해주세요.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const disableCheck =
@@ -73,10 +112,8 @@ export default function MyInfoEditPage() {
 
   return (
     <div className="flex w-screen h-screen bg-[#111] text-white font-suit overflow-hidden">
-      {/* Bar는 고정 */}
       <Bar username={username} />
 
-      {/* 메인 컨텐츠만 애니메이션 */}
       <motion.div
         className="flex flex-1 justify-center items-center px-10"
         initial={{ opacity: 0, y: 20 }}
@@ -199,7 +236,7 @@ export default function MyInfoEditPage() {
             </div>
           </div>
 
-          {/* 저장 버튼 + 오류 메시지 */}
+          {/* 저장 버튼 */}
           <div className="w-full flex flex-col items-center relative gap-[8px]">
             {errorMessage && (
               <div className="absolute -top-[56px] left-1/2 -translate-x-1/2">
