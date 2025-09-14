@@ -1,5 +1,19 @@
 import { api } from "./axiosInstance";
 
+export type ApiMember = {
+  name: string;
+  email: string;
+  role: "ADMIN" | "MEMBER" | "VIEWER";
+};
+
+export type TeamDetailResponse = {
+  id: number;
+  name: string;
+  description?: string;
+  teamFolderId: number;
+  members: ApiMember[];
+};
+
 // 팀 생성
 export const createTeam = async (data: {
   name: string;
@@ -14,6 +28,14 @@ export const createTeam = async (data: {
 export const getTeams = async () => {
   const res = await api.get("/api/teams");
   return res.data;
+};
+
+// 팀 상세 조회 (id 기준)
+export const getTeamDetail = async (teamId: number) => {
+  const res = await api.get<{ status: number; message: string; data: TeamDetailResponse }>(
+    `/api/teams/${teamId}`
+  );
+  return res.data.data; 
 };
 
 // 팀 수정 (이름/설명/멤버 변경)
@@ -34,4 +56,3 @@ export const deleteTeam = async (teamId: number) => {
   const res = await api.delete(`/api/teams/${teamId}`);
   return res.data;
 };
-

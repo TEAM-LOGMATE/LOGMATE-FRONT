@@ -20,7 +20,6 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
   const [teamDesc, setTeamDesc] = useState('');
   const [members, setMembers] = useState<UiMember[]>([]);
 
-  // 팀 만들기 클릭 → 부모(S_SpacePage)로 값 전달
   const handleSubmit = () => {
     if (!teamName.trim() || members.length === 0) return;
     onSubmit?.({
@@ -106,6 +105,7 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
         <div className="mt-[8px]">
           <FrmMemberList
             members={members}
+            hideName={true}  
             onMemberAdd={(email) => {
               if (isValidEmail(email)) {
                 setMembers((prev) => [
@@ -113,7 +113,7 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
                   {
                     name: '팀원명',
                     email,
-                    role: 'member' as UiRole, // 기본 역할은 'member'
+                    role: 'member' as UiRole,
                   },
                 ]);
               }

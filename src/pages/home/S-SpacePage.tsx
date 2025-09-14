@@ -30,6 +30,7 @@ export default function S_SpacePage() {
   const [showMakeTeam, setShowMakeTeam] = useState(false);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [myRole, setMyRole] = useState<UiRole>('viewer'); 
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
@@ -99,8 +100,14 @@ export default function S_SpacePage() {
     }
   };
 
+  // 팀 설정 열기
   const openTeamSettings = (team: Team) => {
     setEditingTeam(team);
+
+    const myMember = (team.members || []).find((m: any) => m.email === user.email);
+    const myRole = myMember ? (myMember.role.toLowerCase() as UiRole) : 'viewer';
+    setMyRole(myRole);
+
     setShowTeamSettings(true);
   };
 
@@ -244,23 +251,17 @@ export default function S_SpacePage() {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
-              <FrmTeamEdit
-                initialName={editingTeam.name}
-                initialDescription={editingTeam.description || ''}
-                initialMembers={(editingTeam.members || []).map((m: any) => ({
-                  name: m.name ?? '',
-                  email: m.email ?? '',
-                  role: m.role,
-                }))}
-                currentRole="teamAdmin"
-                onSubmit={handleTeamEditSubmit}
-                onClose={() => {
-                  setShowTeamSettings(false);
-                  setEditingTeam(null);
-                }}
-                onDelete={() => handleDeleteTeam(editingTeam.id)}
-                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
-              />
+            <FrmTeamEdit
+              teamId={editingTeam.id}
+              onSubmit={handleTeamEditSubmit}
+              onClose={() => {
+                setShowTeamSettings(false);
+                setEditingTeam(null);
+              }}
+              onDelete={() => handleDeleteTeam(editingTeam.id)}
+              onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
+            />
+
             </motion.div>
           </motion.div>
         )}
