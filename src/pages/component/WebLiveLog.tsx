@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import BtnDropdown from "../../components/btn/btn-dropdown";
 import { useLogStore } from "../../utils/logstore";
 
 export default function WebLiveLog() {
-  const logs = useLogStore((s) => s.webLogs).slice(0, 12); // 최근 12개만 표시
+  const logs = useLogStore((s) => s.webLogs);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // AI Score 색상 함수
   const getAiScoreColor = (score: number) => {
@@ -10,6 +12,16 @@ export default function WebLiveLog() {
     if (score >= 60) return "#FFC107"; // 경고
     return "#4CAF50"; // 정상
   };
+
+  // 새 로그 들어올 때마다 스크롤 맨 위로 이동
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [logs.length]);
+
+  // 최신 로그가 위쪽에 오도록 reverse()
+  const visibleLogs = [...logs].reverse();
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
@@ -52,55 +64,73 @@ export default function WebLiveLog() {
         </div>
       </div>
 
-      {/* 데이터 행 (12줄 고정) */}
-      <div className="flex flex-col">
-        {Array.from({ length: 12 }).map((_, idx) => {
-          const row = logs[idx];
+      {/* 데이터 행 (12줄 높이 고정 + 스크롤) */}
+      <div
+        className="flex flex-col h-[432px] overflow-y-auto"
+        ref={containerRef}
+      >
+        {visibleLogs.map((row, idx) => {
           const aiScore = row?.aiScore ?? null;
+          const isLast = idx === visibleLogs.length - 1;
 
           return (
-            <div key={idx} className="flex border-b border-[#2A2A2A] last:border-none">
+            <div
+              key={idx}
+              className="flex border-b border-[#2A2A2A] last:border-none"
+            >
               <div
                 className={`flex w-[200px] h-[36px] justify-center items-center bg-[#171717] ${
-                  idx === 11 ? "rounded-bl-md" : ""
+                  isLast ? "rounded-bl-md" : ""
                 }`}
               >
                 <span className="text-[#D8D8D8] text-[14px] font-light font-['Geist_Mono']">
-                  {row ? row.timestamp : ""}
+                  {row?.timestamp ?? ""}
                 </span>
               </div>
               <div className="flex w-[120px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row ? row.method : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px]">
+                  {row?.method ?? ""}
+                </span>
               </div>
               <div className="flex w-[120px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row ? row.protocol : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px]">
+                  {row?.protocol ?? ""}
+                </span>
               </div>
               <div className="flex w-[100px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row ? row.size : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px]">{row?.size ?? ""}</span>
               </div>
               <div className="flex flex-1 h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row ? row.path : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px] truncate">
+                  {row?.path ?? ""}
+                </span>
               </div>
               <div className="flex w-[100px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row ? row.status : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px]">{row?.status ?? ""}</span>
               </div>
               <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row ? row.referrer : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px] truncate">
+                  {row?.referrer ?? ""}
+                </span>
               </div>
               <div className="flex w-[160px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row ? row.userAgent : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px] truncate">
+                  {row?.userAgent ?? ""}
+                </span>
               </div>
               <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row ? row.ip : ""}</span>
+                <span className="text-[#D8D8D8] text-[14px]">{row?.ip ?? ""}</span>
               </div>
               <div
                 className={`flex w-[120px] h-[36px] justify-center items-center bg-[#171717] ${
-                  idx === 11 ? "rounded-br-md" : ""
+                  isLast ? "rounded-br-md" : ""
                 }`}
               >
                 <span
                   className="text-[14px] font-bold"
-                  style={{ color: aiScore !== null ? getAiScoreColor(aiScore) : "#D8D8D8" }}
+                  style={{
+                    color: aiScore !== null ? getAiScoreColor(aiScore) : "#D8D8D8",
+                  }}
                 >
                   {aiScore !== null ? aiScore : ""}
                 </span>
