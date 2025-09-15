@@ -30,9 +30,10 @@ export default function S_SpacePage() {
   const [showMakeTeam, setShowMakeTeam] = useState(false);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-  const [myRole, setMyRole] = useState<UiRole>('viewer'); 
+  const [myRole, setMyRole] = useState<UiRole>('viewer');
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // 팀 불러오기
   useEffect(() => {
@@ -205,10 +206,7 @@ export default function S_SpacePage() {
                 onSubmit={async (data) => {
                   try {
                     const apiMembers: ApiMember[] = [
-                      {
-                        email: user.email,
-                        role: 'ADMIN',
-                      },
+                      { email: user.email, role: 'ADMIN' },
                       ...data.members.map((m) => ({
                         email: m.email,
                         role: toApiRole(m.role),
@@ -226,11 +224,18 @@ export default function S_SpacePage() {
                       { ...newTeam.data, spaceType: 'team' },
                     ]);
                     setShowMakeTeam(false);
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error('팀 생성 실패:', err);
+                    const msg =
+                      err?.response?.data?.message ||
+                      '팀 생성 중 오류가 발생했습니다.';
+                    setErrorMessage(msg);
+                    setTimeout(() => setErrorMessage(null), 3000);
                   }
                 }}
                 onClose={() => setShowMakeTeam(false)}
+                errorMessage={errorMessage}                 // 전달
+                onErrorClear={() => setErrorMessage(null)}  // 전달
               />
             </motion.div>
           </motion.div>
@@ -251,17 +256,16 @@ export default function S_SpacePage() {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
-            <FrmTeamEdit
-              teamId={editingTeam.id}
-              onSubmit={handleTeamEditSubmit}
-              onClose={() => {
-                setShowTeamSettings(false);
-                setEditingTeam(null);
-              }}
-              onDelete={() => handleDeleteTeam(editingTeam.id)}
-              onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
-            />
-
+              <FrmTeamEdit
+                teamId={editingTeam.id}
+                onSubmit={handleTeamEditSubmit}
+                onClose={() => {
+                  setShowTeamSettings(false);
+                  setEditingTeam(null);
+                }}
+                onDelete={() => handleDeleteTeam(editingTeam.id)}
+                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
+              />
             </motion.div>
           </motion.div>
         )}

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Input48 from '../input/48';
 import FrmMemberList from './frm-memberlist';
 import BtnX from '../btn/btn-x';
 import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
 import type { UiMember, UiRole } from '../../utils/type';
+import ErrorToast from '../text/error-toast';
 
 type FrmMakeTeamProps = {
   onSubmit?: (data: {
@@ -13,9 +15,16 @@ type FrmMakeTeamProps = {
     members: UiMember[];
   }) => void;
   onClose?: () => void;
+  errorMessage?: string | null;
+  onErrorClear?: () => void;
 };
 
-export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
+export default function FrmMakeTeam({
+  onSubmit,
+  onClose,
+  errorMessage,
+  onErrorClear,
+}: FrmMakeTeamProps) {
   const [teamName, setTeamName] = useState('');
   const [teamDesc, setTeamDesc] = useState('');
   const [members, setMembers] = useState<UiMember[]>([]);
@@ -46,24 +55,13 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
       </div>
 
       {/* 제목 */}
-      <h2
-        className="
-          text-[var(--Gray-100,#F2F2F2)] text-center
-          font-suit text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-        "
-      >
+      <h2 className="text-[var(--Gray-100,#F2F2F2)] text-center font-suit text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
         새로운 팀 추가
       </h2>
 
       {/* 팀 이름 */}
       <div className="w-full">
-        <label
-          className="
-            block mb-[8px]
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="block mb-[8px] text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀 이름 <span className="text-[var(--Alert-Red,#D46F6F)]">*</span>
         </label>
         <Input48
@@ -75,13 +73,7 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
 
       {/* 팀 설명 */}
       <div className="w-full">
-        <label
-          className="
-            block mb-[8px]
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="block mb-[8px] text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀 설명
         </label>
         <Input48
@@ -93,19 +85,14 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
 
       {/* 팀원 리스트 */}
       <div className="w-full">
-        <label
-          className="
-            text-[var(--Gray-200,#D8D8D8)]
-            font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-          "
-        >
+        <label className="text-[var(--Gray-200,#D8D8D8)] font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]">
           팀원 리스트 <span className="text-[var(--Alert-Red,#D46F6F)]">*</span>
         </label>
 
         <div className="mt-[8px]">
           <FrmMemberList
             members={members}
-            hideName={true}  
+            hideName={true}
             onMemberAdd={(email) => {
               if (isValidEmail(email)) {
                 setMembers((prev) => [
@@ -132,11 +119,28 @@ export default function FrmMakeTeam({ onSubmit, onClose }: FrmMakeTeamProps) {
         </div>
       </div>
 
-      {/* 팀 만들기 버튼 */}
+      {/* 팀 만들기 버튼 + 에러 토스트 */}
       <div className="w-full flex justify-center mt-[24px]">
-        <BtnSign2Small onClick={handleSubmit} isActive={isCreateTeamActive}>
-          팀 만들기
-        </BtnSign2Small>
+        <div className="relative inline-flex">
+          <BtnSign2Small onClick={handleSubmit} isActive={isCreateTeamActive}>
+            팀 만들기
+          </BtnSign2Small>
+
+          {/* ✅ 버튼 기준으로만 렌더링 */}
+          <AnimatePresence>
+            {errorMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute bottom-full mb-2 -left-12"
+              >
+                <ErrorToast message={errorMessage} onClose={onErrorClear} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
