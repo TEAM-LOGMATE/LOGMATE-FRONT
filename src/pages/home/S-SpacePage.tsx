@@ -91,7 +91,9 @@ export default function S_SpacePage() {
 
       setTeamFolders((prev) =>
         prev.map((t) =>
-          t.id === editingTeam.id ? { ...updated, spaceType: 'team' } : t
+          t.id === editingTeam.id
+            ? { ...t, ...data, ...updated, spaceType: 'team' } 
+            : t
         )
       );
       setShowTeamSettings(false);
@@ -234,8 +236,8 @@ export default function S_SpacePage() {
                   }
                 }}
                 onClose={() => setShowMakeTeam(false)}
-                errorMessage={errorMessage}                 // 전달
-                onErrorClear={() => setErrorMessage(null)}  // 전달
+                errorMessage={errorMessage}
+                onErrorClear={() => setErrorMessage(null)}
               />
             </motion.div>
           </motion.div>
