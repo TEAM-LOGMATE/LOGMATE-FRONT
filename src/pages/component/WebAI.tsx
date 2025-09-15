@@ -1,12 +1,12 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useMemo, useState } from "react";
-import { useLogStore } from "../../utils/logstore"; // logstore에서 webLogs 불러오기
+import { useLogStore } from "../../utils/logstore"; 
 import type { WebLog } from "../../utils/logstore";
 
 type CategoryKey = "normal" | "warning" | "danger";
 
 export default function WebAI() {
-  const webLogs = useLogStore((state) => state.webLogs);
+  const { webLogs } = useLogStore(); 
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
 
   // 로그를 정상/경고/위험으로 분류
@@ -42,22 +42,12 @@ export default function WebAI() {
     <div className="w-[500px] h-[348px] flex-shrink-0 rounded-[12px] bg-[#171717] p-6 flex flex-col">
       {/* 상단 제목 + 뱃지 */}
       <div className="flex items-center gap-2 mb-2">
-        <h2
-          className="
-            text-[24px] font-bold leading-[140%] tracking-[-0.4px]
-            text-[#D8D8D8] font-suit
-          "
-        >
+        <h2 className="text-[24px] font-bold leading-[140%] tracking-[-0.4px] text-[#D8D8D8] font-suit">
           AI 이상 탐지
         </h2>
 
-        {/* 이상탐지 +위험개수 */}
-        <div
-          className="
-            flex h-[24px] px-2 items-center gap-2
-            rounded-[15px] bg-[#3B1A1A]
-          "
-        >
+        {/* 이상탐지 + 위험개수 */}
+        <div className="flex h-[24px] px-2 items-center gap-2 rounded-[15px] bg-[#3B1A1A]">
           <span className="text-[#FFA8A8] font-suit text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
             이상 탐지
           </span>
@@ -68,12 +58,7 @@ export default function WebAI() {
       </div>
 
       {/* 하단 보조 텍스트 */}
-      <p
-        className="
-          text-[#AEAEAE] text-[14px] font-medium leading-[150%] tracking-[-0.4px]
-          font-suit
-        "
-      >
+      <p className="text-[#AEAEAE] text-[14px] font-medium leading-[150%] tracking-[-0.4px] font-suit">
         정상 : 0~60점, 경고 60~70점, 위험 70점 이상
       </p>
 
@@ -88,7 +73,7 @@ export default function WebAI() {
               innerRadius={60}
               outerRadius={100}
               paddingAngle={2}
-              onClick={(entry) => setSelectedCategory(entry.key)} // 카테고리 클릭 이벤트
+              onClick={(entry) => setSelectedCategory(entry.key)}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} cursor="pointer" />
@@ -99,7 +84,6 @@ export default function WebAI() {
 
         {/* 오른쪽 영역: 범례 + 상세 */}
         <div className="flex flex-col ml-6 gap-3 flex-1">
-          {/* 범례 */}
           {data.map((d, i) => (
             <div
               key={i}
@@ -116,7 +100,6 @@ export default function WebAI() {
             </div>
           ))}
 
-          {/* 선택된 카테고리 상세 */}
           {selectedCategory && (
             <div className="mt-4 p-3 rounded bg-[#232323] text-[#D8D8D8] text-[14px] font-suit">
               <p className="font-bold mb-2">
@@ -125,10 +108,7 @@ export default function WebAI() {
               <p>
                 비율:{" "}
                 {total > 0
-                  ? (
-                      (logsByCategory[selectedCategory].length / total) *
-                      100
-                    ).toFixed(1)
+                  ? ((logsByCategory[selectedCategory].length / total) * 100).toFixed(1)
                   : 0}
                 %
               </p>

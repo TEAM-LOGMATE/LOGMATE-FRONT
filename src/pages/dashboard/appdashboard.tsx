@@ -15,6 +15,7 @@ import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
 import { getTeams } from "../../api/teams";
 import { getDashboards } from "../../api/dashboard";
+import { useLogStore } from "../../utils/logstore";
 
 export default function AppDashboard() {
   const location = useLocation();
@@ -45,6 +46,16 @@ export default function AppDashboard() {
     boardId: string;
     teamId?: string;
   }>();
+
+  // WebSocket 연결/해제 관리
+  const { connect, disconnect } = useLogStore();
+  useEffect(() => {
+    if (!boardId) return;
+    connect("agent-uuid1", "1"); // 원래 쓰던 값 그대로 유지 추후 변경 예정
+    return () => {
+      disconnect(); // 언마운트 시 해제
+    };
+  }, [boardId, connect, disconnect]);
 
   // 임베드일 때는 user가 null일 수 있음 → fallback
   const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
@@ -145,8 +156,9 @@ export default function AppDashboard() {
       <Bar
         username={username}
         activePage={folder.spaceType === "team" ? "team" : "personal"}
-        activeFolderId={String(folder.id)}
+        activeFolderId={Number(folder.id)} 
       />
+
 
       {/* 오른쪽 메인 영역 */}
       <div className="flex flex-col flex-1 px-10 pt-10 overflow-y-auto">

@@ -9,13 +9,6 @@ export default function AppLiveLog() {
   // 최신 로그가 위에 오도록 reverse()
   const visibleLogs = [...logs].reverse();
 
-  // 새 로그 들어올 때 스크롤 맨 위로 이동
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = 0;
-    }
-  }, [logs.length]);
-
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
       {/* 헤더 */}

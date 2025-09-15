@@ -39,7 +39,7 @@ export default function WebAll() {
 
         {/* 전체 로그 수 */}
         <div className="text-[#F2F2F2] font-['Geist Mono'] text-[40px] font-normal leading-[130%]">
-          {totalLogs.toLocaleString()} {/* 숫자에 , 찍기 */}
+          {totalLogs.toLocaleString()}
         </div>
       </div>
     </div>

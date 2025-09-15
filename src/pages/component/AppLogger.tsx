@@ -66,8 +66,10 @@ export default function AppLogger() {
   let cumulative = 0;
 
   return (
-    <div className="w-[530px] h-[303px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
-         onMouseDown={(e) => e.preventDefault()}>
+    <div
+      className="w-[530px] h-[303px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
+      onMouseDown={(e) => e.preventDefault()}
+    >
       <h2 className="text-[24px] font-bold text-[#D8D8D8]">로거별 로그량</h2>
       <p className="mt-1 text-[14px] text-[#AEAEAE]">현재 보드 로거들의 비율</p>
 
@@ -87,7 +89,6 @@ export default function AppLogger() {
             return (
               <AnimatedSector
                 key={entry.name}
-                entry={entry}
                 start={start}
                 end={end}
                 radius={radius}
