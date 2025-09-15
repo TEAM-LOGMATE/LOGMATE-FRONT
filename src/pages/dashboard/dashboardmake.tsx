@@ -11,7 +11,6 @@ interface DashboardMakeProps {
   onCreate?: (board: {
     name: string;
     logPath: string;
-    sendTo: string;
   }) => void;
 }
 
@@ -33,11 +32,9 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
   const handleCreate = () => {
     if (!isFormValid) return;
 
-    const sendTo = "http://localhost:8081/stream"; // 기본값 (명세 기반)
     onCreate?.({
       name: boardName,
       logPath,
-      sendTo,
     });
 
     onClose?.();

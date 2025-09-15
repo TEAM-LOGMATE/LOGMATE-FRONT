@@ -27,7 +27,6 @@ interface Board {
   name: string;
   lastEdited?: string;
   logPath?: string;
-  sendTo?: string;
   status?: BoardStatus;
 }
 
@@ -96,7 +95,6 @@ export default function TeamPage() {
       await createDashboard(Number(teamId), {
         name: boardData.name,
         logPath: boardData.logPath,
-        sendTo: boardData.sendTo,
       });
 
       await fetchDashboards(Number(teamId));

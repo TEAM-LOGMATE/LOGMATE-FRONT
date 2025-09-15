@@ -92,7 +92,7 @@ export default function S_SpacePage() {
       setTeamFolders((prev) =>
         prev.map((t) =>
           t.id === editingTeam.id
-            ? { ...t, ...data, ...updated, spaceType: 'team' } 
+            ? { ...t, ...data, ...updated, spaceType: 'team' }
             : t
         )
       );
@@ -292,7 +292,6 @@ export default function S_SpacePage() {
                   const res = await createDashboard(selectedFolderId, {
                     name: board.name,
                     logPath: board.logPath,
-                    sendTo: board.sendTo,
                   });
                   setTeamFolders((prev) =>
                     prev.map((team) =>

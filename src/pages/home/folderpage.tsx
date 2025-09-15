@@ -17,7 +17,6 @@ interface Board {
   id: number;
   name: string;
   logPath?: string;
-  sendTo?: string;
   lastModified?: string;
   status?: 'collecting' | 'unresponsive' | 'before';
 }
@@ -25,7 +24,6 @@ interface Board {
 interface NewBoard {
   name: string;
   logPath: string;
-  sendTo: string;
 }
 
 export default function FolderPage() {
@@ -114,7 +112,6 @@ export default function FolderPage() {
       const res = await createDashboard(Number(folderId), {
         name: board.name,
         logPath: board.logPath,
-        sendTo: board.sendTo,
       });
 
       const newBoard = res.data;

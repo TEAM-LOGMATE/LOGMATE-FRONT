@@ -126,7 +126,7 @@ export default function FrmMakeTeam({
             팀 만들기
           </BtnSign2Small>
 
-          {/* ✅ 버튼 기준으로만 렌더링 */}
+          {/* 버튼 기준으로만 렌더링 */}
           <AnimatePresence>
             {errorMessage && (
               <motion.div

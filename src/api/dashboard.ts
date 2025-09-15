@@ -6,7 +6,6 @@ export const createDashboard = async (
   data: {
     name: string;
     logPath: string;
-    sendTo: string;
   }
 ) => {
   const token = localStorage.getItem("access_token");
@@ -36,7 +35,6 @@ export const updateDashboard = async (
   data: {
     name?: string;
     logPath?: string;
-    sendTo?: string;
   }
 ) => {
   const token = localStorage.getItem("access_token");
