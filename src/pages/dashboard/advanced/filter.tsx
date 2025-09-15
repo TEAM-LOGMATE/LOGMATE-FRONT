@@ -1,17 +1,32 @@
-import { useState } from "react";
 import Input48 from "../../../components/input/48";
 
 const levels = ["INFO", "WARN", "ERROR", "TRACE", "DEBUG", "FATAL"];
 
-export default function FilterSettings() {
-  const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-  const [keyword, setKeyword] = useState("");
-  const [startTime, setStartTime] = useState("");
+interface FilterSettingsProps {
+  value: {
+    allowedLevels: string[];
+    requiredKeywords: string[];
+    after: string; // ISO datetime string
+  };
+  onChange: (newValue: FilterSettingsProps["value"]) => void;
+}
 
+export default function FilterSettings({ value, onChange }: FilterSettingsProps) {
   const toggleLevel = (level: string) => {
-    setSelectedLevels((prev) =>
-      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
-    );
+    const newLevels = value.allowedLevels.includes(level)
+      ? value.allowedLevels.filter((l) => l !== level)
+      : [...value.allowedLevels, level];
+
+    onChange({ ...value, allowedLevels: newLevels });
+  };
+
+  const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const keywords = e.target.value
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+
+    onChange({ ...value, requiredKeywords: keywords });
   };
 
   return (
@@ -26,14 +41,15 @@ export default function FilterSettings() {
         <span className="w-[200px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[SUIT] text-[16px] font-medium leading-[150%]">
           허용 로그 레벨:
         </span>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {levels.map((level) => (
             <button
               key={level}
+              type="button"
               onClick={() => toggleLevel(level)}
               className={`flex h-[44px] px-4 justify-center items-center rounded-[12px] border border-[var(--Gray-600,#353535)] font-[Geist] text-[16px] leading-[150%] whitespace-nowrap
                 ${
-                  selectedLevels.includes(level)
+                  value.allowedLevels.includes(level)
                     ? "bg-[var(--Gray-600,#353535)] text-[var(--Alert-Yellow,#D4B66F)]"
                     : "text-[var(--Gray-300,#AEAEAE)]"
                 }`}
@@ -51,11 +67,11 @@ export default function FilterSettings() {
         </span>
         <div className="flex-1">
           <Input48
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="placeholder"
+            value={value.requiredKeywords.join(", ")}
+            onChange={handleKeywordChange}
+            placeholder="Exception, DB"
             className="w-full"
-            align="center"  
+            align="center"
           />
         </div>
       </div>
@@ -67,11 +83,11 @@ export default function FilterSettings() {
         </span>
         <div className="flex-1">
           <Input48
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            value={value.after}
+            onChange={(e) => onChange({ ...value, after: e.target.value })}
             placeholder="YYYY-MM-DDTHH:mm:ss"
             className="w-full"
-            align="center"  
+            align="center"
           />
         </div>
       </div>

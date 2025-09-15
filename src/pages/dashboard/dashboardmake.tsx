@@ -11,6 +11,7 @@ interface DashboardMakeProps {
   onCreate?: (board: {
     name: string;
     logPath: string;
+    advancedConfig?: any;
   }) => void;
 }
 
@@ -27,6 +28,31 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
 
+  // AdvancedSettings 값 관리
+  const [advancedConfig, setAdvancedConfig] = useState({
+    tailer: {
+      readIntervalMs: 300,
+      metaDataFilePathPrefix: '/log/log/log/log',
+    },
+    multiline: {
+      enabled: false,
+      maxLines: 100,
+    },
+    exporter: {
+      compressEnabled: true,
+      retryIntervalSec: 5,
+      maxRetryCount: 3,
+    },
+    filter: {
+      allowedLevels: ['ERROR', 'WARN'],
+      requiredKeywords: ['Exception', 'DB'],
+      after: '2025-09-14T12:00:00',
+    },
+    puller: {
+      intervalSec: 30,
+    },
+  });
+
   const isFormValid = logPath.trim() !== '' && boardName.trim() !== '';
 
   const handleCreate = () => {
@@ -35,9 +61,8 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
     onCreate?.({
       name: boardName,
       logPath,
+      advancedConfig,
     });
-
-    onClose?.();
   };
 
   return (
@@ -47,8 +72,10 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
                  rounded-[24px] border border-[#353535] bg-[#111]"
       onClick={(e) => e.stopPropagation()}
     >
-      <h2 className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-                     text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
+      <h2
+        className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
+                     text-[var(--Gray-100,#F2F2F2)] font-[SUIT]"
+      >
         새로운 대시보드
       </h2>
 
@@ -101,8 +128,10 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             </div>
 
             {isLogTypeOpen && (
-              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
-                             bg-[var(--Gray-600,#353535)] border border-[#444]">
+              <ul
+                className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
+                             bg-[var(--Gray-600,#353535)] border border-[#444]"
+              >
                 {logTypes.map((type) => (
                   <li
                     key={type}
@@ -138,8 +167,10 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             </div>
 
             {isTimezoneOpen && (
-              <ul className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
-                             bg-[var(--Gray-600,#353535)] border border-[#444]">
+              <ul
+                className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
+                             bg-[var(--Gray-600,#353535)] border border-[#444]"
+              >
                 {timezones.map((tz) => (
                   <li
                     key={tz}
@@ -171,7 +202,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
 
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
-            <AdvancedSettings />
+            <AdvancedSettings value={advancedConfig} onChange={setAdvancedConfig} />
           </div>
         )}
       </div>

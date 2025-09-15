@@ -10,7 +10,7 @@ import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
 import { getPersonalFolders } from '../../api/folders';
-import { getDashboards, createDashboard } from '../../api/dashboard';
+import { getDashboards, createDashboard, saveDashboardConfig } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
 interface Board {
@@ -24,6 +24,7 @@ interface Board {
 interface NewBoard {
   name: string;
   logPath: string;
+  advancedConfig?: any;
 }
 
 export default function FolderPage() {
@@ -43,8 +44,8 @@ export default function FolderPage() {
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
 
-  // Variants (보드 전용)
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -55,7 +56,6 @@ export default function FolderPage() {
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
-  // 대시보드 불러오기
   const fetchDashboards = async () => {
     if (!user || !folderId) return;
     try {
@@ -93,7 +93,6 @@ export default function FolderPage() {
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
 
-  // 무한 루프 방지: 없는 폴더 접근 시 personal로 이동
   useEffect(() => {
     if (!loading && folders.length > 0 && folderId && !currentFolder) {
       if (window.location.pathname !== '/personal') {
@@ -106,23 +105,31 @@ export default function FolderPage() {
     return null;
   }
 
-  // 보드 추가
   const handleAddBoard = async (board: NewBoard) => {
     try {
-      const res = await createDashboard(Number(folderId), {
+      const created = await createDashboard(Number(folderId), {
         name: board.name,
         logPath: board.logPath,
       });
 
-      const newBoard = res.data;
-      setBoards((prev) => [newBoard, ...prev]); // 새 보드를 맨 앞에 추가
+      const dashboardId = created?.data?.id;
+      if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
+
+      if (board.advancedConfig) {
+        const configRes = await saveDashboardConfig(Number(folderId), dashboardId, board.advancedConfig);
+        const agentId = configRes?.data?.agentId;
+        setCreatedAgentId(agentId);
+      }
+
+      await fetchDashboards();
+
+      setIsDashboardMakeOpen(false);
       setShowToast(true);
     } catch (err) {
       console.error('대시보드 생성 실패:', err);
     }
   };
 
-  // 보드 삭제
   const handleDeleteBoard = (boardId: number) => {
     setBoards((prev) => prev.filter((b) => b.id !== boardId));
   };
@@ -151,9 +158,7 @@ export default function FolderPage() {
         }}
       />
 
-      {/* 메인 컨텐츠 */}
       <div className="flex flex-col flex-1 p-6 gap-6">
-        {/* 상단 제목 영역 */}
         <motion.div
           className="flex items-center gap-4"
           initial={{ opacity: 0, y: 20 }}
@@ -163,15 +168,11 @@ export default function FolderPage() {
           <div onClick={() => navigate('/personal', { replace: true })} className="cursor-pointer">
             <BtnBigArrow />
           </div>
-          <h1
-            className="text-[28px] font-bold leading-[135%] tracking-[-0.4px]"
-            style={{ color: 'var(--Gray-100, #F2F2F2)', fontFamily: 'SUIT' }}
-          >
+          <h1 className="text-[28px] font-bold" style={{ color: '#F2F2F2', fontFamily: 'SUIT' }}>
             {currentFolder.name}
           </h1>
         </motion.div>
 
-        {/* 썸네일 영역 */}
         <motion.div
           layout
           className="grid gap-x-10 gap-y-10 flex-1"
@@ -182,18 +183,10 @@ export default function FolderPage() {
             alignContent: 'start',
           }}
         >
-          {/* 기존 보드들만 애니메이션 */}
           <AnimatePresence>
             {!loading &&
               boards.map((board) => (
-                <motion.div
-                  key={board.id}
-                  layout
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
+                <motion.div key={board.id} layout variants={cardVariants} initial="hidden" animate="visible" exit="exit">
                   <FrmThumbnailBoard
                     folderId={Number(folderId)}
                     boardId={board.id}
@@ -208,7 +201,6 @@ export default function FolderPage() {
               ))}
           </AnimatePresence>
 
-          {/* +카드: 로딩 끝난 뒤에만 렌더링 */}
           {!loading && (
             <FrmThumbnailBoard
               folderId={Number(folderId)}
@@ -220,30 +212,18 @@ export default function FolderPage() {
         </motion.div>
       </div>
 
-      {/* DashboardMake 모달 */}
       {isDashboardMakeOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setIsDashboardMakeOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDashboardMakeOpen(false)} />
           <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
-            <DashboardMake
-              folderId={Number(folderId)}
-              onClose={() => setIsDashboardMakeOpen(false)}
-              onCreate={(board: NewBoard) => {
-                handleAddBoard(board);
-                setIsDashboardMakeOpen(false);
-              }}
-            />
+            <DashboardMake folderId={Number(folderId)} onCreate={(board: NewBoard) => handleAddBoard(board)} />
           </div>
         </div>
       )}
 
-      {/* ToastMessage 모달 */}
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <ToastMessage onCloseToast={() => setShowToast(false)} />
+          <ToastMessage agentId={createdAgentId} onCloseToast={() => setShowToast(false)} />
         </div>
       )}
     </div>

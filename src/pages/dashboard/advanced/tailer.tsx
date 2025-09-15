@@ -1,20 +1,28 @@
-import { useState } from 'react';
 import Input48 from '../../../components/input/48';
 import BtnPlus from '../../../components/btn/btn-plus';
 import BtnMinus from '../../../components/btn/btn-minus';
 
-export default function TailerSettings() {
-  const [interval, setInterval] = useState("1000");
-  const [path, setPath] = useState("");
+interface TailerSettingsProps {
+  value: {
+    readIntervalMs: number;
+    metaDataFilePathPrefix: string;
+  };
+  onChange: (newValue: TailerSettingsProps["value"]) => void;
+}
 
+export default function TailerSettings({ value, onChange }: TailerSettingsProps) {
   const handleIncrease = () => {
-    setInterval((prev) => String(Number(prev || "0") + 100));
+    onChange({
+      ...value,
+      readIntervalMs: value.readIntervalMs + 100,
+    });
   };
 
   const handleDecrease = () => {
-    setInterval((prev) => {
-      const next = Number(prev || "0") - 100;
-      return String(next > 0 ? next : 0);
+    const next = value.readIntervalMs - 100;
+    onChange({
+      ...value,
+      readIntervalMs: next > 0 ? next : 0,
     });
   };
 
@@ -41,10 +49,12 @@ export default function TailerSettings() {
 
         <div className="relative flex-1 h-[48px]">
           <Input48
-            value={interval}
-            onChange={(e) => setInterval(e.target.value)}
+            value={String(value.readIntervalMs)}
+            onChange={(e) =>
+              onChange({ ...value, readIntervalMs: Number(e.target.value) || 0 })
+            }
             placeholder="1000"
-            align="center"  
+            align="center"
           />
           <div className="absolute left-2 top-1/2 -translate-y-1/2">
             <BtnMinus onClick={handleDecrease} />
@@ -67,10 +77,12 @@ export default function TailerSettings() {
         </span>
         <div className="flex-1">
           <Input48
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
+            value={value.metaDataFilePathPrefix}
+            onChange={(e) =>
+              onChange({ ...value, metaDataFilePathPrefix: e.target.value })
+            }
             placeholder="[ placeholder ]"
-            align="center" 
+            align="center"
           />
         </div>
       </div>

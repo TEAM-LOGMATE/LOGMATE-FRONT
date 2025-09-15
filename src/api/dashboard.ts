@@ -63,3 +63,44 @@ export const deleteDashboard = async (folderId: number, dashboardId: number) => 
   );
   return res.data;
 };
+
+// 대시보드 고급설정 저장
+export const saveDashboardConfig = async (
+  folderId: number,
+  dashboardId: number,
+  config: {
+    tailer: {
+      readIntervalMs: number;
+      metaDataFilePathPrefix: string;
+    };
+    multiline: {
+      enabled: boolean;
+      maxLines: number;
+    };
+    exporter: {
+      compressEnabled: boolean;
+      retryIntervalSec: number;
+      maxRetryCount: number;
+    };
+    filter: {
+      allowedLevels: string[];
+      requiredKeywords: string[];
+      after: string; // ISO datetime string
+    };
+    puller: {
+      intervalSec: number;
+    };
+  }
+) => {
+  const token = localStorage.getItem("access_token");
+  const res = await api.post(
+    `/api/folders/${folderId}/dashboards/${dashboardId}/config`,
+    config,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return res.data;
+};

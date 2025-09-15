@@ -10,7 +10,7 @@ import DashboardMake from '../dashboard/dashboardmake';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
 import { getTeams, createTeam } from '../../api/teams';
-import { getDashboards, createDashboard, deleteDashboard } from '../../api/dashboard';
+import { getDashboards, createDashboard, deleteDashboard, saveDashboardConfig } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 
@@ -36,22 +36,20 @@ export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   const { teamFolders, setTeamFolders } = useFolderStore();
+
   const [activeFolderId, setActiveFolderId] = useState<string | number | null>(teamId ?? null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
   const [showMakeTeam, setShowMakeTeam] = useState(false);
 
-  // Variants (보드 전용)
+  // 보드 카드 애니메이션
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: 'easeOut' },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
@@ -92,13 +90,28 @@ export default function TeamPage() {
   const handleCreateBoard = async (boardData: any) => {
     if (!teamId) return;
     try {
-      await createDashboard(Number(teamId), {
+      // 1. 대시보드 생성
+      const created = await createDashboard(Number(teamId), {
         name: boardData.name,
         logPath: boardData.logPath,
       });
 
+      const dashboardId = created?.data?.id;
+      if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
+
+      // 2. 고급설정 저장 → agentId 받기
+      if (boardData.advancedConfig) {
+        const res = await saveDashboardConfig(Number(teamId), dashboardId, boardData.advancedConfig);
+        const agentId = res?.data?.agentId;
+        setCreatedAgentId(agentId);
+      }
+
+      // 3. 목록을 새로 불러오기만 (중복 추가 방지)
       await fetchDashboards(Number(teamId));
+
+      // 4. 모달 닫기 & 토스트 표시
       setShowDashboardMake(false);
+      setSelectedFolderId(null);
       setShowToast(true);
     } catch (err) {
       console.error('보드 생성 실패:', err);
@@ -162,7 +175,7 @@ export default function TeamPage() {
           </div>
         </motion.div>
 
-        {/* 보드 썸네일들 */}
+        {/* 보드 썸네일 */}
         <div
           className="grid gap-x-10 gap-y-10 flex-1"
           style={{
@@ -172,7 +185,6 @@ export default function TeamPage() {
             alignContent: 'start',
           }}
         >
-          {/* 보드들 (애니메이션 적용) */}
           <AnimatePresence>
             {!loading &&
               sortedBoards.map((b) => (
@@ -200,7 +212,6 @@ export default function TeamPage() {
               ))}
           </AnimatePresence>
 
-          {/* +카드는 로딩 끝난 후에만 렌더링 */}
           {!loading && (
             <FrmThumbnailBoard
               folderId={Number(currentTeam.id)}
@@ -219,14 +230,7 @@ export default function TeamPage() {
       {/* DashboardMake 모달 */}
       {showDashboardMake && selectedFolderId != null && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <DashboardMake
-            folderId={Number(currentTeam.id)}
-            onClose={() => {
-              setShowDashboardMake(false);
-              setSelectedFolderId(null);
-            }}
-            onCreate={handleCreateBoard}
-          />
+          <DashboardMake folderId={Number(currentTeam.id)} onCreate={handleCreateBoard} />
         </div>
       )}
 
@@ -258,10 +262,10 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* 토스트 */}
+      {/* ToastMessage */}
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <ToastMessage onCloseToast={() => setShowToast(false)} />
+          <ToastMessage agentId={createdAgentId} onCloseToast={() => setShowToast(false)} />
         </div>
       )}
     </div>

@@ -1,20 +1,22 @@
-import { useState } from 'react';
 import Input48 from '../../../components/input/48';
 import BtnPlus from '../../../components/btn/btn-plus';
 import BtnMinus from '../../../components/btn/btn-minus';
 
-export default function ConfigurationPuller() {
-  const [interval, setInterval] = useState("1000");
+interface ConfigurationPullerProps {
+  value: {
+    intervalSec: number;
+  };
+  onChange: (newValue: ConfigurationPullerProps["value"]) => void;
+}
 
+export default function ConfigurationPuller({ value, onChange }: ConfigurationPullerProps) {
   const handleIncrease = () => {
-    setInterval((prev) => String(Number(prev || "0") + 100));
+    onChange({ ...value, intervalSec: value.intervalSec + 1 });
   };
 
   const handleDecrease = () => {
-    setInterval((prev) => {
-      const next = Number(prev || "0") - 100;
-      return String(next > 0 ? next : 0);
-    });
+    const next = value.intervalSec - 1;
+    onChange({ ...value, intervalSec: next > 0 ? next : 0 });
   };
 
   return (
@@ -40,10 +42,12 @@ export default function ConfigurationPuller() {
 
         <div className="relative flex-1 h-[48px]">
           <Input48
-            value={interval}
-            onChange={(e) => setInterval(e.target.value)}
-            placeholder="1000"
-            align="center"  
+            value={String(value.intervalSec)}
+            onChange={(e) =>
+              onChange({ ...value, intervalSec: Number(e.target.value) || 0 })
+            }
+            placeholder="30"
+            align="center"
           />
           <div className="absolute left-2 top-1/2 -translate-y-1/2">
             <BtnMinus onClick={handleDecrease} />
