@@ -83,7 +83,14 @@ export default function MyInfoPage() {
             내 정보
           </h1>
 
-          <div className="flex flex-col gap-[40px] w-full">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdate(); // 엔터 & 버튼 클릭 모두 처리
+            }}
+            className="flex flex-col gap-[40px] w-full relative"
+          >
+            {/* 계정 이메일 */}
             <div className="flex flex-col gap-[8px]">
               <label className="text-[#D8D8D8] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
                 계정 이메일
@@ -93,6 +100,7 @@ export default function MyInfoPage() {
               </div>
             </div>
 
+            {/* 비밀번호 */}
             <div className="flex flex-col gap-[12px] w-full">
               <label className="text-[#D8D8D8] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
                 비밀번호 <span className="text-[#D46F6F]">*</span>
@@ -107,18 +115,19 @@ export default function MyInfoPage() {
                 showIcon={true}
               />
             </div>
-          </div>
 
-          <div className="relative w-full flex flex-col items-center gap-2">
-            {errorMessage && (
-              <div className="absolute -top-[52px]">
-                <ErrorToast message={errorMessage} trigger={errorTrigger} />
-              </div>
-            )}
-            <BtnSign2 onClick={handleUpdate} isActive={canSubmit}>
-              내 정보 수정
-            </BtnSign2>
-          </div>
+            {/* 버튼 + 에러 메시지 */}
+            <div className="relative w-full flex flex-col items-center">
+              {errorMessage && (
+                <div className="absolute -top-[56px] left-1/2 -translate-x-1/2">
+                  <ErrorToast message={errorMessage} trigger={errorTrigger} />
+                </div>
+              )}
+              <BtnSign2 type="submit" isActive={canSubmit}>
+                내 정보 수정
+              </BtnSign2>
+            </div>
+          </form>
         </div>
       </motion.div>
     </div>

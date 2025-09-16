@@ -1,17 +1,21 @@
 type ButtonProps = {
   children: React.ReactNode;
   onClick?: () => void;
-  isActive?: boolean; // true면 활성화된 버튼
+  isActive?: boolean;
+  type?: "button" | "submit" | "reset";
 };
 
 export default function BtnSign2({
   children,
   onClick,
   isActive = false,
+  type = "button",
 }: ButtonProps) {
   return (
     <button
-      onClick={onClick} // 항상 클릭 가능해야 함
+      type={type}
+      onClick={onClick}
+      disabled={!isActive} // 엔터도 버튼 활성화 상태일 때만 작동
       className={`
         flex items-center justify-center
         w-[480px] h-[54px]
@@ -22,7 +26,6 @@ export default function BtnSign2({
         text-center
         font-suit text-base leading-6 tracking-[-0.4px]
         whitespace-nowrap transition-all duration-150
-        pointer-events-auto // 비활성 상태에서도 클릭되도록
         ${
           isActive
             ? `
@@ -39,7 +42,7 @@ export default function BtnSign2({
               bg-transparent
               text-[#2BBD39]
               font-medium
-              cursor-pointer
+              cursor-not-allowed
             `
         }
       `}

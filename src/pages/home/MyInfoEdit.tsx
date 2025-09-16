@@ -19,7 +19,6 @@ export default function MyInfoEditPage() {
   const username = user.username;
   const currentEmail = user.email;
 
-  // state 없으면 localStorage fallback
   const currentPassword =
     state?.currentPassword || localStorage.getItem('currentPassword');
 
@@ -37,7 +36,6 @@ export default function MyInfoEditPage() {
     isValidPassword(newPassword) &&
     doPasswordsMatch(newPassword, confirmPassword);
 
-  // ✅ 이메일 중복 확인 API 연동 (200 OK 또는 4xx 대응)
   const handleCheckDuplicate = async () => {
     const trimmedEmail = newEmail.trim().toLowerCase();
     if (!isValidEmail(trimmedEmail)) {
@@ -54,7 +52,7 @@ export default function MyInfoEditPage() {
 
       if (msg.includes('사용 가능')) {
         setEmailCheckResult('valid');
-      } else if (msg.includes('이미 사용중')) {
+      } else if (msg.includes('이미 사용')) {
         setEmailCheckResult('duplicate');
       } else {
         setEmailCheckResult('idle');
@@ -62,21 +60,21 @@ export default function MyInfoEditPage() {
     } catch (err: any) {
       console.error(err);
 
-      // 서버가 4xx로 "이미 사용중인 이메일입니다." 반환하는 경우
       const msg = err.response?.data;
-      if (typeof msg === 'string' && msg.includes('이미 사용중')) {
-        setEmailCheckResult('duplicate'); // ✅ span으로만 표시
+      const text = typeof msg === 'string' ? msg : msg?.message;
+
+      if (text && text.includes('이미 사용')) {
+        setEmailCheckResult('duplicate');
         return;
       }
 
-      // 진짜 네트워크 오류/서버 장애일 때만 토스트
       setErrorMessage('이메일 중복 확인 중 서버 오류가 발생했습니다.');
       setTimeout(() => setErrorMessage(''), 3000);
     }
   };
 
   useEffect(() => {
-    if (newEmail === '') setEmailCheckResult('idle');
+    setEmailCheckResult('idle');
   }, [newEmail]);
 
   const handleSave = async () => {
@@ -113,17 +111,14 @@ export default function MyInfoEditPage() {
       if (res.data.status === 200) {
         const { token, userId, email, userName } = res.data.data;
 
-        // 새 토큰 저장
         localStorage.setItem('access_token', token);
 
-        // AuthContext 업데이트
         setUserUnsafe?.({
           id: userId,
           username: userName,
           email,
         });
 
-        // currentPassword 정리
         localStorage.removeItem('currentPassword');
 
         navigate('/myinfo');
@@ -147,6 +142,12 @@ export default function MyInfoEditPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSave();
+          }
+        }}
       >
         <div className="w-full max-w-[480px] flex flex-col items-center gap-[48px]">
           <h1 className="text-[#F2F2F2] text-[28px] font-bold leading-[135%] tracking-[-0.4px]">

@@ -46,8 +46,8 @@ export default function SignupPage() {
     isValidPassword(password) &&
     doPasswordsMatch(password, passwordConfirm);
 
-  // 회원가입 버튼 클릭
-  const handleClick = async () => {
+  // 회원가입 처리
+  const handleSubmit = async () => {
     if (!isFormValid) {
       setErrorMessage('모든 정보를 올바르게 입력해 주세요.');
       setTimeout(() => setErrorMessage(''), 3000);
@@ -55,12 +55,17 @@ export default function SignupPage() {
     }
 
     try {
-      await signup(username.trim(), email.trim().toLowerCase(), password);
+      await signup({
+        name: username.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      setErrorMessage('');
       navigate('/login'); // 회원가입 성공 → 로그인 화면 이동
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 400) {
-        setErrorMessage('이미 사용 중인 이메일입니다.');
+        setErrorMessage(err.response.data.message || '이미 사용 중인 이메일입니다.');
       } else if (err.response?.status === 500) {
         setErrorMessage('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       } else {
@@ -104,8 +109,14 @@ export default function SignupPage() {
             </h1>
           </div>
 
-          {/* 입력 영역 */}
-          <div className="flex flex-col items-start gap-[20px] w-full">
+          {/* 입력 영역 + 폼 */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            className="flex flex-col items-start gap-[20px] w-full"
+          >
             {/* 사용자 이름 */}
             <div className="flex flex-col gap-[12px] w-full">
               <label className="text-[#F2F2F2] text-[14px] font-medium">
@@ -193,19 +204,19 @@ export default function SignupPage() {
                   : <span className="invisible">유효성 검사 메시지 자리</span>}
               </span>
             </div>
-          </div>
 
-          {/* 계정 만들기 버튼 + 에러 메시지 */}
-          <div className="w-full flex flex-col items-center gap-2 relative">
-            {errorMessage && (
-              <div className="absolute -top-[52px] z-50 animate-fade-in-out [animation-fill-mode:forwards]">
-                <ErrorToast message={errorMessage} />
-              </div>
-            )}
-            <BtnSign onClick={handleClick} isActive={isFormValid}>
-              계정 만들기
-            </BtnSign>
-          </div>
+            {/* 계정 만들기 버튼 + 에러 메시지 */}
+            <div className="w-full flex flex-col items-center gap-2 relative">
+              {errorMessage && (
+                <div className="absolute -top-[52px] z-50 animate-fade-in-out [animation-fill-mode:forwards]">
+                  <ErrorToast message={errorMessage} />
+                </div>
+              )}
+              <BtnSign type="submit" isActive={isFormValid}>
+                계정 만들기
+              </BtnSign>
+            </div>
+          </form>
 
           {/* SNS 로그인 */}
           <div className="flex flex-row justify-between items-center gap-[12px] w-full">
@@ -228,7 +239,7 @@ export default function SignupPage() {
               </svg>
             </div>
             <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                         text-[#AEAEAE] text-[14px]">
+                         text-[#AEAEAE] text-[14px] font-suit" >
               비밀번호 찾기
             </div>
           </div>

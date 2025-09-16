@@ -110,47 +110,56 @@ export default function LoginPage() {
           </h1>
         </motion.div>
 
-        {/* 이메일 */}
-        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
-          <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
-            이메일 <span className="text-[#FF6F6F]">*</span>
-          </label>
-          <Input54
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일을 입력하세요"
-            showIcon={false}
-          />
-        </motion.div>
-
-        {/* 비밀번호 */}
-        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
-          <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
-            비밀번호 <span className="text-[#FF6F6F]">*</span>
-          </label>
-          <Input54
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호를 입력하세요"
-            done={showPassword}
-            onDone={setShowPassword}
-            showIcon={true}
-          />
-        </motion.div>
-
-        {/* 로그인 버튼 + 에러 토스트 */}
-        <motion.div variants={itemVariants} className="relative w-full flex flex-col items-center mt-[16px]">
-          {errorMessage && (
-            <div className="absolute bottom-[calc(100%+16px)]">
-              <ErrorToast message={errorMessage} trigger={toastTrigger} />
-            </div>
-          )}
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
-            <BtnSign onClick={handleLogin}>로그인</BtnSign>
+        {/* 로그인 폼 */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+          className="flex flex-col items-center gap-[24px] w-full"
+        >
+          {/* 이메일 */}
+          <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
+            <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              이메일 <span className="text-[#FF6F6F]">*</span>
+            </label>
+            <Input54
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="이메일을 입력하세요"
+              showIcon={false}
+            />
           </motion.div>
-        </motion.div>
+
+          {/* 비밀번호 */}
+          <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
+            <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              비밀번호 <span className="text-[#FF6F6F]">*</span>
+            </label>
+            <Input54
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호를 입력하세요"
+              done={showPassword}
+              onDone={setShowPassword}
+              showIcon={true}
+            />
+          </motion.div>
+
+          {/* 로그인 버튼 + 에러 토스트 */}
+          <motion.div variants={itemVariants} className="relative w-full flex flex-col items-center mt-[16px]">
+            {errorMessage && (
+              <div className="absolute bottom-[calc(100%+16px)]">
+                <ErrorToast message={errorMessage} trigger={toastTrigger} />
+              </div>
+            )}
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+              <BtnSign type="submit">로그인</BtnSign>
+            </motion.div>
+          </motion.div>
+        </form>
 
         {/* SNS 로그인 */}
         <motion.div variants={itemVariants} className="flex flex-row justify-between items-center gap-[12px] w-full">

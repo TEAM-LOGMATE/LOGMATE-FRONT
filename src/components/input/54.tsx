@@ -8,7 +8,7 @@ interface Input54Props {
   placeholder?: string;
   done?: boolean;
   onDone?: (state: boolean) => void;
-  showIcon?: boolean; 
+  showIcon?: boolean;
 }
 
 export default function Input54({
@@ -18,7 +18,7 @@ export default function Input54({
   placeholder,
   done = false,
   onDone,
-  showIcon = false, 
+  showIcon = false,
 }: Input54Props) {
   const textColor = done ? 'text-[#F2F2F2]' : 'text-[#888888]';
   const iconColor = done ? '#F2F2F2' : '#535353';
@@ -47,6 +47,7 @@ export default function Input54({
       {showIcon && (
         <button
           type="button"
+          tabIndex={-1} 
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
