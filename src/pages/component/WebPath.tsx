@@ -133,7 +133,7 @@ export default function WebPath() {
 
   return (
     <div
-      className="w-[684px] h-[348px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
+      className="w-[564px] h-[348px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
       onMouseDown={(e) => e.preventDefault()}
     >
       <h2 className="text-[24px] font-bold text-[#D8D8D8]">상위 10 Path</h2>
