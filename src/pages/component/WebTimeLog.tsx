@@ -40,9 +40,7 @@ const generateTimeLabels = (count: number, stepMinutes: number) => {
 export default function WebTimeLog() {
   const { webLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>(
-    []
-  );
+  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
 
   // 로그 기반 데이터 생성
   const generateDataFromLogs = (range: string) => {
@@ -81,7 +79,15 @@ export default function WebTimeLog() {
   };
 
   useEffect(() => {
+    // 최초 렌더링
     setChartData(generateDataFromLogs(activeRange));
+
+    // 주기적으로 갱신 (여기서는 1분마다)
+    const interval = setInterval(() => {
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [activeRange, webLogs]);
 
   return (

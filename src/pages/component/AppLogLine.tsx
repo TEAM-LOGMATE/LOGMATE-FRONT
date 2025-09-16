@@ -11,46 +11,52 @@ import {
 import { useLogStore } from "../../utils/logstore";
 
 // 커스텀 X축 라벨
-const CustomTick = (props: any) => {
-  const { x, y, payload } = props;
-  return (
-    <text
-      x={x}
-      y={y + 20}
-      textAnchor="middle"
-      style={{
-        fill: "var(--Gray-300, #AEAEAE)",
-        fontFamily: "Geist Mono",
-        fontSize: "14px",
-        fontWeight: 300,
-      }}
-    >
-      {payload.value}
-    </text>
-  );
+const CustomTick = ({ x, y, payload }: any) => (
+  <text
+    x={x}
+    y={y + 20}
+    textAnchor="middle"
+    style={{
+      fill: "var(--Gray-300, #AEAEAE)",
+      fontFamily: "Geist Mono",
+      fontSize: "14px",
+      fontWeight: 300,
+    }}
+  >
+    {payload.value}
+  </text>
+);
+
+// 시간 라벨 + 구간 범위 생성 (start 기준)
+const generateTimeRanges = (count: number, stepMinutes: number) => {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
+    const end = new Date(start.getTime() + stepMinutes * 60000);
+    return {
+      label: start.toTimeString().slice(0, 5),
+      start,
+      end,
+    };
+  });
 };
 
 export default function AppLogLine() {
-  const { appLogs } = useLogStore(); 
+  const { appLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
   const [chartData, setChartData] = useState<
     { time: string; warn: number; error: number; fatal: number }[]
   >([]);
 
-  // 범위별 데이터 생성
-  const generateData = (range: string) => {
-    const now = new Date();
-    let count = 12;
+  // 로그 기반 데이터 생성
+  const generateDataFromLogs = (range: string) => {
     let stepMinutes = 5;
+    if (range === "6h") stepMinutes = 30;
+    else if (range === "12h") stepMinutes = 60;
 
-    if (range === "1h") stepMinutes = 5;
-    else if (range === "6h") stepMinutes = 30;
-    else stepMinutes = 60;
+    const ranges = generateTimeRanges(12, stepMinutes);
 
-    return Array.from({ length: count }, (_, i) => {
-      const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
-      const end = new Date(start.getTime() + stepMinutes * 60000);
-
+    return ranges.map(({ label, start, end }) => {
       const warnCount = appLogs.filter((log) => {
         const t = new Date(log.timestamp);
         return t >= start && t < end && log.level.toUpperCase() === "WARN";
@@ -67,7 +73,7 @@ export default function AppLogLine() {
       }).length;
 
       return {
-        time: start.toTimeString().slice(0, 5),
+        time: label,
         warn: warnCount,
         error: errorCount,
         fatal: fatalCount,
@@ -76,11 +82,12 @@ export default function AppLogLine() {
   };
 
   useEffect(() => {
-    setChartData(generateData(activeRange));
+    setChartData(generateDataFromLogs(activeRange));
 
+    // 1분마다 최신 데이터 반영
     const interval = setInterval(() => {
-      setChartData(generateData(activeRange));
-    }, 5000);
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [activeRange, appLogs]);
@@ -117,10 +124,7 @@ export default function AppLogLine() {
       {/* 차트 */}
       <div className="w-full h-[320px] bg-[#171717] rounded-md p-4">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
-          >
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
             <CartesianGrid stroke="#292929" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="time"

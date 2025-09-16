@@ -69,7 +69,15 @@ export default function WebLogLine() {
   };
 
   useEffect(() => {
+    // 초기 렌더링 시 데이터 생성
     setChartData(generateDataFromLogs(activeRange));
+
+    // 1분마다 최신 시각 기준으로 다시 계산
+    const interval = setInterval(() => {
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [activeRange, webLogs]);
 
   return (
@@ -119,9 +127,27 @@ export default function WebLogLine() {
               labelStyle={{ color: "#F2F2F2" }}
             />
 
-            {/* Warning (노랑), Danger (빨강) */}
-            <Line type="linear" dataKey="warning" stroke="#FFD058" strokeWidth={2} dot={false} name="경고" />
-            <Line type="linear" dataKey="danger" stroke="#FF6969" strokeWidth={2} dot={false} name="위험" />
+            {/* Warning (노랑) — 있을 때만 표시 */}
+            {chartData.some((d) => d.warning > 0) && (
+              <Line
+                type="linear"
+                dataKey="warning"
+                stroke="#FFD058"
+                strokeWidth={2}
+                dot={false}
+                name="경고"
+              />
+            )}
+
+            {/* Danger (빨강) — 항상 표시 */}
+            <Line
+              type="linear"
+              dataKey="danger"
+              stroke="#FF6969"
+              strokeWidth={2}
+              dot={false}
+              name="위험"
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

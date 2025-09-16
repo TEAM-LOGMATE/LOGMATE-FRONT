@@ -82,6 +82,13 @@ export default function AppTimeLog() {
 
   useEffect(() => {
     setChartData(generateDataFromLogs(activeRange));
+
+    // 1분마다 최신 데이터 반영
+    const interval = setInterval(() => {
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [activeRange, appLogs]);
 
   return (
