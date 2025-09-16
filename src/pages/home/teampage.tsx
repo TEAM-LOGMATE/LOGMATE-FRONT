@@ -228,11 +228,39 @@ export default function TeamPage() {
       </div>
 
       {/* DashboardMake 모달 */}
-      {showDashboardMake && selectedFolderId != null && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <DashboardMake folderId={Number(currentTeam.id)} onCreate={handleCreateBoard} />
-        </div>
-      )}
+      <AnimatePresence>
+        {showDashboardMake && selectedFolderId != null && (
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* 배경 */}
+            <motion.div
+              className="absolute inset-0 bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDashboardMake(false)}
+            />
+            {/* 모달 */}
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardMake
+                folderId={Number(currentTeam.id)}
+                onCreate={handleCreateBoard}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 팀 생성 모달 */}
       {showMakeTeam && (

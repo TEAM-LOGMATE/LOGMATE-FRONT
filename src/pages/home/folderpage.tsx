@@ -212,14 +212,37 @@ export default function FolderPage() {
         </motion.div>
       </div>
 
-      {isDashboardMakeOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsDashboardMakeOpen(false)} />
-          <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
-            <DashboardMake folderId={Number(folderId)} onCreate={(board: NewBoard) => handleAddBoard(board)} />
-          </div>
-        </div>
-      )}
+      {/* DashboardMake 모달 */}
+      <AnimatePresence>
+        {isDashboardMakeOpen && (
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* 배경 */}
+            <motion.div
+              className="absolute inset-0 bg-black/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDashboardMakeOpen(false)}
+            />
+            {/* 모달 */}
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardMake folderId={Number(folderId)} onCreate={(board: NewBoard) => handleAddBoard(board)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
