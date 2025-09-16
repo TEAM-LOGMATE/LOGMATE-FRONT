@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Input48 from '../../components/input/48';
 import BtnSmallArrow from '../../components/btn/btn-small-arrow';
 import BtnSign2Small from '../../components/btn/btn-sign-2-small';
@@ -15,18 +15,36 @@ interface DashboardMakeProps {
   }) => void;
 }
 
-const logTypes = ['springboot', 'nginx', 'apache'];
-const timezones = ['Asia/Seoul', 'UTC', 'America/New_York', 'Europe/London'];
+const logTypes = ['springboot', 'tomcat access'];
+const timezones = ['Asia/Seoul', 'UTC'];
 
 export default function DashboardMake({ folderId, onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
   const [boardName, setBoardName] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-
-  const [logType, setLogType] = useState('springboot');
+  const [logType] = useState('springboot, tomcat access');
   const [timezone, setTimezone] = useState('Asia/Seoul');
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
+
+  const logTypeRef = useRef<HTMLDivElement>(null);
+  const timezoneRef = useRef<HTMLDivElement>(null);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (logTypeRef.current && !logTypeRef.current.contains(event.target as Node)) {
+        setIsLogTypeOpen(false);
+      }
+      if (timezoneRef.current && !timezoneRef.current.contains(event.target as Node)) {
+        setIsTimezoneOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // AdvancedSettings 값 관리
   const [advancedConfig, setAdvancedConfig] = useState({
@@ -111,7 +129,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
         {/* 로그 유형 + 타임존 */}
         <div className="mt-6 flex gap-4">
           {/* 로그 유형 */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" ref={logTypeRef}>
             <label className="mb-2 flex items-center gap-1">
               <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
                 로그 유형
@@ -120,37 +138,40 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             </label>
             <div
               className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px]
-                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+                        rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
               onClick={() => setIsLogTypeOpen((prev) => !prev)}
             >
-              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{logType}</span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
+                springboot, tomcat access
+              </span>
               <BtnDropdown />
             </div>
 
             {isLogTypeOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
-                             bg-[var(--Gray-600,#353535)] border border-[#444]"
+                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
+                          bg-[var(--Gray-600,#353535)] border border-[#444]"
               >
-                {logTypes.map((type) => (
-                  <li
-                    key={type}
-                    className="flex h-[48px] items-center px-[20px] text-[var(--Gray-100,#F2F2F2)] 
-                               hover:bg-[var(--Gray-500,#535353)] cursor-pointer"
-                    onClick={() => {
-                      setLogType(type);
-                      setIsLogTypeOpen(false);
-                    }}
-                  >
-                    {type}
-                  </li>
-                ))}
+                {logTypes.map((type) => {
+                  const isSelected = type === 'springboot' || type === 'tomcat access';
+                  return (
+                    <li
+                      key={type}
+                      className={`flex h-[48px] items-center px-[20px] cursor-pointer
+                        ${isSelected
+                          ? 'bg-[#222] text-[var(--Gray-100,#F2F2F2)]'
+                          : 'text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]'}`}
+                    >
+                      {type}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
 
           {/* 타임존 */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" ref={timezoneRef}>
             <label className="mb-2 flex items-center gap-1">
               <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
                 타임존
@@ -168,7 +189,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
 
             {isTimezoneOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full rounded-[12px] overflow-hidden
+                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
                              bg-[var(--Gray-600,#353535)] border border-[#444]"
               >
                 {timezones.map((tz) => (
