@@ -55,11 +55,9 @@ export default function P_SpacePage() {
 
   const fetchData = async () => {
     try {
-      // 개인 폴더 불러오기
       const data = await getPersonalFolders(user.id);
       setFolders(sortFolders(data, sortOrder));
 
-      // 팀 폴더 불러오기
       const teams = await getTeams();
       setTeamFolders(teams.map((t: any) => ({ ...t, spaceType: 'team' })));
     } catch (err) {
@@ -91,7 +89,7 @@ export default function P_SpacePage() {
 
     try {
       await createPersonalFolder(user.id, name);
-      await fetchData(); // 생성 후 서버 데이터 다시 불러오기
+      await fetchData();
     } catch (err) {
       console.error('폴더 생성 실패:', err);
     }
@@ -103,7 +101,7 @@ export default function P_SpacePage() {
   const handleRenameFolder = async (id: number, newName: string) => {
     try {
       await updateFolder(id, newName);
-      await fetchData(); // 수정 후 서버 데이터 다시 불러오기
+      await fetchData();
     } catch (err) {
       console.error('폴더 수정 실패:', err);
     }
@@ -112,7 +110,7 @@ export default function P_SpacePage() {
   const handleDeleteFolder = async (id: string | number) => {
     try {
       await deleteFolder(Number(id));
-      await fetchData(); // 삭제 후 서버 데이터 다시 불러오기
+      await fetchData();
     } catch (err) {
       console.error('폴더 삭제 실패:', err);
     }
@@ -135,7 +133,7 @@ export default function P_SpacePage() {
         onAddFolder={handleAddFolder}
         onRemoveFolder={handleDeleteFolder}
         activePage="personal"
-        activeFolderId={activeFolderId} 
+        activeFolderId={activeFolderId}
         onSelectFolder={(id) => {
           setActiveFolderId(id);
           navigate(`/personal/${id}`);
@@ -162,40 +160,40 @@ export default function P_SpacePage() {
         </div>
 
         <motion.div
-          layout
-          className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
+          className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] 
+                     gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible items-start"
         >
-          <AnimatePresence>
-            {folders.map((folder) => (
-              <motion.div
-                key={Number(folder.id)}
-                layout
-                style={{ overflow: 'visible' }}
-                variants={folderVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <FrmFolder
-                  spaceType="personal"
-                  name={folder.name}
-                  onDelete={() => handleDeleteFolder(folder.id)}
-                  onRename={(newName) => handleRenameFolder(folder.id, newName)}
-                  onClickName={() => {
-                    setActiveFolderId(folder.id);
-                    navigate(`/personal/${folder.id}`);
-                  }}
-                  boards={folder.boards || []}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        <AnimatePresence>
+          {folders.map((folder) => (
+            <motion.div
+              key={Number(folder.id)}
+              layout
+              style={{ overflow: 'visible' }}
+              variants={folderVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <FrmFolder
+                spaceType="personal"
+                name={folder.name}
+                onDelete={() => handleDeleteFolder(folder.id)}
+                onRename={(newName) => handleRenameFolder(folder.id, newName)}
+                onClickName={() => {
+                  setActiveFolderId(folder.id);
+                  navigate(`/personal/${folder.id}`);
+                }}
+                boards={folder.boards || []}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
 
           <AnimatePresence>
             {pendingFolder && (
               <motion.div
                 key="pending-folder"
-                layout
                 style={{ overflow: 'visible' }}
                 variants={folderVariants}
                 initial="hidden"

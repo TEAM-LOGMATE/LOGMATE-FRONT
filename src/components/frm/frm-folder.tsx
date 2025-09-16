@@ -55,7 +55,9 @@ export default function FrmFolder({
   const mode: 'personal' | 'team' = spaceType === 'team' ? 'team' : 'personal';
 
   useEffect(() => setInputValue(name), [name]);
-  useEffect(() => { if (isEditing && inputRef.current) inputRef.current.focus(); }, [isEditing]);
+  useEffect(() => {
+    if (isEditing && inputRef.current) inputRef.current.focus();
+  }, [isEditing]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -139,24 +141,41 @@ export default function FrmFolder({
 
     if (id) {
       const raw = localStorage.getItem(`statusType-${id}`);
-      if (raw === 'collecting' || raw === 'unresponsive' || raw === 'before') status = raw as BoardStatus;
+      if (raw === 'collecting' || raw === 'unresponsive' || raw === 'before')
+        status = raw as BoardStatus;
       else if (raw === 'collection') status = 'collecting';
     }
-    return { id, name: b?.name ?? '', lastEdited: b?.lastEdited, statusType: status as BoardStatus };
+    return {
+      id,
+      name: b?.name ?? '',
+      lastEdited: b?.lastEdited,
+      statusType: status as BoardStatus,
+    };
   };
 
   // 색상
   const getBadgeClasses = (s: BoardStatus) => {
     switch (s) {
-      case 'collecting':   return 'bg-[#0C2A1A]/80 text-[#34D399] border border-[#14532D]';
-      case 'unresponsive': return 'bg-[#2A0C0C]/80 text-[#F87171] border border-[#7F1D1D]';
-      default:             return 'bg-[#2A240C]/80 text-[#FBBF24] border border-[#78350F]';
+      case 'collecting':
+        return 'bg-[#0C2A1A]/80 text-[#34D399] border border-[#14532D]';
+      case 'unresponsive':
+        return 'bg-[#2A0C0C]/80 text-[#F87171] border border-[#7F1D1D]';
+      default:
+        return 'bg-[#2A240C]/80 text-[#FBBF24] border border-[#78350F]';
     }
   };
   const getDotClass = (s: BoardStatus) =>
-    s === 'collecting' ? 'text-[#34D399]' : s === 'unresponsive' ? 'text-[#F87171]' : 'text-[#FBBF24]';
+    s === 'collecting'
+      ? 'text-[#34D399]'
+      : s === 'unresponsive'
+      ? 'text-[#F87171]'
+      : 'text-[#FBBF24]';
   const getLabel = (s: BoardStatus) =>
-    s === 'collecting' ? '로그 수집중' : s === 'unresponsive' ? '에이전트 미응답' : '대시보드 준비 중';
+    s === 'collecting'
+      ? '로그 수집중'
+      : s === 'unresponsive'
+      ? '에이전트 미응답'
+      : '대시보드 준비 중';
 
   // TeamPage와 정렬 일치
   const sortedBoards = useMemo(() => {
@@ -170,11 +189,13 @@ export default function FrmFolder({
   }, [boards, sortOrder, statusTick]);
 
   return (
-    <div ref={containerRef} className="w-[340px] flex flex-col items-start gap-[12px] font-suit text-white relative">
-      {/* 미니 타일 2×2 */}
+    <div
+      ref={containerRef}
+      className="w-[340px] flex flex-col items-start gap-[12px] font-suit text-white relative"
+    >
+      {/* 미니 타일 */}
       <div className="w-full h-[200px] grid grid-cols-2 grid-rows-2 gap-[12px] p-[12px] bg-[#222] rounded-[12px] overflow-hidden">
         {[...sortedBoards.slice(0, 3), { __add: true } as any].map((board: any, idx) => {
-          // ➕ 추가 타일: 아이콘 X, 텍스트 "+"만, 원래 폰트로 중앙 배치
           if (board?.__add) {
             return (
               <button
@@ -207,15 +228,13 @@ export default function FrmFolder({
               className="relative w-full h-full rounded-[8px] bg-[#171717] overflow-hidden"
               data-tick={statusTick}
             >
-              {/* (옵션) 미니 썸네일 자리 */}
               <div className="absolute inset-0" />
-
-              {/* 상태 뱃지: 타일 정중앙 */}
               <div className="absolute inset-0 grid place-items-center pointer-events-none">
                 <div
                   className={
                     `px-2 py-1 rounded-[6px] text-[11px] font-medium ` +
-                    `flex items-center gap-[6px] shadow-sm ` + badge
+                    `flex items-center gap-[6px] shadow-sm ` +
+                    badge
                   }
                 >
                   <span className={`text-[10px] leading-none ${dot}`}>●</span>
@@ -227,8 +246,11 @@ export default function FrmFolder({
         })}
       </div>
 
-      {/* 폴더 정보 */}
-      <div className="w-full bg-[#0F0F0F] px-[12px] pt-[8px] pb-[16px] rounded-b-[12px]">
+      {/* info 박스만 layout 적용 */}
+      <motion.div
+        layout
+        className="w-full bg-[#0F0F0F] px-[12px] pt-[8px] pb-[16px] rounded-b-[12px]"
+      >
         <div className="flex justify-between items-start relative">
           <div className="flex flex-col items-start gap-[4px]">
             {isEditing ? (
@@ -246,7 +268,10 @@ export default function FrmFolder({
                   onBlur={tryConfirm}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') tryConfirm();
-                    if (e.key === 'Escape') { onCancel?.(); setIsEditing(false); }
+                    if (e.key === 'Escape') {
+                      onCancel?.();
+                      setIsEditing(false);
+                    }
                   }}
                   placeholder={mode === 'team' ? '팀 이름을 입력하세요' : '폴더 이름을 입력하세요'}
                   spellCheck={false}
@@ -267,7 +292,10 @@ export default function FrmFolder({
                 </AnimatePresence>
               </div>
             ) : (
-              <span className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] cursor-pointer" onClick={onClickName}>
+              <span
+                className="text-[16px] font-bold leading-[24px] text-[#F2F2F2] cursor-pointer"
+                onClick={onClickName}
+              >
                 {name}
               </span>
             )}
@@ -277,13 +305,14 @@ export default function FrmFolder({
             </span>
           </div>
 
-          {/* 더보기 버튼 + 메뉴 */}
           <div className="relative">
             <BtnMore onClick={() => setIsMenuOpen((prev) => !prev)} />
             {isMenuOpen && (
               <div ref={menuRef} className="absolute top-full right-0 mt-1 z-10">
                 <BtnMoreText
-                  options={mode === 'personal' ? ['폴더 이름 바꾸기', '폴더 삭제'] : ['팀설정 변경', '팀 나가기']}
+                  options={
+                    mode === 'personal' ? ['폴더 이름 바꾸기', '폴더 삭제'] : ['팀설정 변경', '팀 나가기']
+                  }
                   selected=""
                   onSelect={(option) => {
                     setIsMenuOpen(false);
@@ -301,7 +330,7 @@ export default function FrmFolder({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
