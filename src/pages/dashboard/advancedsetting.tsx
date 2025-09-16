@@ -3,7 +3,6 @@ import MultilineSettings from './advanced/multiline';
 import ExporterSettings from './advanced/exporter';
 import FilterSettings from './advanced/filter';
 import ConfigurationPuller from './advanced/configurationpuller';
-import AIActive from './advanced/AIActive';
 
 interface AdvancedSettingsProps {
   value: {
@@ -55,8 +54,6 @@ export default function AdvancedSettings({ value, onChange }: AdvancedSettingsPr
         value={value.puller}
         onChange={(puller) => onChange({ ...value, puller })}
       />
-      {/* 필요시 AIActive도 같은 방식 */}
-      <AIActive />
     </div>
   );
 }
