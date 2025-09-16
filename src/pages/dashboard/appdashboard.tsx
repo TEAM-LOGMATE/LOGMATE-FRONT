@@ -131,7 +131,6 @@ export default function AppDashboard() {
     fetchTeams();
   }, []);
 
-  // 팀 / 개인 분리 탐색
   let folder: Folder | undefined;
   if (teamId) {
     folder = teamFolders.find((f: Folder) => String(f.id) === String(teamId));
@@ -143,6 +142,7 @@ export default function AppDashboard() {
 
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   if (!folder || !board) {
     return <div className="text-white p-6">대시보드를 찾을 수 없습니다.</div>;
@@ -156,9 +156,8 @@ export default function AppDashboard() {
       <Bar
         username={username}
         activePage={folder.spaceType === "team" ? "team" : "personal"}
-        activeFolderId={Number(folder.id)} 
+        activeFolderId={Number(folder.id)}
       />
-
 
       {/* 오른쪽 메인 영역 */}
       <div className="flex flex-col flex-1 px-10 pt-10 overflow-y-auto">
@@ -195,8 +194,11 @@ export default function AppDashboard() {
 
               {/* 아래 영역 */}
               <div className="w-full max-w-[1385px] flex flex-col gap-6">
-                <SearchRefresh onRefresh={() => setRefreshKey((k) => k + 1)} />
-                <AppLiveLog key={refreshKey} />
+                <SearchRefresh
+                  onRefresh={() => setRefreshKey((k) => k + 1)}
+                  onSearch={(kw) => setSearchKeyword(kw)}
+                />
+                <AppLiveLog key={refreshKey} keyword={searchKeyword} />
                 <AppLogLine />
                 <AppTimeLog />
               </div>

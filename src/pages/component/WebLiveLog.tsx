@@ -1,8 +1,12 @@
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import BtnDropdown from "../../components/btn/btn-dropdown";
 import { useLogStore } from "../../utils/logstore";
 
-export default function WebLiveLog() {
+interface WebLiveLogProps {
+  keyword: string;
+}
+
+export default function WebLiveLog({ keyword }: WebLiveLogProps) {
   const { webLogs } = useLogStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -13,8 +17,18 @@ export default function WebLiveLog() {
     return "#4CAF50"; // 정상
   };
 
+  // 검색어 있으면 필터링, 없으면 전체 로그
+  const filteredLogs =
+    keyword.trim() === ""
+      ? webLogs
+      : webLogs.filter((log) =>
+          Object.values(log).some((value) =>
+            String(value).toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
+
   // 최신 로그가 위쪽에 오도록 reverse()
-  const visibleLogs = [...webLogs].reverse();
+  const visibleLogs = [...filteredLogs].reverse();
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
@@ -118,6 +132,20 @@ export default function WebLiveLog() {
             </div>
           );
         })}
+
+        {/* 로그가 아예 없을 때 */}
+        {keyword.trim() === "" && visibleLogs.length === 0 && (
+          <div className="flex justify-center items-center h-full text-[#888] text-[14px]">
+            아직 수집된 로그가 없습니다.
+          </div>
+        )}
+
+        {/* 검색 결과 없을 때 */}
+        {keyword.trim() !== "" && visibleLogs.length === 0 && (
+          <div className="flex justify-center items-center h-full text-[#888] text-[14px]">
+            검색된 로그가 없습니다.
+          </div>
+        )}
       </div>
     </div>
   );

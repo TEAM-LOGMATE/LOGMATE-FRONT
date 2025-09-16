@@ -1,13 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import BtnDropdown from "../../components/btn/btn-dropdown";
 import { useLogStore } from "../../utils/logstore";
 
-export default function AppLiveLog() {
+interface AppLiveLogProps {
+  keyword: string; 
+}
+
+export default function AppLiveLog({ keyword }: AppLiveLogProps) {
   const logs = useLogStore((s) => s.appLogs);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 검색어 있으면 필터링, 없으면 전체 로그
+  const filteredLogs =
+    keyword.trim() === ""
+      ? logs
+      : logs.filter((log) =>
+          Object.values(log).some((value) =>
+            String(value).toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
+
   // 최신 로그가 위에 오도록 reverse()
-  const visibleLogs = [...logs].reverse();
+  const visibleLogs = [...filteredLogs].reverse();
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
@@ -64,6 +78,20 @@ export default function AppLiveLog() {
             </div>
           );
         })}
+
+        {/* 로그가 아예 없을 때 */}
+        {keyword.trim() === "" && visibleLogs.length === 0 && (
+          <div className="flex justify-center items-center h-full text-[#888] text-[14px]">
+            아직 수집된 로그가 없습니다.
+          </div>
+        )}
+
+        {/* 검색 결과 없을 때 */}
+        {keyword.trim() !== "" && visibleLogs.length === 0 && (
+          <div className="flex justify-center items-center h-full text-[#888] text-[14px]">
+            검색된 로그가 없습니다.
+          </div>
+        )}
       </div>
     </div>
   );

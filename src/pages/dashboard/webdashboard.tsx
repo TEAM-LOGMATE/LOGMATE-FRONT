@@ -10,6 +10,7 @@ import WebTimeLog from "../component/WebTimeLog";
 
 export default function WebDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,8 +31,11 @@ export default function WebDashboard() {
 
       {/* 카드 섹션 */}
       <div className="w-full max-w-[1385px] flex flex-col gap-6">
-        <SearchRefresh onRefresh={() => setRefreshKey((k) => k + 1)} /> 
-        <WebLiveLog key={refreshKey} />  
+        <SearchRefresh
+          onRefresh={() => setRefreshKey((k) => k + 1)}
+          onSearch={(kw) => setSearchKeyword(kw)}
+        />
+        <WebLiveLog key={refreshKey} keyword={searchKeyword} />
         <WebLogLine />
         <WebTimeLog />
       </div>
