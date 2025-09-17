@@ -20,7 +20,7 @@ export default function AddFolding({
   labelClassName,
   active = false,
 }: AddFoldingProps) {
-  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onLabelClick?.();
@@ -33,14 +33,13 @@ export default function AddFolding({
                  flex-shrink-0 border-t border-[#222] cursor-pointer
                  text-center font-suit text-[14px] font-medium
                  leading-[150%] tracking-[-0.4px] ml-[5px]"
+      onClick={onLabelClick}   // 스페이스 바디 전체 클릭 시 이동
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       {/* 라벨 */}
       <span
-        onClick={(e) => {
-          e.stopPropagation();
-          onLabelClick?.();
-        }}
-        onKeyDown={handleLabelKeyDown}
         className={`pt-[2px] ${
           labelClassName
             ? labelClassName
@@ -48,8 +47,6 @@ export default function AddFolding({
               ? 'text-[#4FE75E]'
               : 'text-[#888] hover:text-[#F2F2F2]'
         }`}
-        role="button"
-        tabIndex={0}
         aria-current={active ? 'page' : undefined}
       >
         {label}
@@ -59,7 +56,7 @@ export default function AddFolding({
       <div className="flex items-center gap-[4px] pt-[2px]">
         <div
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); 
             onAdd?.();
           }}
           role="button"
@@ -70,7 +67,7 @@ export default function AddFolding({
 
         <div
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); 
             toggleOpen();
           }}
           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
