@@ -3,7 +3,7 @@ import BtnDropdown from "../../components/btn/btn-dropdown";
 import { useLogStore } from "../../utils/logstore";
 
 interface AppLiveLogProps {
-  keyword: string; 
+  keyword: string;
 }
 
 export default function AppLiveLog({ keyword }: AppLiveLogProps) {
@@ -53,6 +53,7 @@ export default function AppLiveLog({ keyword }: AppLiveLogProps) {
               key={idx}
               className="flex border-b border-[#2A2A2A] last:border-none"
             >
+              {/* Timestamp */}
               <div
                 className={`flex w-[200px] h-[36px] justify-center items-center bg-[#171717] 
                 ${isLast ? "rounded-bl-md" : ""}`}
@@ -61,17 +62,31 @@ export default function AppLiveLog({ keyword }: AppLiveLogProps) {
                   {row?.timestamp || ""}
                 </span>
               </div>
+
+              {/* Level */}
               <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
                 <span className="text-[#D8D8D8] text-[14px]">{row?.level || ""}</span>
               </div>
+
+              {/* Logger */}
               <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row?.logger || ""}</span>
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate max-w-[120px]"
+                  title={row?.logger || ""}
+                >
+                  {row?.logger || ""}
+                </span>
               </div>
+
+              {/* Message */}
               <div
                 className={`flex flex-1 h-[36px] justify-center items-center bg-[#171717] 
                 ${isLast ? "rounded-br-md" : ""}`}
               >
-                <span className="text-[#D8D8D8] text-[14px] truncate">
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate max-w-full text-center px-2"
+                  title={row?.message || ""}
+                >
                   {row?.message || ""}
                 </span>
               </div>

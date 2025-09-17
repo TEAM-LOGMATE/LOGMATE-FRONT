@@ -104,7 +104,7 @@ export default function WebPath() {
 
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
 
-  // 각 섹터를 계산
+  // 각 섹터 계산
   let cumulative = 0;
   const sectors = sorted.map((entry, index) => {
     const start = 90 - (cumulative / total) * 360;
@@ -151,21 +151,33 @@ export default function WebPath() {
 
         {/* 오른쪽 Legend */}
         <div className="flex flex-col justify-center ml-20 space-y-1 mt-[-70px]">
-          {sorted.map((entry, i) => (
-            <div key={i} className="flex items-center space-x-2">
-              <div
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "3px",
-                  background: entry.color,
-                }}
-              />
-              <span className="text-[#AEAEAE] text-sm">
-                {entry.name} ({entry.value})
-              </span>
-            </div>
-          ))}
+          {sorted.map((entry, i) => {
+            // 길면 잘라서 ... 처리
+            const maxLen = 20;
+            const displayName =
+              entry.name.length > maxLen
+                ? entry.name.slice(0, maxLen) + "..."
+                : entry.name;
+
+            return (
+              <div key={i} className="flex items-center space-x-2">
+                <div
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "3px",
+                    background: entry.color,
+                  }}
+                />
+                <span
+                  className="text-[#AEAEAE] text-sm truncate max-w-[200px]"
+                  title={entry.name}
+                >
+                  {displayName} ({entry.value})
+                </span>
+              </div>
+            );
+          })}
 
           {/* 선택된 항목 정보 표시 */}
           {selected && (

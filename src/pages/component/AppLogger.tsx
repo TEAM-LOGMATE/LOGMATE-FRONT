@@ -49,6 +49,14 @@ function AnimatedSector({ start, end, radius, color }: any) {
   );
 }
 
+// 문자열 잘라주기
+const truncateLabel = (name: string, value: number, maxLength = 10) => {
+  if (name.length > maxLength) {
+    return `${name.slice(0, maxLength)}... (${value})`;
+  }
+  return `${name} (${value})`;
+};
+
 export default function AppLogger() {
   const { appLogs } = useLogStore();
 
@@ -64,6 +72,9 @@ export default function AppLogger() {
 
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   let cumulative = 0;
+
+  // 범례용 데이터 (상위 5개만)
+  const top5 = sorted.slice(0, 5);
 
   return (
     <div
@@ -100,7 +111,7 @@ export default function AppLogger() {
 
         {/* 범례 */}
         <div className="flex flex-col justify-center ml-20 space-y-2">
-          {sorted.map((entry, i) => (
+          {top5.map((entry, i) => (
             <div key={entry.name} className="flex items-center space-x-2">
               <div
                 style={{
@@ -109,7 +120,7 @@ export default function AppLogger() {
                 }}
               />
               <span className="text-[#AEAEAE] text-sm">
-                {entry.name} ({entry.value})
+                {truncateLabel(entry.name, entry.value, 10)}
               </span>
             </div>
           ))}

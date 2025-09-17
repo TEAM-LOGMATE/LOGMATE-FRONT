@@ -49,7 +49,7 @@ export default function WebLiveLog({ keyword }: WebLiveLogProps) {
         <div className="flex h-[36px] justify-center items-center gap-1 bg-[#232323] w-[100px]">
           <span className="text-[14px] text-[#D8D8D8]">Size</span>
         </div>
-        <div className="flex h-[36px] justify-center items-center gap-1 bg-[#232323] flex-1">
+        <div className="flex h-[36px] justify-center items-center gap-1 bg-[#232323] w-[300px]">
           <span className="text-[14px] text-[#D8D8D8]">Path</span>
         </div>
         <div className="flex h-[36px] justify-center items-center gap-1 bg-[#232323] w-[100px]">
@@ -100,21 +100,46 @@ export default function WebLiveLog({ keyword }: WebLiveLogProps) {
               <div className="flex w-[100px] h-[36px] justify-center items-center bg-[#171717]">
                 <span className="text-[#D8D8D8] text-[14px]">{row?.size ?? ""}</span>
               </div>
-              <div className="flex flex-1 h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row?.path ?? ""}</span>
+              {/* Path */}
+              <div className="flex w-[300px] h-[36px] items-center bg-[#171717] px-2">
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate w-full"
+                  title={row?.path ?? ""}
+                >
+                  {row?.path ?? ""}
+                </span>
               </div>
               <div className="flex w-[100px] h-[36px] justify-center items-center bg-[#171717]">
                 <span className="text-[#D8D8D8] text-[14px]">{row?.status ?? ""}</span>
               </div>
-              <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row?.referrer ?? ""}</span>
+              {/* Referrer */}
+              <div className="flex w-[140px] h-[36px] items-center bg-[#171717] px-2">
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate w-full"
+                  title={row?.referrer ?? ""}
+                >
+                  {row?.referrer ?? ""}
+                </span>
               </div>
-              <div className="flex w-[160px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px] truncate">{row?.userAgent ?? ""}</span>
+              {/* User-Agent */}
+              <div className="flex w-[160px] h-[36px] items-center bg-[#171717] px-2">
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate w-full"
+                  title={row?.userAgent ?? ""}
+                >
+                  {row?.userAgent ?? ""}
+                </span>
               </div>
-              <div className="flex w-[140px] h-[36px] justify-center items-center bg-[#171717]">
-                <span className="text-[#D8D8D8] text-[14px]">{row?.ip ?? ""}</span>
+              {/* IP */}
+              <div className="flex w-[140px] h-[36px] items-center bg-[#171717] px-2">
+                <span
+                  className="text-[#D8D8D8] text-[14px] truncate w-full"
+                  title={row?.ip ?? ""}
+                >
+                  {row?.ip ?? ""}
+                </span>
               </div>
+              {/* AI Score */}
               <div
                 className={`flex w-[120px] h-[36px] justify-center items-center bg-[#171717] ${
                   isLast ? "rounded-br-md" : ""
