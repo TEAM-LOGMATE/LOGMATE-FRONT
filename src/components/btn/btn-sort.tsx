@@ -19,7 +19,7 @@ export default function BtnSort({ onSortChange }: BtnSortProps) {
       onClick={handleClick}
       className="
         inline-flex
-        h-[40px]
+        h-[40px] w-[110px]
         px-[16px] py-[6px]
         justify-center
         items-center
