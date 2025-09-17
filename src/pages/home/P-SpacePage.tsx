@@ -31,12 +31,18 @@ export default function P_SpacePage() {
 
   const username = user.username;
   const navigate = useNavigate();
-  const { folders, setFolders, setTeamFolders } = useFolderStore();
+  const {
+    folders,
+    setFolders,
+    setTeamFolders,
+    personalSortOrder,
+    setPersonalSortOrder,
+  } = useFolderStore();
+
   const [activeFolderId, setActiveFolderId] = useState<string | number | null>(null);
   const [pendingFolder, setPendingFolder] = useState(false);
   const [_, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -46,17 +52,10 @@ export default function P_SpacePage() {
     };
   }, []);
 
-  const sortFolders = (data: typeof folders, order: 'newest' | 'oldest') =>
-    [...data].sort((a, b) => {
-      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-      return order === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-
   const fetchData = async () => {
     try {
       const data = await getPersonalFolders(user.id);
-      setFolders(sortFolders(data, sortOrder));
+      setFolders(data);
 
       const teams = await getTeams();
       setTeamFolders(teams.map((t: any) => ({ ...t, spaceType: 'team' })));
@@ -67,7 +66,7 @@ export default function P_SpacePage() {
 
   useEffect(() => {
     fetchData();
-  }, [user, sortOrder]);
+  }, [user, personalSortOrder]);
 
   const handleAddFolder = () => {
     if (folders.length >= MAX_SPACES) return;
@@ -155,7 +154,11 @@ export default function P_SpacePage() {
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
-          <BtnSort spaceType="personal" onSortChange={(order) => setSortOrder(order)} />
+          <BtnSort
+            spaceType="personal"
+            order={personalSortOrder}          
+            onSortChange={setPersonalSortOrder}
+          />
           <BtnPoint onClick={handleAddFolder}>새 폴더 추가 +</BtnPoint>
         </div>
 
@@ -163,32 +166,31 @@ export default function P_SpacePage() {
           className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] 
                      gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible items-start"
         >
-        <AnimatePresence>
-          {folders.map((folder) => (
-            <motion.div
-              key={Number(folder.id)}
-              layout
-              style={{ overflow: 'visible' }}
-              variants={folderVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-            >
-              <FrmFolder
-                spaceType="personal"
-                name={folder.name}
-                onDelete={() => handleDeleteFolder(folder.id)}
-                onRename={(newName) => handleRenameFolder(folder.id, newName)}
-                onClickName={() => {
-                  setActiveFolderId(folder.id);
-                  navigate(`/personal/${folder.id}`);
-                }}
-                boards={folder.boards || []}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
+          <AnimatePresence>
+            {folders.map((folder) => (
+              <motion.div
+                key={Number(folder.id)}
+                layout
+                style={{ overflow: 'visible' }}
+                variants={folderVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <FrmFolder
+                  spaceType="personal"
+                  name={folder.name}
+                  onDelete={() => handleDeleteFolder(folder.id)}
+                  onRename={(newName) => handleRenameFolder(folder.id, newName)}
+                  onClickName={() => {
+                    setActiveFolderId(folder.id);
+                    navigate(`/personal/${folder.id}`);
+                  }}
+                  boards={folder.boards || []}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
           <AnimatePresence>
             {pendingFolder && (

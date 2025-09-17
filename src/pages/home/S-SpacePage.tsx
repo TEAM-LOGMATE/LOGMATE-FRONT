@@ -10,7 +10,7 @@ import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
-import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
+import { getTeams, createTeam, updateTeam, deleteTeam, getTeamFolders } from '../../api/teams';
 import { createDashboard } from '../../api/dashboard';
 import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 import { useFolderStore } from '../../utils/folderStore';
@@ -25,8 +25,14 @@ export default function S_SpacePage() {
   const username = user.username;
   const navigate = useNavigate();
   const { folderId } = useParams<{ folderId: string }>();
-  const { teamFolders: teams, setTeamFolders } = useFolderStore();
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const {
+    teamFolders: teams,
+    setTeamFolders,
+    teamSortOrder,
+    setTeamSortOrder,
+  } = useFolderStore();
+
   const [showMakeTeam, setShowMakeTeam] = useState(false);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -35,30 +41,31 @@ export default function S_SpacePage() {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 팀 불러오기
+  // 팀 + 팀 폴더 불러오기
   useEffect(() => {
     const fetchTeams = async () => {
       try {
         const res = await getTeams();
-        setTeamFolders(res.map((t: any) => ({ ...t, spaceType: 'team' })));
+
+        const teamsWithFolders = await Promise.all(
+          res.map(async (t: any) => {
+            try {
+              const folders = await getTeamFolders(t.id);
+              return { ...t, boards: folders, spaceType: 'team' };
+            } catch (e) {
+              console.error(`팀 ${t.id} 폴더 불러오기 실패:`, e);
+              return { ...t, boards: [], spaceType: 'team' };
+            }
+          })
+        );
+
+        setTeamFolders(teamsWithFolders);
       } catch (err) {
         console.error('팀 불러오기 실패:', err);
       }
     };
     fetchTeams();
-  }, [setTeamFolders]);
-
-  // 팀 정렬
-  const sortTeams = (data: Team[], order: 'newest' | 'oldest') =>
-    [...data].sort((a, b) => {
-      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
-      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
-      return order === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-
-  useEffect(() => {
-    setTeamFolders((prev) => sortTeams(prev, sortOrder));
-  }, [sortOrder, setTeamFolders]);
+  }, [setTeamFolders, teamSortOrder]);
 
   // 팀 삭제 (= 팀 나가기)
   const handleDeleteTeam = async (id: string | number) => {
@@ -149,7 +156,11 @@ export default function S_SpacePage() {
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
-          <BtnSort spaceType="team" onSortChange={(order) => setSortOrder(order)} />
+          <BtnSort
+            spaceType="team"
+            order={teamSortOrder}
+            onSortChange={setTeamSortOrder}
+          />
           <BtnPoint onClick={() => setShowMakeTeam(true)}>새 팀 추가 +</BtnPoint>
         </div>
 
@@ -175,7 +186,7 @@ export default function S_SpacePage() {
                   onOpenTeamSettings={() => openTeamSettings(team)}
                   onLeaveTeam={() => handleDeleteTeam(team.id)}
                   onClickName={() => navigate(`/team/${team.id}`)}
-                  boards={(team as any).boards || []}
+                  // boards={(team as any).boards || []}   // 썸네일/뱃지 기능 미구현
                   onAddBoard={() => {
                     setSelectedFolderId(Number(team.id));
                     setShowDashboardMake(true);
@@ -223,7 +234,7 @@ export default function S_SpacePage() {
 
                     setTeamFolders((prev) => [
                       ...prev,
-                      { ...newTeam.data, spaceType: 'team' },
+                      { ...newTeam.data, spaceType: 'team', boards: [] },
                     ]);
                     setShowMakeTeam(false);
                   } catch (err: any) {
