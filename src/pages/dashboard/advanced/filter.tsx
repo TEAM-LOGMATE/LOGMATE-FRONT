@@ -47,7 +47,7 @@ export default function FilterSettings({ value, onChange }: FilterSettingsProps)
               key={level}
               type="button"
               onClick={() => toggleLevel(level)}
-              className={`flex h-[44px] px-4 justify-center items-center rounded-[12px] border border-[var(--Gray-600,#353535)] font-[Geist] text-[16px] leading-[150%] whitespace-nowrap
+              className={`flex h-[44px] px-3 justify-center items-center rounded-[12px] border border-[var(--Gray-600,#353535)] font-[Geist] text-[16px] leading-[150%] whitespace-nowrap
                 ${
                   value.allowedLevels.includes(level)
                     ? "bg-[var(--Gray-600,#353535)] text-[var(--Alert-Yellow,#D4B66F)]"
