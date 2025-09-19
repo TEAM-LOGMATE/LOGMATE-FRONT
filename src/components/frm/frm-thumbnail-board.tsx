@@ -110,7 +110,6 @@ export default function FrmThumbnailBoard({
 
   return (
     <div className="flex flex-col w-[640px] h-[372px] p-4 rounded-[8px] bg-[#171717]">
-      {/* 공통 wrapper 유지 */}
       {connected ? (
         <>
           {/* 상단 상태 (토글) */}
@@ -151,8 +150,8 @@ export default function FrmThumbnailBoard({
                 {boardName || (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
-                <span className="font-geist text-[14px] text-[#AEAEAE]">Edited</span>
-                <span className="font-geist-mono text-[14px] text-[#AEAEAE]">
+                <span className="text-[#AEAEAE] font-mono text-[14px]">Edited</span>
+                <span className="text-[#AEAEAE] font-mono text-[14px]">
                   {lastEdited || fallbackDate}
                 </span>
               </div>
@@ -175,7 +174,7 @@ export default function FrmThumbnailBoard({
           </div>
         </>
       ) : (
-        // 같은 wrapper 유지, 내용만 바꿈
+        // 새로운 보드 연결하기 슬롯
         <div className="flex flex-1 w-full h-full justify-center items-center">
           <span
             onClick={onAddBoard}
