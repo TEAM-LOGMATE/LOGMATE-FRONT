@@ -1,10 +1,23 @@
 import TailerSettings from './advanced/tailer';
 import MultilineSettings from './advanced/multiline';
 import ExporterSettings from './advanced/exporter';
-import FilterSettings from './advanced/filter';
+import FilterSettings from './advanced/filter';      // Spring Boot용
+import FilterWeb from './advanced/filterweb';        // Tomcat용
 import ConfigurationPuller from './advanced/configurationpuller';
 
+interface SpringBootFilter {
+  allowedLevels: string[];
+  requiredKeywords: string[];
+  after: string;
+}
+
+interface TomcatFilter {
+  allowedMethods: string[];
+  requiredKeywords: string[];
+}
+
 interface AdvancedSettingsProps {
+  logType: 'springboot' | 'tomcat access';
   value: {
     tailer: {
       readIntervalMs: number;
@@ -19,11 +32,7 @@ interface AdvancedSettingsProps {
       retryIntervalSec: number;
       maxRetryCount: number;
     };
-    filter: {
-      allowedLevels: string[];
-      requiredKeywords: string[];
-      after: string;
-    };
+    filter: SpringBootFilter | TomcatFilter;
     puller: {
       intervalSec: number;
     };
@@ -31,7 +40,7 @@ interface AdvancedSettingsProps {
   onChange: (newValue: AdvancedSettingsProps["value"]) => void;
 }
 
-export default function AdvancedSettings({ value, onChange }: AdvancedSettingsProps) {
+export default function AdvancedSettings({ logType, value, onChange }: AdvancedSettingsProps) {
   return (
     <div className="flex flex-col gap-6">
       <TailerSettings
@@ -46,10 +55,22 @@ export default function AdvancedSettings({ value, onChange }: AdvancedSettingsPr
         value={value.exporter}
         onChange={(exporter) => onChange({ ...value, exporter })}
       />
-      <FilterSettings
-        value={value.filter}
-        onChange={(filter) => onChange({ ...value, filter })}
-      />
+
+      {/* 🔹 로그 타입별 필터 분기 + 방어적 체크 */}
+      {logType === 'springboot' && (value.filter as SpringBootFilter)?.allowedLevels ? (
+        <FilterSettings
+          value={value.filter as SpringBootFilter}
+          onChange={(filter) => onChange({ ...value, filter })}
+        />
+      ) : null}
+
+      {logType === 'tomcat access' && (value.filter as TomcatFilter)?.allowedMethods ? (
+        <FilterWeb
+          value={value.filter as TomcatFilter}
+          onChange={(filter) => onChange({ ...value, filter })}
+        />
+      ) : null}
+
       <ConfigurationPuller
         value={value.puller}
         onChange={(puller) => onChange({ ...value, puller })}

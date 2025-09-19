@@ -3,6 +3,7 @@ import Input48 from '../../components/input/48';
 import BtnSmallArrow from '../../components/btn/btn-small-arrow';
 import BtnSign2Small from '../../components/btn/btn-sign-2-small';
 import BtnDropdown from '../../components/btn/btn-dropdown';
+import BtnCheckbox from '../../components/btn/btn-checkbox';
 import AdvancedSettings from './advancedsetting';
 
 interface DashboardMakeProps {
@@ -12,25 +13,76 @@ interface DashboardMakeProps {
     name: string;
     logPath: string;
     advancedConfig?: any;
+    agentId?: string;
   }) => void;
 }
 
-const logTypes = ['springboot', 'tomcat access'];
+const logTypes = ['springboot', 'tomcat access'] as const;
 const timezones = ['Asia/Seoul', 'UTC'];
+
+const defaultConfigs: Record<(typeof logTypes)[number], any> = {
+  springboot: {
+    tailer: {
+      readIntervalMs: 300,
+      metaDataFilePathPrefix: '/spring/logs',
+    },
+    multiline: {
+      enabled: false,
+      maxLines: 200,
+    },
+    exporter: {
+      compressEnabled: true,
+      retryIntervalSec: 5,
+      maxRetryCount: 3,
+    },
+    filter: {
+      allowedLevels: ['ERROR', 'WARN'],
+      requiredKeywords: ['Exception', 'DB'],
+      after: '',
+    },
+    puller: {
+      intervalSec: 30,
+    },
+  },
+  'tomcat access': {
+    tailer: {
+      readIntervalMs: 500,
+      metaDataFilePathPrefix: '/tomcat/logs',
+    },
+    multiline: {
+      enabled: false,
+      maxLines: 50,
+    },
+    exporter: {
+      compressEnabled: false,
+      retryIntervalSec: 10,
+      maxRetryCount: 1,
+    },
+    filter: {
+      allowedMethods: ['GET', 'POST'],
+      requiredKeywords: ['login', 'error'],
+    },
+    puller: {
+      intervalSec: 60,
+    },
+  },
+};
 
 export default function DashboardMake({ folderId, onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
   const [boardName, setBoardName] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [logType] = useState('springboot, tomcat access');
+  const [logType, setLogType] = useState<(typeof logTypes)[number]>('springboot');
   const [timezone, setTimezone] = useState('Asia/Seoul');
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
 
+  const [useAgentId, setUseAgentId] = useState(false);
+  const [agentId, setAgentId] = useState('');
+
   const logTypeRef = useRef<HTMLDivElement>(null);
   const timezoneRef = useRef<HTMLDivElement>(null);
 
-  // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (logTypeRef.current && !logTypeRef.current.contains(event.target as Node)) {
@@ -46,30 +98,10 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
     };
   }, []);
 
-  // AdvancedSettings 값 관리
-  const [advancedConfig, setAdvancedConfig] = useState({
-    tailer: {
-      readIntervalMs: 300,
-      metaDataFilePathPrefix: '/log/log/log/log',
-    },
-    multiline: {
-      enabled: false,
-      maxLines: 100,
-    },
-    exporter: {
-      compressEnabled: true,
-      retryIntervalSec: 5,
-      maxRetryCount: 3,
-    },
-    filter: {
-      allowedLevels: ['ERROR', 'WARN'],
-      requiredKeywords: ['Exception', 'DB'],
-      after: '2025-09-14T12:00:00',
-    },
-    puller: {
-      intervalSec: 30,
-    },
-  });
+  const [advancedConfig, setAdvancedConfig] = useState(defaultConfigs[logType]);
+  useEffect(() => {
+    setAdvancedConfig(defaultConfigs[logType]);
+  }, [logType]);
 
   const isFormValid = logPath.trim() !== '' && boardName.trim() !== '';
 
@@ -80,6 +112,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
       name: boardName,
       logPath,
       advancedConfig,
+      ...(useAgentId ? { agentId } : {}),
     });
   };
 
@@ -142,7 +175,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
               onClick={() => setIsLogTypeOpen((prev) => !prev)}
             >
               <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
-                springboot, tomcat access
+                {logType}
               </span>
               <BtnDropdown />
             </div>
@@ -152,20 +185,21 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
                 className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
                           bg-[var(--Gray-600,#353535)] border border-[#444]"
               >
-                {logTypes.map((type) => {
-                  const isSelected = type === 'springboot' || type === 'tomcat access';
-                  return (
-                    <li
-                      key={type}
-                      className={`flex h-[48px] items-center px-[20px] cursor-pointer
-                        ${isSelected
-                          ? 'bg-[#222] text-[var(--Gray-100,#F2F2F2)]'
-                          : 'text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]'}`}
-                    >
-                      {type}
-                    </li>
-                  );
-                })}
+                {logTypes.map((type) => (
+                  <li
+                    key={type}
+                    className={`flex h-[48px] items-center px-[20px] cursor-pointer
+                      ${logType === type
+                        ? 'bg-[#222] text-[var(--Gray-100,#F2F2F2)]'
+                        : 'text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]'}`}
+                    onClick={() => {
+                      setLogType(type);
+                      setIsLogTypeOpen(false);
+                    }}
+                  >
+                    {type}
+                  </li>
+                ))}
               </ul>
             )}
           </div>
@@ -210,20 +244,51 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
           </div>
         </div>
 
+        {/* ✅ Agent ID 입력 */}
+        <div className="mt-6">
+          <label className="mb-2 flex items-center gap-2">
+            <span
+              className="text-[16px] font-[Geist] font-normal leading-[150%]"
+              style={{ color: 'var(--Alert-Yellow, #D4B66F)' }}
+            >
+              내 Agent ID 입력
+            </span>
+            <BtnCheckbox checked={useAgentId} onToggle={() => setUseAgentId((p) => !p)} />
+          </label>
+
+          {useAgentId && (
+            <Input48
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              placeholder="Agent ID를 입력하세요"
+            />
+          )}
+        </div>
+
         {/* 고급 설정 */}
-        <div
-          className="mt-4 flex items-center justify-center gap-1 cursor-pointer"
-          onClick={() => setIsAdvancedOpen((prev) => !prev)}
-        >
-          <span className="text-[#888] font-[SUIT] font-medium text-[16px] leading-[150%] tracking-[-0.4px]">
+        <div className="mt-4 flex items-center justify-center gap-1">
+          <span
+            className="text-[#888] font-[SUIT] font-medium text-[16px] leading-[150%] tracking-[-0.4px] cursor-pointer hover:text-[#aaa]"
+            onClick={() => setIsAdvancedOpen((prev) => !prev)}
+          >
             고급 설정
           </span>
-          <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
+          <div
+            className="cursor-pointer hover:opacity-80"
+            onClick={() => setIsAdvancedOpen((prev) => !prev)}
+          >
+            <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
+          </div>
         </div>
 
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
-            <AdvancedSettings value={advancedConfig} onChange={setAdvancedConfig} />
+            <AdvancedSettings
+              key={logType}
+              logType={logType}
+              value={advancedConfig}
+              onChange={setAdvancedConfig}
+            />
           </div>
         )}
       </div>
