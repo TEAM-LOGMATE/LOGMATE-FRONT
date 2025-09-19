@@ -9,8 +9,13 @@ import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
-import { getTeams, createTeam } from '../../api/teams';
-import { getDashboards, createDashboard, deleteDashboard, saveDashboardConfig } from '../../api/dashboard';
+import {
+  getDashboards,
+  createDashboard,
+  deleteDashboard,
+  saveDashboardConfig,
+} from '../../api/dashboard';
+import { getTeamFolders, createTeam } from '../../api/teams';
 import { useFolderStore } from '../../utils/folderStore';
 import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 
@@ -26,6 +31,8 @@ interface Board {
   id: number;
   name: string;
   lastEdited?: string;
+  createdAt?: string;
+  updatedAt?: string;
   logPath?: string;
   status?: BoardStatus;
 }
@@ -35,9 +42,12 @@ export default function TeamPage() {
   const username = user?.username ?? '';
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-  const { teamFolders, setTeamFolders } = useFolderStore();
 
-  const [activeFolderId, setActiveFolderId] = useState<string | number | null>(teamId ?? null);
+  const { teamFolders, setTeamFolders, teamBoardSortOrder } = useFolderStore();
+
+  const [activeFolderId, setActiveFolderId] = useState<string | number | null>(
+    teamId ?? null
+  );
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDashboardMake, setShowDashboardMake] = useState(false);
@@ -49,7 +59,11 @@ export default function TeamPage() {
   // 보드 카드 애니메이션
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: 'easeOut' },
+    },
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
@@ -63,53 +77,45 @@ export default function TeamPage() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !teamId) return;
 
-    const fetchTeamsAndBoards = async () => {
+    const loadBoards = async () => {
       try {
-        const res = await getTeams();
-        setTeamFolders(res);
-
-        if (teamId) {
-          setActiveFolderId(teamId);
-          const team = res.find((t: any) => String(t.id) === String(teamId));
-          if (team) {
-            await fetchDashboards(Number(teamId));
-          }
-        }
+        await fetchDashboards(Number(teamId));
       } catch (err) {
-        console.error('팀/대시보드 불러오기 실패:', err);
+        console.error('보드 조회 실패:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTeamsAndBoards();
-  }, [user, teamId, setTeamFolders]);
+    loadBoards();
+  }, [user, teamId]);
 
   const handleCreateBoard = async (boardData: any) => {
     if (!teamId) return;
     try {
-      // 1. 대시보드 생성
       const created = await createDashboard(Number(teamId), {
         name: boardData.name,
         logPath: boardData.logPath,
       });
 
       const dashboardId = created?.data?.id;
-      if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
+      if (!dashboardId)
+        throw new Error('대시보드 ID를 가져오지 못했습니다.');
 
-      // 2. 고급설정 저장 → agentId 받기
       if (boardData.advancedConfig) {
-        const res = await saveDashboardConfig(Number(teamId), dashboardId, boardData.advancedConfig);
+        const res = await saveDashboardConfig(
+          Number(teamId),
+          dashboardId,
+          boardData.advancedConfig
+        );
         const agentId = res?.data?.agentId;
         setCreatedAgentId(agentId);
       }
 
-      // 3. 목록을 새로 불러오기만 (중복 추가 방지)
       await fetchDashboards(Number(teamId));
 
-      // 4. 모달 닫기 & 토스트 표시
       setShowDashboardMake(false);
       setSelectedFolderId(null);
       setShowToast(true);
@@ -129,12 +135,18 @@ export default function TeamPage() {
   };
 
   const sortedBoards = useMemo(() => {
-    return [...boards].sort((a, b) => {
-      const aTime = a.lastEdited ? new Date(a.lastEdited).getTime() : 0;
-      const bTime = b.lastEdited ? new Date(b.lastEdited).getTime() : 0;
-      return bTime - aTime;
+    const sorted = [...boards].sort((a, b) => {
+      const aTime = new Date(
+        a.lastEdited || a.updatedAt || a.createdAt || 0
+      ).getTime();
+      const bTime = new Date(
+        b.lastEdited || b.updatedAt || b.createdAt || 0
+      ).getTime();
+
+      return teamBoardSortOrder === 'newest' ? bTime - aTime : aTime - bTime;
     });
-  }, [boards]);
+    return sorted;
+  }, [boards, teamBoardSortOrder]);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -163,13 +175,20 @@ export default function TeamPage() {
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <div className="flex items-start gap-4">
-            <div onClick={() => navigate('/team', { replace: true })} className="cursor-pointer">
+            <div
+              onClick={() => navigate('/team', { replace: true })}
+              className="cursor-pointer"
+            >
               <BtnBigArrow />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-[28px] font-bold text-[#F2F2F2]">{currentTeam.name}</h1>
+              <h1 className="text-[28px] font-bold text-[#F2F2F2]">
+                {currentTeam.name}
+              </h1>
               {currentTeam.description && (
-                <p className="text-[#AEAEAE] text-[16px] mt-1">{currentTeam.description}</p>
+                <p className="text-[#AEAEAE] text-[16px] mt-1">
+                  {currentTeam.description}
+                </p>
               )}
             </div>
           </div>
@@ -210,20 +229,30 @@ export default function TeamPage() {
                   />
                 </motion.div>
               ))}
-          </AnimatePresence>
 
-          {!loading && (
-            <FrmThumbnailBoard
-              folderId={Number(currentTeam.id)}
-              boardId={0}
-              connected={false}
-              spaceType="team"
-              onAddBoard={() => {
-                setSelectedFolderId(Number(currentTeam.id));
-                setShowDashboardMake(true);
-              }}
-            />
-          )}
+            {/* 새로운 보드 연결하기 슬롯 */}
+            {!loading && (
+              <motion.div
+                key="add-slot"
+                layout
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <FrmThumbnailBoard
+                  folderId={Number(currentTeam.id)}
+                  boardId={0}
+                  connected={false}
+                  spaceType="team"
+                  onAddBoard={() => {
+                    setSelectedFolderId(Number(currentTeam.id));
+                    setShowDashboardMake(true);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -267,7 +296,11 @@ export default function TeamPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <FrmMakeTeam
             onClose={() => setShowMakeTeam(false)}
-            onSubmit={async (data: { name: string; description: string; members: UiMember[] }) => {
+            onSubmit={async (data: {
+              name: string;
+              description: string;
+              members: UiMember[];
+            }) => {
               try {
                 const apiMembers: ApiMember[] = data.members.map((m) => ({
                   email: m.email,
@@ -280,7 +313,21 @@ export default function TeamPage() {
                   members: apiMembers,
                 });
 
-                setTeamFolders((prev) => [...prev, res.data]);
+                // 새 팀 → 폴더 조회해서 날짜 붙여줌
+                let teamWithDates = res.data;
+                try {
+                  const folders = await getTeamFolders(res.data.id);
+                  const firstFolder = folders[0];
+                  teamWithDates = {
+                    ...res.data,
+                    createdAt: firstFolder?.createdAt ?? null,
+                    updatedAt: firstFolder?.updatedAt ?? null,
+                  };
+                } catch (err) {
+                  console.error('신규 팀 폴더 조회 실패:', err);
+                }
+
+                setTeamFolders((prev) => [...prev, teamWithDates]);
                 setShowMakeTeam(false);
               } catch (err) {
                 console.error('팀 생성 실패:', err);
@@ -293,7 +340,10 @@ export default function TeamPage() {
       {/* ToastMessage */}
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <ToastMessage agentId={createdAgentId} onCloseToast={() => setShowToast(false)} />
+          <ToastMessage
+            agentId={createdAgentId}
+            onCloseToast={() => setShowToast(false)}
+          />
         </div>
       )}
     </div>

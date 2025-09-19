@@ -6,6 +6,7 @@ import Bar from '../../components/navi/bar';
 import BtnSort from '../../components/btn/btn-sort';
 import BtnPoint from '../../components/btn/btn-point';
 import FrmFolder from '../../components/frm/frm-folder';
+import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
 import {
@@ -14,8 +15,7 @@ import {
   deleteFolder,
   updateFolder,
 } from '../../api/folders';
-import { getTeams } from '../../api/teams';
-import { getDashboards } from '../../api/dashboard';
+import { getDashboards, createDashboard } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
 // Board 타입 정의
@@ -40,7 +40,6 @@ export default function P_SpacePage() {
   const {
     folders,
     setFolders,
-    setTeamFolders,
     personalSortOrder,
     setPersonalSortOrder,
   } = useFolderStore();
@@ -49,6 +48,8 @@ export default function P_SpacePage() {
   const [pendingFolder, setPendingFolder] = useState(false);
   const [_, setPendingDraft] = useState('');
   const pendingCardRef = useRef<HTMLDivElement | null>(null);
+  const [showDashboardMake, setShowDashboardMake] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -60,9 +61,9 @@ export default function P_SpacePage() {
 
   const fetchData = async () => {
     try {
+
       const data = await getPersonalFolders(user.id);
 
-      // 각 폴더에 boards 붙이기
       const foldersWithBoards = await Promise.all(
         data.map(async (folder: any) => {
           try {
@@ -79,20 +80,14 @@ export default function P_SpacePage() {
       const sortedFolders = [...foldersWithBoards].sort((a, b) => {
         const aDate = parseDate(a.updatedAt);
         const bDate = parseDate(b.updatedAt);
-
-        if (personalSortOrder === 'newest') {
-          return bDate.getTime() - aDate.getTime();
-        } else {
-          return aDate.getTime() - bDate.getTime();
-        }
+        return personalSortOrder === 'newest'
+          ? bDate.getTime() - aDate.getTime()
+          : aDate.getTime() - bDate.getTime();
       });
 
       setFolders(sortedFolders);
-
-      const teams = await getTeams();
-      setTeamFolders(teams.map((t: any) => ({ ...t, spaceType: 'team' })));
     } catch (err) {
-      console.error('폴더/팀 불러오기 실패:', err);
+      console.error('개인 폴더 불러오기 실패:', err);
     }
   };
 
@@ -219,6 +214,10 @@ export default function P_SpacePage() {
                     navigate(`/personal/${folder.id}`);
                   }}
                   boards={folder.boards || []}
+                  onAddBoard={() => {
+                    setSelectedFolderId(Number(folder.id));
+                    setShowDashboardMake(true);
+                  }}
                 />
               </motion.div>
             ))}
@@ -248,6 +247,61 @@ export default function P_SpacePage() {
           </AnimatePresence>
         </motion.div>
       </motion.div>
+
+      {/* 대시보드 만들기 모달 */}
+      <AnimatePresence>
+        {showDashboardMake && selectedFolderId != null && (
+          <motion.div
+            key="dashboardMakeModal"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onClick={() => {
+              setShowDashboardMake(false);
+              setSelectedFolderId(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardMake
+                folderId={selectedFolderId}
+                onClose={() => {
+                  setShowDashboardMake(false);
+                  setSelectedFolderId(null);
+                }}
+                onCreate={async (board) => {
+                  try {
+                    const res = await createDashboard(selectedFolderId, {
+                      name: board.name,
+                      logPath: board.logPath,
+                    });
+                    setFolders((prev) =>
+                      prev.map((folder) =>
+                        folder.id === selectedFolderId
+                          ? {
+                              ...folder,
+                              boards: [...(folder.boards || []), res.data],
+                            }
+                          : folder
+                      )
+                    );
+                    setShowDashboardMake(false);
+                  } catch (err) {
+                    console.error('개인 대시보드 생성 실패:', err);
+                  }
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

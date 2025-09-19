@@ -8,8 +8,10 @@ interface FolderState {
   teamFolders: Team[];      // 팀 스페이스
   personalSortOrder: SortOrder;
   teamSortOrder: SortOrder;
+  teamBoardSortOrder: SortOrder; // 팀 보드 정렬 추가
   setPersonalSortOrder: (order: SortOrder) => void;
   setTeamSortOrder: (order: SortOrder) => void;
+  setTeamBoardSortOrder: (order: SortOrder) => void; // setter 추가
   setFolders: (updater: Folder[] | ((prev: Folder[]) => Folder[])) => void;
   setTeamFolders: (updater: Team[] | ((prev: Team[]) => Team[])) => void;
   clearFolders: () => void;
@@ -31,6 +33,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   teamFolders: [],
   personalSortOrder: 'newest', // 개인 기본 정렬
   teamSortOrder: 'newest',     // 팀 기본 정렬
+  teamBoardSortOrder: 'newest', // 팀 보드 기본 정렬
 
   // 개인 정렬 변경
   setPersonalSortOrder: (order) => {
@@ -46,6 +49,11 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     set((state) => ({
       teamFolders: sortByOrder(state.teamFolders, order),
     }));
+  },
+
+  // 팀 보드 정렬 변경
+  setTeamBoardSortOrder: (order) => {
+    set({ teamBoardSortOrder: order });
   },
 
   // 개인 폴더 set

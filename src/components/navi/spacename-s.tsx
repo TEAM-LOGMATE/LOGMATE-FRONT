@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface SpaceNameSProps {
   name: string;               // 폴더 이름
@@ -8,39 +8,27 @@ interface SpaceNameSProps {
 }
 
 export default function SpaceNameS({
-  name: initialName,
+  name,
   isActive = false,
   onClick,
   onCancel,
 }: SpaceNameSProps) {
-  // 🔧 자동 편집 막기: 초기값 false
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(initialName);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // 외부에서 이름이 바뀌는 경우만 동기화
-  useEffect(() => {
-    setName(initialName);
-  }, [initialName]);
 
   const handleBlur = () => {
     if (name.trim() === '') {
       onCancel?.();
-    } else {
-      setIsEditing(false);
     }
+    setIsEditing(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleBlur();
-    }
+    if (e.key === 'Enter') handleBlur();
   };
 
   useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-    }
+    if (isEditing) inputRef.current?.focus();
   }, [isEditing]);
 
   return (
@@ -60,8 +48,7 @@ export default function SpaceNameS({
         <input
           ref={inputRef}
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          defaultValue={name}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           maxLength={24}
@@ -69,9 +56,7 @@ export default function SpaceNameS({
           className="w-full bg-transparent border-none outline-none text-inherit font-inherit placeholder-[#777] truncate"
         />
       ) : (
-        <span className="truncate w-full whitespace-nowrap overflow-hidden">
-          {name}
-        </span>
+        <span className="truncate w-full whitespace-nowrap overflow-hidden">{name}</span>
       )}
     </div>
   );
