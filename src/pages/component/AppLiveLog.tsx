@@ -84,7 +84,7 @@ export default function AppLiveLog({ keyword }: AppLiveLogProps) {
                 ${isLast ? "rounded-br-md" : ""}`}
               >
                 <span
-                  className="text-[#D8D8D8] text-[14px] truncate max-w-full text-center px-2"
+                  className="text-[#D8D8D8] text-[14px] truncate max-w-[600px] text-center px-2"
                   title={row?.message || ""}
                 >
                   {row?.message || ""}
