@@ -15,6 +15,7 @@ import {
   updateFolder,
 } from '../../api/folders';
 import { getTeams } from '../../api/teams';
+import { getDashboards } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
 // Board 타입 정의
@@ -24,6 +25,11 @@ interface Board {
   logPath?: string;
   status?: 'collecting' | 'unresponsive' | 'before';
 }
+
+const parseDate = (dateStr: string) => {
+  const normalized = dateStr.replace(/\./g, '-').replace(' ', 'T');
+  return new Date(normalized);
+};
 
 export default function P_SpacePage() {
   const { user } = useAuth();
@@ -55,7 +61,33 @@ export default function P_SpacePage() {
   const fetchData = async () => {
     try {
       const data = await getPersonalFolders(user.id);
-      setFolders(data);
+
+      // 각 폴더에 boards 붙이기
+      const foldersWithBoards = await Promise.all(
+        data.map(async (folder: any) => {
+          try {
+            const res = await getDashboards(folder.id);
+            const boards: Board[] = res?.data || [];
+            return { ...folder, boards };
+          } catch (err) {
+            console.error(`대시보드 불러오기 실패 (folderId=${folder.id}):`, err);
+            return { ...folder, boards: [] };
+          }
+        })
+      );
+
+      const sortedFolders = [...foldersWithBoards].sort((a, b) => {
+        const aDate = parseDate(a.updatedAt);
+        const bDate = parseDate(b.updatedAt);
+
+        if (personalSortOrder === 'newest') {
+          return bDate.getTime() - aDate.getTime();
+        } else {
+          return aDate.getTime() - bDate.getTime();
+        }
+      });
+
+      setFolders(sortedFolders);
 
       const teams = await getTeams();
       setTeamFolders(teams.map((t: any) => ({ ...t, spaceType: 'team' })));
@@ -156,7 +188,7 @@ export default function P_SpacePage() {
         <div className="flex gap-[12px] mt-[28px]">
           <BtnSort
             spaceType="personal"
-            order={personalSortOrder}          
+            order={personalSortOrder}
             onSortChange={setPersonalSortOrder}
           />
           <BtnPoint onClick={handleAddFolder}>새 폴더 추가 +</BtnPoint>

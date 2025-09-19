@@ -27,6 +27,12 @@ interface NewBoard {
   advancedConfig?: any;
 }
 
+//날짜 문자열 파싱
+const parseDate = (dateStr: string) => {
+  const normalized = dateStr.replace(/\./g, '-').replace(' ', 'T');
+  return new Date(normalized);
+};
+
 export default function FolderPage() {
   const { isLoading, isAuthed, user } = useAuth();
   if (isLoading) return null;
@@ -36,7 +42,7 @@ export default function FolderPage() {
   const { folderId } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
 
-  const { folders, setFolders } = useFolderStore();
+  const { folders, setFolders, personalSortOrder } = useFolderStore();
 
   const [loading, setLoading] = useState(true);
   const [boards, setBoards] = useState<Board[]>([]);
@@ -72,8 +78,18 @@ export default function FolderPage() {
         if (!user || !folderId) return;
 
         const data = await getPersonalFolders(user.id);
+
+        // 정렬 추가 (updatedAt 기준)
+        const sorted = [...(data || [])].sort((a, b) => {
+          const aDate = parseDate(a.updatedAt);
+          const bDate = parseDate(b.updatedAt);
+          return personalSortOrder === 'newest'
+            ? bDate.getTime() - aDate.getTime()
+            : aDate.getTime() - bDate.getTime();
+        });
+
         setFolders(
-          (data || []).map((f: any) => ({
+          sorted.map((f: any) => ({
             id: f.id,
             name: f.name,
             boards: f.boards || [],
@@ -89,7 +105,7 @@ export default function FolderPage() {
       }
     };
     fetchData();
-  }, [user, folderId, setFolders]);
+  }, [user, folderId, setFolders, personalSortOrder]);
 
   const currentFolder = folders.find((f) => String(f.id) === String(folderId));
 
@@ -135,7 +151,7 @@ export default function FolderPage() {
   };
 
   return (
-    <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-y-auto">
+    <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit overflow-hidden">
       <Bar
         username={username}
         onAddFolder={() => {
@@ -186,7 +202,14 @@ export default function FolderPage() {
           <AnimatePresence>
             {!loading &&
               boards.map((board) => (
-                <motion.div key={board.id} layout variants={cardVariants} initial="hidden" animate="visible" exit="exit">
+                <motion.div
+                  key={board.id}
+                  layout
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
                   <FrmThumbnailBoard
                     folderId={Number(folderId)}
                     boardId={board.id}
@@ -199,16 +222,30 @@ export default function FolderPage() {
                   />
                 </motion.div>
               ))}
-          </AnimatePresence>
 
-          {!loading && (
-            <FrmThumbnailBoard
-              folderId={Number(folderId)}
-              boardId={0}
-              connected={false}
-              onAddBoard={() => setIsDashboardMakeOpen(true)}
-            />
-          )}
+            {/* 새로운 보드 연결하기 슬롯 */}
+            {!loading && (
+              <AnimatePresence>
+                {boards.length < 4 && (
+                  <motion.div
+                    key="add-slot"
+                    layout
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <FrmThumbnailBoard
+                      folderId={Number(folderId)}
+                      boardId={0}
+                      connected={false}
+                      onAddBoard={() => setIsDashboardMakeOpen(true)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
 
