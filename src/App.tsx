@@ -4,12 +4,66 @@ import SignupPage from './pages/signup/SignupPage';
 import PSpacePage from './pages/home/P-SpacePage';
 import MyInfoPage from './pages/home/MyInfo';
 import MyInfoEditPage from './pages/home/MyInfoEdit';
-import { AuthProvider, ProtectedRoute } from './utils/AuthContext';
+import { AuthProvider, ProtectedRoute, useAuth } from './utils/AuthContext';
 import FolderPage from './pages/home/folderpage';
 import S_SpacePage from './pages/home/S-SpacePage';
 import LandingPage from './pages/landingpage/landingpage';
 import TeamPage from './pages/home/teampage';
 import AppDashboard from './pages/dashboard/appdashboard';
+import { useEffect } from 'react';
+import { useFolderStore } from './utils/folderStore';
+import { getPersonalFolders } from './api/folders';
+import { getTeams, getTeamFolders } from './api/teams';
+
+// 로그인 후 폴더/팀 초기화 컴포넌트
+function AppInitializer() {
+  const { user } = useAuth();
+  const { setFolders, setTeamFolders } = useFolderStore();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const initData = async () => {
+      try {
+        // 개인 폴더
+        const personal = await getPersonalFolders(user.id);
+        setFolders(() => personal);
+
+        // 팀 목록
+        const teams = await getTeams();
+
+        // 각 팀의 폴더 불러오기
+        const allTeamFolders = await Promise.all(
+          teams.map(async (team: any) => {
+            try {
+              const res = await getTeamFolders(team.id);
+              if (!res || res.length === 0) return null;
+
+              const folder = res[0];
+              return {
+                ...folder,
+                teamId: team.id,
+                teamName: team.name,
+                myRole: team.myRole,
+              };
+            } catch (err) {
+              console.error(`팀 폴더 조회 실패 (teamId=${team.id}):`, err);
+              return null;
+            }
+          })
+        );
+
+        setTeamFolders(() => allTeamFolders.filter(Boolean));
+      } catch (err) {
+        console.error('초기 데이터 불러오기 실패:', err);
+      }
+    };
+
+    initData();
+  }, [user, setFolders, setTeamFolders]);
+
+  return null;
+}
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -31,7 +85,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 개인 스페이스 폴더 내부 */}
       <Route
         path="/personal/:folderId"
         element={
@@ -40,7 +93,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 개인 스페이스 보드(AppDashboard) */}
       <Route
         path="/personal/:folderId/:boardId"
         element={
@@ -59,7 +111,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 팀 스페이스 폴더 내부 */}
       <Route
         path="/team/:teamId"
         element={
@@ -68,7 +119,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 팀 스페이스 보드(AppDashboard) */}
       <Route
         path="/team/:teamId/:boardId"
         element={
@@ -106,6 +156,8 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* 로그인 후 개인/팀 폴더를 전역 초기화 */}
+        <AppInitializer />
         <AnimatedRoutes />
       </Router>
     </AuthProvider>
