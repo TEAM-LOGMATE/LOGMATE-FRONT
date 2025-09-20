@@ -119,6 +119,10 @@ export default function S_SpacePage() {
     try {
       await deleteTeam(Number(id));
       setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id)));
+
+      // 삭제 후 모달 닫기
+      setShowTeamSettings(false);
+      setEditingTeam(null);
     } catch (err) {
       console.error('팀 삭제 실패:', err);
     }
