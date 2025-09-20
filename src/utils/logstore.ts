@@ -76,7 +76,7 @@ export const useLogStore = create<LogState>((set, get) => ({
               level: data.log.level,
               logger: data.log.logger,
               message: data.log.message,
-              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`, // ✅ raw 생성
+              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`, 
             },
             ...state.appLogs,
           ],
@@ -95,7 +95,7 @@ export const useLogStore = create<LogState>((set, get) => ({
               userAgent: data.log.userAgent,
               ip: data.log.ip,
               aiScore: data.aiScore,
-              raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`, // ✅ raw 생성
+              raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`,
             },
             ...state.webLogs,
           ],
