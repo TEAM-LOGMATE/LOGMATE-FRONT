@@ -4,9 +4,10 @@ import { useLogStore } from "../../utils/logstore";
 
 interface AppLiveLogProps {
   keyword: string;
+  onSelectLog?: (log: any) => void; // ✅ 로그 선택 이벤트 추가
 }
 
-export default function AppLiveLog({ keyword }: AppLiveLogProps) {
+export default function AppLiveLog({ keyword, onSelectLog }: AppLiveLogProps) {
   const logs = useLogStore((s) => s.appLogs);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +52,8 @@ export default function AppLiveLog({ keyword }: AppLiveLogProps) {
           return (
             <div
               key={idx}
-              className="flex border-b border-[#2A2A2A] last:border-none"
+              onClick={() => onSelectLog?.(row)} // ✅ 클릭 시 부모로 row 전달
+              className="flex border-b border-[#2A2A2A] last:border-none cursor-pointer hover:bg-[#1F1F1F]"
             >
               {/* Timestamp */}
               <div
