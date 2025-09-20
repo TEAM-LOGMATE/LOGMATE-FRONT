@@ -8,6 +8,7 @@ export interface AppLog {
   level: string;
   logger: string;
   message: string;
+  raw?: string; // UI에서만 사용
 }
 
 export interface WebLog {
@@ -21,12 +22,13 @@ export interface WebLog {
   userAgent: string;
   ip: string;
   aiScore: number;
+  raw?: string; // UI에서만 사용
 }
 
 interface LogState {
   appLogs: AppLog[];
   webLogs: WebLog[];
-  socket: WebSocket | null; // WebSocket 객체 보관
+  socket: WebSocket | null;
   addAppLog: (log: AppLog) => void;
   addWebLog: (log: WebLog) => void;
   connect: (agentId: string, thNum: string) => void;
@@ -52,19 +54,13 @@ export const useLogStore = create<LogState>((set, get) => ({
     })),
 
   connect: (agentId, thNum) => {
-    // 기존 연결이 있으면 닫기
     const existing = get().socket;
     if (existing) {
       existing.close();
     }
 
-    // .env에서 WebSocket Base URL 불러오기
     const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
-
-    const ws = new WebSocket(
-      `${wsBaseUrl}/ws/logs/${agentId}/${thNum}`
-    );
-
+    const ws = new WebSocket(`${wsBaseUrl}/ws/logs/${agentId}/${thNum}`);
     set({ socket: ws });
 
     ws.onopen = () => console.log("WebSocket 연결 성공");
@@ -80,6 +76,7 @@ export const useLogStore = create<LogState>((set, get) => ({
               level: data.log.level,
               logger: data.log.logger,
               message: data.log.message,
+              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`, // ✅ raw 생성
             },
             ...state.appLogs,
           ],
@@ -98,6 +95,7 @@ export const useLogStore = create<LogState>((set, get) => ({
               userAgent: data.log.userAgent,
               ip: data.log.ip,
               aiScore: data.aiScore,
+              raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`, // ✅ raw 생성
             },
             ...state.webLogs,
           ],
