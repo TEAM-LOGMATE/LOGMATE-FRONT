@@ -4,9 +4,10 @@ import { useLogStore } from "../../utils/logstore";
 
 interface WebLiveLogProps {
   keyword: string;
+  onSelect?: (log: any) => void;
 }
 
-export default function WebLiveLog({ keyword }: WebLiveLogProps) {
+export default function WebLiveLog({ keyword, onSelect }: WebLiveLogProps) {
   const { webLogs } = useLogStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -80,7 +81,8 @@ export default function WebLiveLog({ keyword }: WebLiveLogProps) {
           return (
             <div
               key={idx}
-              className="flex border-b border-[#2A2A2A] last:border-none"
+              onClick={() => onSelect?.(row)} 
+              className="flex border-b border-[#2A2A2A] last:border-none cursor-pointer hover:bg-[#2A2A2A]"
             >
               <div
                 className={`flex w-[200px] h-[36px] justify-center items-center bg-[#171717] ${

@@ -7,10 +7,12 @@ import SearchRefresh from "../component/searchrefresh";
 import WebLiveLog from "../component/WebLiveLog";
 import WebLogLine from "../component/WebLogLine";
 import WebTimeLog from "../component/WebTimeLog";
+import WebLogDetailPanel from "./weblogdetail";
 
 export default function WebDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,10 +37,23 @@ export default function WebDashboard() {
           onRefresh={() => setRefreshKey((k) => k + 1)}
           onSearch={(kw) => setSearchKeyword(kw)}
         />
-        <WebLiveLog key={refreshKey} keyword={searchKeyword} />
+
+        {/* 로그 클릭 시 패널*/}
+        <WebLiveLog
+          key={refreshKey}
+          keyword={searchKeyword}
+          onSelect={setSelectedLog}
+        />
+
         <WebLogLine />
         <WebTimeLog />
       </div>
+
+      {/* 상세 패널 */}
+      <WebLogDetailPanel
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+      />
     </div>
   );
 }
