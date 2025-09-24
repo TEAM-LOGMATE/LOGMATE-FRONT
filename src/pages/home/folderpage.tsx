@@ -7,10 +7,15 @@ import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
+import DashboardEdit from '../dashboard/dashboardedit';
 import { useAuth } from '../../utils/AuthContext';
 import { MAX_SPACES } from '../../utils/validate';
 import { getPersonalFolders } from '../../api/folders';
-import { getDashboards, createDashboard, saveDashboardConfig } from '../../api/dashboard';
+import {
+  getDashboards,
+  createDashboard,
+  saveDashboardConfig,
+} from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
 interface Board {
@@ -19,18 +24,44 @@ interface Board {
   logPath?: string;
   lastModified?: string;
   status?: 'collecting' | 'unresponsive' | 'before';
+  agentId?: string;
+  advancedConfig?: any;
 }
 
 interface NewBoard {
   name: string;
   logPath: string;
-  advancedConfig?: any;
+  advancedConfig: any;
+  logType: string;
+  timezone: string;
+  agentId?: string;
 }
 
-//날짜 문자열 파싱
+// 날짜 문자열 파싱
 const parseDate = (dateStr: string) => {
   const normalized = dateStr.replace(/\./g, '-').replace(' ', 'T');
   return new Date(normalized);
+};
+
+// advancedConfig 기본값
+const defaultAdvancedConfig = {
+  tailer: {
+    readIntervalMs: 1000,
+    metaDataFilePathPrefix: '/tmp/meta',
+  },
+  multiline: {
+    enabled: false,
+    maxLines: 1,
+  },
+  exporter: {
+    compressEnabled: false,
+    retryIntervalSec: 5,
+    maxRetryCount: 3,
+  },
+  filter: {
+    allowedLevels: [],
+    requiredKeywords: [],
+  },
 };
 
 export default function FolderPage() {
@@ -49,6 +80,9 @@ export default function FolderPage() {
   const [activePage, setActivePage] = useState<'personal' | 'myinfo' | 'team'>('personal');
 
   const [isDashboardMakeOpen, setIsDashboardMakeOpen] = useState(false);
+  const [isDashboardEditOpen, setIsDashboardEditOpen] = useState(false);
+  const [editTargetBoard, setEditTargetBoard] = useState<Board | null>(null);
+
   const [showToast, setShowToast] = useState(false);
   const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
 
@@ -66,7 +100,25 @@ export default function FolderPage() {
     if (!user || !folderId) return;
     try {
       const dashboards = await getDashboards(Number(folderId));
-      setBoards(dashboards.data || []);
+
+      const enrichedBoards = await Promise.all(
+        (dashboards.data || []).map(async (d: any) => {
+          let advancedConfig = { ...defaultAdvancedConfig };
+          let agentId = d.agentId;
+
+          return {
+            id: d.id,
+            name: d.name,
+            logPath: d.logPath,
+            lastModified: d.lastModified,
+            status: d.status,
+            agentId,
+            advancedConfig,
+          };
+        })
+      );
+
+      setBoards(enrichedBoards);
     } catch (err) {
       console.error('대시보드 조회 실패:', err);
     }
@@ -131,13 +183,48 @@ export default function FolderPage() {
       const dashboardId = created?.data?.id;
       if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
 
-      if (board.advancedConfig) {
-        const configRes = await saveDashboardConfig(Number(folderId), dashboardId, board.advancedConfig);
-        const agentId = configRes?.data?.agentId;
-        setCreatedAgentId(agentId);
-      }
+      const configBody = {
+        agentId: board.agentId || null,
+        logPipelineConfigs: [
+          {
+            parserType: board.logType,
+            parser: { timezone: board.timezone },
+            tailer: {
+              ...board.advancedConfig.tailer,
+              filePath: board.logPath,
+            },
+            multiline: board.advancedConfig.multiline,
+            exporter: board.advancedConfig.exporter,
+            filter:
+              board.logType === 'springboot'
+                ? {
+                    allowedLevels: board.advancedConfig.filter.allowedLevels || [],
+                    requiredKeywords: board.advancedConfig.filter.requiredKeywords || [],
+                  }
+                : {
+                    allowedMethods: board.advancedConfig.filter.allowedMethods || [],
+                    requiredKeywords: board.advancedConfig.filter.requiredKeywords || [],
+                  },
+          },
+        ],
+      };
 
-      await fetchDashboards();
+      const configRes = await saveDashboardConfig(Number(folderId), dashboardId, configBody);
+      const agentId = configRes?.data?.agentId;
+      setCreatedAgentId(agentId);
+
+      setBoards((prev) => [
+        ...prev,
+        {
+          id: dashboardId,
+          name: board.name,
+          logPath: board.logPath,
+          lastModified: new Date().toISOString(),
+          status: 'before',
+          agentId,
+          advancedConfig: configBody.logPipelineConfigs[0],
+        },
+      ]);
 
       setIsDashboardMakeOpen(false);
       setShowToast(true);
@@ -148,6 +235,10 @@ export default function FolderPage() {
 
   const handleDeleteBoard = (boardId: number) => {
     setBoards((prev) => prev.filter((b) => b.id !== boardId));
+  };
+
+  const handleUpdateBoard = (updated: Board) => {
+    setBoards((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
   };
 
   return (
@@ -215,7 +306,14 @@ export default function FolderPage() {
                     boardId={board.id}
                     connected={true}
                     boardName={board.name}
+                    logPath={board.logPath}
+                    advancedConfig={board.advancedConfig}
+                    agentId={board.agentId}
                     onDeleted={() => handleDeleteBoard(board.id)}
+                    onUpdated={() => {
+                      setEditTargetBoard(board);
+                      setIsDashboardEditOpen(true);
+                    }}
                     onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
                     previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
                     statusType={board.status || 'before'}
@@ -223,7 +321,6 @@ export default function FolderPage() {
                 </motion.div>
               ))}
 
-            {/* 새로운 보드 연결하기 슬롯 */}
             {!loading && (
               <AnimatePresence>
                 {boards.length < 4 && (
@@ -253,12 +350,12 @@ export default function FolderPage() {
       <AnimatePresence>
         {isDashboardMakeOpen && (
           <motion.div
+            key="make"
             className="fixed inset-0 flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* 배경 */}
             <motion.div
               className="absolute inset-0 bg-black/50"
               initial={{ opacity: 0 }}
@@ -266,7 +363,6 @@ export default function FolderPage() {
               exit={{ opacity: 0 }}
               onClick={() => setIsDashboardMakeOpen(false)}
             />
-            {/* 모달 */}
             <motion.div
               className="relative z-10"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -275,7 +371,53 @@ export default function FolderPage() {
               transition={{ duration: 0.25, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <DashboardMake folderId={Number(folderId)} onCreate={(board: NewBoard) => handleAddBoard(board)} />
+              <DashboardMake
+                folderId={Number(folderId)}
+                onCreate={(board: NewBoard) => handleAddBoard(board)}
+                onClose={() => setIsDashboardMakeOpen(false)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DashboardEdit 모달 */}
+      <AnimatePresence>
+        {isDashboardEditOpen && editTargetBoard && (
+          <motion.div
+            key={`edit-${editTargetBoard.id}`}
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDashboardEditOpen(false)}
+            />
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardEdit
+                folderId={Number(folderId)}
+                boardId={editTargetBoard.id}
+                initialName={editTargetBoard.name}
+                initialLogPath={editTargetBoard.logPath ?? ''}
+                initialAdvancedConfig={editTargetBoard.advancedConfig}
+                initialAgentId={editTargetBoard.agentId}
+                initialLogType={editTargetBoard.advancedConfig?.parserType ?? 'springboot'}
+                initialTimezone={editTargetBoard.advancedConfig?.parser?.timezone ?? 'Asia/Seoul'}
+                onUpdated={handleUpdateBoard}
+                onClose={() => setIsDashboardEditOpen(false)}
+              />
             </motion.div>
           </motion.div>
         )}

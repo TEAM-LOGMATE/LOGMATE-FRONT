@@ -1,12 +1,14 @@
 import ToastMessage from '../dashboard/toastmessage';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
 import DashboardMake from '../dashboard/dashboardmake';
+import type { DashboardFormData } from '../dashboard/dashboardmake';
+import DashboardEdit from '../dashboard/dashboardedit';
 import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import { useAuth } from '../../utils/AuthContext';
 import {
@@ -14,8 +16,9 @@ import {
   createDashboard,
   deleteDashboard,
   saveDashboardConfig,
+  updateDashboard,
 } from '../../api/dashboard';
-import { getTeamFolders, createTeam } from '../../api/teams';
+import { getTeamFolders, createTeam, getTeams } from '../../api/teams';
 import { useFolderStore } from '../../utils/folderStore';
 import type { UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 
@@ -35,12 +38,16 @@ interface Board {
   updatedAt?: string;
   logPath?: string;
   status?: BoardStatus;
+  advancedConfig?: any;
+  agentId?: string;
 }
 
 export default function TeamPage() {
   const { user } = useAuth();
+  const isAuthed = !!user?.id;
   const username = user?.username ?? '';
   const { teamId } = useParams<{ teamId: string }>();
+  const numericTeamId = teamId ? Number(teamId) : null;
   const navigate = useNavigate();
 
   const { teamFolders, setTeamFolders, teamBoardSortOrder } = useFolderStore();
@@ -55,8 +62,9 @@ export default function TeamPage() {
   const [showToast, setShowToast] = useState(false);
   const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
   const [showMakeTeam, setShowMakeTeam] = useState(false);
+  const [isDashboardEditOpen, setIsDashboardEditOpen] = useState(false);
+  const [editTargetBoard, setEditTargetBoard] = useState<Board | null>(null);
 
-  // 보드 카드 애니메이션
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -76,45 +84,134 @@ export default function TeamPage() {
     }
   };
 
-  useEffect(() => {
-    if (!user || !teamId) return;
+  const hydratingRef = useRef(false);
 
-    const loadBoards = async () => {
+  useEffect(() => {
+    if (!isAuthed || !numericTeamId) return;
+    const existing = teamFolders.find((f) => String(f.id) === String(numericTeamId));
+
+    const needsHydrate =
+      !existing ||
+      !existing.description ||
+      !existing.createdAt ||
+      !existing.updatedAt;
+
+    if (!needsHydrate || hydratingRef.current) return;
+
+    hydratingRef.current = true;
+    (async () => {
       try {
-        await fetchDashboards(Number(teamId));
+        const [teams, folders] = await Promise.all([
+          getTeams(),
+          getTeamFolders(numericTeamId),
+        ]);
+
+        const targetTeam = teams.find((t: any) => String(t.id) === String(numericTeamId));
+        const firstFolder = folders?.[0];
+
+        if (targetTeam) {
+          const teamData = {
+            ...targetTeam,
+            createdAt: firstFolder?.createdAt ?? null,
+            updatedAt: firstFolder?.updatedAt ?? null,
+            spaceType: 'team' as const,
+          };
+
+          setTeamFolders((prev) => {
+            const filtered = prev.filter((f) => String(f.id) !== String(numericTeamId));
+            return [...filtered, teamData];
+          });
+        }
       } catch (err) {
-        console.error('보드 조회 실패:', err);
+        console.error('팀 데이터 조회 실패:', err);
+      } finally {
+        hydratingRef.current = false;
+      }
+    })();
+  }, [isAuthed, numericTeamId, teamFolders, setTeamFolders]);
+
+  // 초기 로드
+  useEffect(() => {
+    if (!isAuthed || !numericTeamId) return;
+
+    (async () => {
+      try {
+        const [teams, folders, dashboards] = await Promise.all([
+          getTeams(),
+          getTeamFolders(numericTeamId),
+          getDashboards(numericTeamId),
+        ]);
+
+        const targetTeam = teams.find((t: any) => String(t.id) === String(numericTeamId));
+        const firstFolder = folders?.[0];
+
+        if (targetTeam) {
+          const teamData = {
+            ...targetTeam,
+            createdAt: firstFolder?.createdAt ?? null,
+            updatedAt: firstFolder?.updatedAt ?? null,
+            spaceType: 'team' as const,
+          };
+
+          setTeamFolders((prev) => {
+            const filtered = prev.filter((f) => String(f.id) !== String(numericTeamId));
+            return [...filtered, teamData];
+          });
+        }
+
+        setBoards(dashboards.data || []);
+      } catch (err) {
+        console.error('팀/보드 초기 로드 실패:', err);
       } finally {
         setLoading(false);
       }
-    };
+    })();
+  }, [isAuthed, numericTeamId, setTeamFolders]);
 
-    loadBoards();
-  }, [user, teamId]);
-
-  const handleCreateBoard = async (boardData: any) => {
-    if (!teamId) return;
+  // 보드 생성 핸들러
+  const handleCreateBoard = async (boardData: DashboardFormData) => {
+    if (!numericTeamId) return;
     try {
-      const created = await createDashboard(Number(teamId), {
+      const created = await createDashboard(numericTeamId, {
         name: boardData.name,
         logPath: boardData.logPath,
       });
 
       const dashboardId = created?.data?.id;
-      if (!dashboardId)
-        throw new Error('대시보드 ID를 가져오지 못했습니다.');
+      if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
 
-      if (boardData.advancedConfig) {
-        const res = await saveDashboardConfig(
-          Number(teamId),
-          dashboardId,
-          boardData.advancedConfig
-        );
-        const agentId = res?.data?.agentId;
-        setCreatedAgentId(agentId);
-      }
+      // 서버 스펙에 맞게 body 구성
+      const configBody = {
+        agentId: boardData.agentId ?? null,
+        logPipelineConfigs: [
+          {
+            parserType: boardData.logType,
+            parser: { timezone: boardData.timezone },
+            tailer: {
+              ...boardData.advancedConfig.tailer,
+              filePath: boardData.logPath,
+            },
+            multiline: boardData.advancedConfig.multiline,
+            exporter: boardData.advancedConfig.exporter,
+            filter:
+              boardData.logType === 'springboot'
+                ? {
+                    allowedLevels: boardData.advancedConfig.filter.allowedLevels || [],
+                    requiredKeywords: boardData.advancedConfig.filter.requiredKeywords || [],
+                  }
+                : {
+                    allowedMethods: boardData.advancedConfig.filter.allowedMethods || [],
+                    requiredKeywords: boardData.advancedConfig.filter.requiredKeywords || [],
+                  },
+          },
+        ],
+      };
 
-      await fetchDashboards(Number(teamId));
+      const res = await saveDashboardConfig(numericTeamId, dashboardId, configBody);
+      const agentId = res?.data?.agentId;
+      setCreatedAgentId(agentId);
+
+      await fetchDashboards(numericTeamId);
 
       setShowDashboardMake(false);
       setSelectedFolderId(null);
@@ -124,34 +221,36 @@ export default function TeamPage() {
     }
   };
 
+  // 보드 삭제
   const handleDeleteBoard = async (boardId: number) => {
-    if (!teamId) return;
+    if (!numericTeamId) return;
     try {
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
-      await deleteDashboard(Number(teamId), boardId);
+      await deleteDashboard(numericTeamId, boardId);
     } catch (err) {
       console.error('보드 삭제 실패:', err);
     }
   };
 
+  // 보드 수정
+  const handleUpdateBoard = (updated: Board) => {
+    setBoards((prev) =>
+      prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b))
+    );
+  };
+
   const sortedBoards = useMemo(() => {
     const sorted = [...boards].sort((a, b) => {
-      const aTime = new Date(
-        a.lastEdited || a.updatedAt || a.createdAt || 0
-      ).getTime();
-      const bTime = new Date(
-        b.lastEdited || b.updatedAt || b.createdAt || 0
-      ).getTime();
-
+      const aTime = new Date(a.lastEdited || a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.lastEdited || b.updatedAt || b.createdAt || 0).getTime();
       return teamBoardSortOrder === 'newest' ? bTime - aTime : aTime - bTime;
     });
     return sorted;
   }, [boards, teamBoardSortOrder]);
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!isAuthed) return <Navigate to="/login" replace />;
 
-  const currentTeam = teamFolders.find((f) => String(f.id) === String(teamId));
-  if (!teamId || !currentTeam) return null;
+  const currentTeam = teamFolders.find((f) => String(f.id) === String(numericTeamId));
 
   return (
     <div className="flex w-screen h-screen bg-[#0F0F0F] text-white font-suit">
@@ -183,9 +282,9 @@ export default function TeamPage() {
             </div>
             <div className="flex flex-col">
               <h1 className="text-[28px] font-bold text-[#F2F2F2]">
-                {currentTeam.name}
+                {currentTeam?.name ?? ''}
               </h1>
-              {currentTeam.description && (
+              {currentTeam?.description && (
                 <p className="text-[#AEAEAE] text-[16px] mt-1">
                   {currentTeam.description}
                 </p>
@@ -216,22 +315,29 @@ export default function TeamPage() {
                   exit="exit"
                 >
                   <FrmThumbnailBoard
-                    folderId={Number(currentTeam.id)}
+                    folderId={Number(currentTeam?.id)}
                     boardId={b.id}
                     connected={true}
                     spaceType="team"
                     boardName={b.name}
-                    previewPath={`/team/${currentTeam.id}/${b.id}?thumb=1`}
+                    logPath={b.logPath}
+                    advancedConfig={b.advancedConfig}
+                    agentId={b.agentId}
+                    previewPath={`/team/${currentTeam?.id}/${b.id}?thumb=1`}
                     statusType={b.status || 'before'}
                     lastEdited={b.lastEdited}
-                    onOpen={() => navigate(`/team/${currentTeam.id}/${b.id}`)}
+                    onOpen={() => navigate(`/team/${currentTeam?.id}/${b.id}`)}
                     onDeleted={() => handleDeleteBoard(b.id)}
+                    onUpdated={(updated) => {
+                      setEditTargetBoard(b);
+                      setIsDashboardEditOpen(true);
+                    }}
                   />
                 </motion.div>
               ))}
 
-            {/* 새로운 보드 연결하기 슬롯 */}
-            {!loading && (
+            {/* 새로운 보드 슬롯 */}
+            {!loading && currentTeam && (
               <motion.div
                 key="add-slot"
                 layout
@@ -265,7 +371,6 @@ export default function TeamPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* 배경 */}
             <motion.div
               className="absolute inset-0 bg-black/60"
               initial={{ opacity: 0 }}
@@ -273,7 +378,6 @@ export default function TeamPage() {
               exit={{ opacity: 0 }}
               onClick={() => setShowDashboardMake(false)}
             />
-            {/* 모달 */}
             <motion.div
               className="relative z-10"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -283,8 +387,50 @@ export default function TeamPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <DashboardMake
-                folderId={Number(currentTeam.id)}
+                folderId={Number(currentTeam?.id)}
                 onCreate={handleCreateBoard}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DashboardEdit 모달 */}
+      <AnimatePresence>
+        {isDashboardEditOpen && editTargetBoard && (
+          <motion.div
+            key={`edit-${editTargetBoard.id}`}
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDashboardEditOpen(false)}
+            />
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardEdit
+                folderId={Number(currentTeam?.id)}
+                boardId={editTargetBoard.id}
+                initialName={editTargetBoard.name}
+                initialLogPath={editTargetBoard.logPath ?? ''}
+                initialAdvancedConfig={editTargetBoard.advancedConfig ?? {}}
+                initialAgentId={editTargetBoard.agentId ?? ''}
+                initialLogType={editTargetBoard.advancedConfig?.parserType ?? 'springboot'}
+                initialTimezone={editTargetBoard.advancedConfig?.parser?.timezone ?? 'Asia/Seoul'}
+                onUpdated={handleUpdateBoard}
+                onClose={() => setIsDashboardEditOpen(false)}
               />
             </motion.div>
           </motion.div>
@@ -313,11 +459,14 @@ export default function TeamPage() {
                   members: apiMembers,
                 });
 
-                // 새 팀 → 폴더 조회해서 날짜 붙여줌
                 let teamWithDates = res.data;
                 try {
                   const folders = await getTeamFolders(res.data.id);
-                  const firstFolder = folders[0];
+                  const withSpaceType = folders.map((f) => ({
+                    ...f,
+                    spaceType: 'team' as const,
+                  }));
+                  const firstFolder = withSpaceType[0];
                   teamWithDates = {
                     ...res.data,
                     createdAt: firstFolder?.createdAt ?? null,

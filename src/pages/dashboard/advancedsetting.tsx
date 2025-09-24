@@ -3,78 +3,97 @@ import MultilineSettings from './advanced/multiline';
 import ExporterSettings from './advanced/exporter';
 import FilterSettings from './advanced/filter';      // Spring Boot용
 import FilterWeb from './advanced/filterweb';        // Tomcat용
-import ConfigurationPuller from './advanced/configurationpuller';
 
-interface SpringBootFilter {
+export interface SpringBootFilter {
   allowedLevels: string[];
   requiredKeywords: string[];
-  after: string;
 }
 
-interface TomcatFilter {
+export interface TomcatFilter {
   allowedMethods: string[];
   requiredKeywords: string[];
 }
 
-interface AdvancedSettingsProps {
-  logType: 'springboot' | 'tomcat access';
-  value: {
-    tailer: {
+export interface AdvancedSettingsProps {
+  logType: 'springboot' | 'tomcat';
+  value?: {
+    tailer?: {
       readIntervalMs: number;
       metaDataFilePathPrefix: string;
     };
-    multiline: {
+    multiline?: {
       enabled: boolean;
       maxLines: number;
     };
-    exporter: {
+    exporter?: {
       compressEnabled: boolean;
       retryIntervalSec: number;
       maxRetryCount: number;
     };
-    filter: SpringBootFilter | TomcatFilter;
-    puller: {
-      intervalSec: number;
-    };
+    filter?: SpringBootFilter | TomcatFilter;
   };
   onChange: (newValue: AdvancedSettingsProps["value"]) => void;
 }
 
+// 기본값 정의
+const defaultConfig = {
+  tailer: {
+    readIntervalMs: 1000,
+    metaDataFilePathPrefix: '/tmp/meta',
+  },
+  multiline: {
+    enabled: false,
+    maxLines: 1,
+  },
+  exporter: {
+    compressEnabled: false,
+    retryIntervalSec: 5,
+    maxRetryCount: 3,
+  },
+  filter: {
+    allowedLevels: [],
+    requiredKeywords: [],
+  } as SpringBootFilter,
+};
+
 export default function AdvancedSettings({ logType, value, onChange }: AdvancedSettingsProps) {
+  // 기본값과 병합 (서버에서 내려온 값이 있으면 덮어씀)
+  const safeValue = {
+    ...defaultConfig,
+    ...value,
+    tailer: { ...defaultConfig.tailer, ...(value?.tailer || {}) },
+    multiline: { ...defaultConfig.multiline, ...(value?.multiline || {}) },
+    exporter: { ...defaultConfig.exporter, ...(value?.exporter || {}) },
+    filter: { ...defaultConfig.filter, ...(value?.filter || {}) },
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <TailerSettings
-        value={value.tailer}
-        onChange={(tailer) => onChange({ ...value, tailer })}
+        value={safeValue.tailer}
+        onChange={(tailer) => onChange({ ...safeValue, tailer })}
       />
       <MultilineSettings
-        value={value.multiline}
-        onChange={(multiline) => onChange({ ...value, multiline })}
+        value={safeValue.multiline}
+        onChange={(multiline) => onChange({ ...safeValue, multiline })}
       />
       <ExporterSettings
-        value={value.exporter}
-        onChange={(exporter) => onChange({ ...value, exporter })}
+        value={safeValue.exporter}
+        onChange={(exporter) => onChange({ ...safeValue, exporter })}
       />
 
-      {/* 🔹 로그 타입별 필터 분기 + 방어적 체크 */}
-      {logType === 'springboot' && (value.filter as SpringBootFilter)?.allowedLevels ? (
+      {/* 로그 타입별 필터 분기 */}
+      {logType === 'springboot' ? (
         <FilterSettings
-          value={value.filter as SpringBootFilter}
-          onChange={(filter) => onChange({ ...value, filter })}
+          value={safeValue.filter as SpringBootFilter}
+          onChange={(filter) => onChange({ ...safeValue, filter })}
         />
-      ) : null}
-
-      {logType === 'tomcat access' && (value.filter as TomcatFilter)?.allowedMethods ? (
+      ) : (
         <FilterWeb
-          value={value.filter as TomcatFilter}
-          onChange={(filter) => onChange({ ...value, filter })}
+          value={safeValue.filter as TomcatFilter}
+          onChange={(filter) => onChange({ ...safeValue, filter })}
         />
-      ) : null}
-
-      <ConfigurationPuller
-        value={value.puller}
-        onChange={(puller) => onChange({ ...value, puller })}
-      />
+      )}
     </div>
   );
 }
