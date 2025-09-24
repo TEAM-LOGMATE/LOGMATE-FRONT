@@ -10,9 +10,7 @@ export const createDashboard = async (
 ) => {
   const token = localStorage.getItem("access_token");
   const res = await api.post(`/api/folders/${folderId}/dashboards`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
 };
@@ -21,9 +19,7 @@ export const createDashboard = async (
 export const getDashboards = async (folderId: number) => {
   const token = localStorage.getItem("access_token");
   const res = await api.get(`/api/folders/${folderId}/dashboards`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
 };
@@ -42,23 +38,22 @@ export const updateDashboard = async (
     `/api/folders/${folderId}/dashboards/${dashboardId}`,
     data,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
   return res.data;
 };
 
 // 대시보드 삭제 (특정 폴더의 특정 대시보드)
-export const deleteDashboard = async (folderId: number, dashboardId: number) => {
+export const deleteDashboard = async (
+  folderId: number,
+  dashboardId: number
+) => {
   const token = localStorage.getItem("access_token");
   const res = await api.delete(
     `/api/folders/${folderId}/dashboards/${dashboardId}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
   return res.data;
@@ -68,37 +63,79 @@ export const deleteDashboard = async (folderId: number, dashboardId: number) => 
 export const saveDashboardConfig = async (
   folderId: number,
   dashboardId: number,
-  config: {
-    tailer: {
-      readIntervalMs: number;
-      metaDataFilePathPrefix: string;
-    };
-    multiline: {
-      enabled: boolean;
-      maxLines: number;
-    };
-    exporter: {
-      compressEnabled: boolean;
-      retryIntervalSec: number;
-      maxRetryCount: number;
-    };
-    filter: {
-      allowedLevels: string[];
-      requiredKeywords: string[];
-      after: string; // ISO datetime string
-    };
-    puller: {
-      intervalSec: number;
-    };
+  body: {
+    agentId: string | null;
+    logPipelineConfigs: {
+      parserType: string;
+      parser: { timezone: string };
+      tailer: {
+        filePath: string;
+        readIntervalMs: number;
+        metaDataFilePathPrefix: string;
+      };
+      multiline: {
+        enabled: boolean;
+        maxLines: number;
+      };
+      exporter: {
+        compressEnabled: boolean;
+        retryIntervalSec: number;
+        maxRetryCount: number;
+      };
+      filter: Record<string, any>;
+    }[];
   }
 ) => {
   const token = localStorage.getItem("access_token");
   const res = await api.post(
     `/api/folders/${folderId}/dashboards/${dashboardId}/config`,
-    config,
+    body,
     {
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return res.data;
+};
+
+// 대시보드 고급설정 수정
+export const updateDashboardConfig = async (
+  folderId: number,
+  dashboardId: number,
+  body: {
+    agentId: string;
+    targetFilePath: string;
+    logPipelineConfig: {
+      parserType: string;
+      parser: { timezone: string };
+      tailer: {
+        filePath: string;
+        readIntervalMs: number;
+        metaDataFilePathPrefix: string;
+      };
+      multiline: {
+        enabled: boolean;
+        maxLines: number;
+      };
+      exporter: {
+        compressEnabled: boolean;
+        retryIntervalSec: number;
+        maxRetryCount: number;
+      };
+      filter: Record<string, any>;
+    };
+  }
+) => {
+  const token = localStorage.getItem("access_token");
+  const res = await api.put(
+    `/api/folders/${folderId}/dashboards/${dashboardId}/config`,
+    body,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
     }
   );

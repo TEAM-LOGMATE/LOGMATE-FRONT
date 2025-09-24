@@ -6,67 +6,41 @@ import BtnDropdown from '../../components/btn/btn-dropdown';
 import BtnCheckbox from '../../components/btn/btn-checkbox';
 import AdvancedSettings from './advancedsetting';
 
+export interface DashboardFormData {
+  name: string;
+  logPath: string;
+  advancedConfig: any;
+  agentId?: string;
+  logType: string;
+  timezone: string;
+}
+
 interface DashboardMakeProps {
   folderId: number;
   onClose?: () => void;
-  onCreate?: (board: {
-    name: string;
-    logPath: string;
-    advancedConfig?: any;
-    agentId?: string;
-  }) => void;
+  onCreate?: (board: DashboardFormData) => void;
 }
 
-const logTypes = ['springboot', 'tomcat access'] as const;
+const logTypes = ['springboot', 'tomcat'] as const;
 const timezones = ['Asia/Seoul', 'UTC'];
 
+// logType별 기본 고급설정
 const defaultConfigs: Record<(typeof logTypes)[number], any> = {
   springboot: {
-    tailer: {
-      readIntervalMs: 300,
-      metaDataFilePathPrefix: '/spring/logs',
-    },
-    multiline: {
-      enabled: false,
-      maxLines: 200,
-    },
-    exporter: {
-      compressEnabled: true,
-      retryIntervalSec: 5,
-      maxRetryCount: 3,
-    },
-    filter: {
-      allowedLevels: ['ERROR', 'WARN'],
-      requiredKeywords: ['Exception', 'DB'],
-      after: '',
-    },
-    puller: {
-      intervalSec: 30,
-    },
+    tailer: { readIntervalMs: 300, metaDataFilePathPrefix: '/spring/logs' },
+    multiline: { enabled: false, maxLines: 200 },
+    exporter: { compressEnabled: true, retryIntervalSec: 5, maxRetryCount: 3 },
+    filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: ['Exception', 'DB'] },
   },
-  'tomcat access': {
-    tailer: {
-      readIntervalMs: 500,
-      metaDataFilePathPrefix: '/tomcat/logs',
-    },
-    multiline: {
-      enabled: false,
-      maxLines: 50,
-    },
-    exporter: {
-      compressEnabled: false,
-      retryIntervalSec: 10,
-      maxRetryCount: 1,
-    },
-    filter: {
-      allowedMethods: ['GET', 'POST'],
-      requiredKeywords: ['login', 'error'],
-    },
-    puller: {
-      intervalSec: 60,
-    },
+  tomcat: {
+    tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/tomcat/logs' },
+    multiline: { enabled: false, maxLines: 50 },
+    exporter: { compressEnabled: false, retryIntervalSec: 10, maxRetryCount: 1 },
+    filter: { allowedMethods: ['GET', 'POST'], requiredKeywords: ['login', 'error'] },
   },
 };
+
+const deepClone = <T,>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
 export default function DashboardMake({ folderId, onClose, onCreate }: DashboardMakeProps) {
   const [logPath, setLogPath] = useState('');
@@ -93,27 +67,30 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [advancedConfig, setAdvancedConfig] = useState(defaultConfigs[logType]);
-  useEffect(() => {
-    setAdvancedConfig(defaultConfigs[logType]);
-  }, [logType]);
+  const [advancedConfigs, setAdvancedConfigs] = useState<Record<(typeof logTypes)[number], any>>({
+    springboot: deepClone(defaultConfigs.springboot),
+    tomcat: deepClone(defaultConfigs.tomcat),
+  });
 
   const isFormValid = logPath.trim() !== '' && boardName.trim() !== '';
 
   const handleCreate = () => {
     if (!isFormValid) return;
 
-    onCreate?.({
+    const formData: DashboardFormData = {
       name: boardName,
       logPath,
-      advancedConfig,
+      advancedConfig: advancedConfigs[logType],
+      logType,
+      timezone,
       ...(useAgentId ? { agentId } : {}),
-    });
+    };
+
+    onCreate?.(formData);
+    onClose?.();
   };
 
   return (
@@ -123,10 +100,8 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
                  rounded-[24px] border border-[#353535] bg-[#111]"
       onClick={(e) => e.stopPropagation()}
     >
-      <h2
-        className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-                     text-[var(--Gray-100,#F2F2F2)] font-[SUIT]"
-      >
+      <h2 className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
+                     text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
         새로운 대시보드
       </h2>
 
@@ -138,11 +113,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
           </span>
           <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
         </label>
-        <Input48
-          value={logPath}
-          onChange={(e) => setLogPath(e.target.value)}
-          placeholder="/placeholdertext"
-        />
+        <Input48 value={logPath} onChange={(e) => setLogPath(e.target.value)} placeholder="/placeholdertext" />
 
         {/* 보드 이름 */}
         <div className="mt-6">
@@ -152,11 +123,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             </span>
             <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
           </label>
-          <Input48
-            value={boardName}
-            onChange={(e) => setBoardName(e.target.value)}
-            placeholder="보드 이름"
-          />
+          <Input48 value={boardName} onChange={(e) => setBoardName(e.target.value)} placeholder="보드 이름" />
         </div>
 
         {/* 로그 유형 + 타임존 */}
@@ -174,17 +141,13 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
               onClick={() => setIsLogTypeOpen((prev) => !prev)}
             >
-              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
-                {logType}
-              </span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{logType}</span>
               <BtnDropdown />
             </div>
 
             {isLogTypeOpen && (
-              <ul
-                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
-                          bg-[var(--Gray-600,#353535)] border border-[#444]"
-              >
+              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
+                          bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {logTypes.map((type) => (
                   <li
                     key={type}
@@ -222,10 +185,8 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             </div>
 
             {isTimezoneOpen && (
-              <ul
-                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
-                             bg-[var(--Gray-600,#353535)] border border-[#444]"
-              >
+              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
+                             bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {timezones.map((tz) => (
                   <li
                     key={tz}
@@ -244,24 +205,17 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
           </div>
         </div>
 
-        {/* ✅ Agent ID 입력 */}
+        {/* Agent ID 입력 */}
         <div className="mt-6">
           <label className="mb-2 flex items-center gap-2">
-            <span
-              className="text-[16px] font-[Geist] font-normal leading-[150%]"
-              style={{ color: 'var(--Alert-Yellow, #D4B66F)' }}
-            >
+            <span className="text-[16px] font-[Geist] font-normal leading-[150%]"
+              style={{ color: 'var(--Alert-Yellow, #D4B66F)' }}>
               내 Agent ID 입력
             </span>
             <BtnCheckbox checked={useAgentId} onToggle={() => setUseAgentId((p) => !p)} />
           </label>
-
           {useAgentId && (
-            <Input48
-              value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-              placeholder="Agent ID를 입력하세요"
-            />
+            <Input48 value={agentId} onChange={(e) => setAgentId(e.target.value)} placeholder="Agent ID를 입력하세요" />
           )}
         </div>
 
@@ -273,21 +227,22 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
           >
             고급 설정
           </span>
-          <div
-            className="cursor-pointer hover:opacity-80"
-            onClick={() => setIsAdvancedOpen((prev) => !prev)}
-          >
+          <div className="cursor-pointer hover:opacity-80" onClick={() => setIsAdvancedOpen((prev) => !prev)}>
             <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
           </div>
         </div>
-
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
             <AdvancedSettings
               key={logType}
               logType={logType}
-              value={advancedConfig}
-              onChange={setAdvancedConfig}
+              value={advancedConfigs[logType]}
+              onChange={(v) =>
+                setAdvancedConfigs((prev) => ({
+                  ...prev,
+                  [logType]: v!,
+                }))
+              }
             />
           </div>
         )}

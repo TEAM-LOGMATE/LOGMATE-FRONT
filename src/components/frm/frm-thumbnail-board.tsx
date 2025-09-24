@@ -5,10 +5,10 @@ import AgentStatusBefore from "../text/agent-status-before";
 import BtnMore from "../btn/btn-more";
 import BtnMoreText from "../btn/btn-more-text";
 import Thumbnail from "../../pages/dashboard/Thumbnail";
-import { deleteDashboard } from "../../api/dashboard"; 
+import { deleteDashboard } from "../../api/dashboard";
 
 interface FrmThumbnailBoardProps {
-  folderId: number;  
+  folderId: number;
   boardId: number;
   connected?: boolean;
   onAddBoard?: () => void;
@@ -19,8 +19,38 @@ interface FrmThumbnailBoardProps {
   previewPath?: string;
   statusType?: "collecting" | "unresponsive" | "before";
   onChangeStatus?: (newStatus: "collecting" | "unresponsive" | "before") => void;
-  onDeleted?: () => void; 
+  onDeleted?: () => void;
+  logPath?: string;
+  advancedConfig?: any;
+  agentId?: string;
+  onUpdated?: (updated: {
+    id: number;
+    name: string;
+    logPath?: string;
+    advancedConfig?: any;
+    agentId?: string;
+  }) => void;
 }
+
+const defaultAdvancedConfig = {
+  tailer: {
+    readIntervalMs: 1000,
+    metaDataFilePathPrefix: "/tmp/meta",
+  },
+  multiline: {
+    enabled: false,
+    maxLines: 1,
+  },
+  exporter: {
+    compressEnabled: false,
+    retryIntervalSec: 5,
+    maxRetryCount: 3,
+  },
+  filter: {
+    allowedLevels: [],
+    requiredKeywords: [],
+  },
+};
 
 export default function FrmThumbnailBoard({
   folderId,
@@ -34,11 +64,17 @@ export default function FrmThumbnailBoard({
   previewPath,
   onChangeStatus,
   onDeleted,
+  logPath,
+  advancedConfig,
+  agentId,
+  onUpdated,
 }: FrmThumbnailBoardProps) {
   const today = new Date();
   const fallbackDate = today.toISOString().slice(0, 10).replace(/-/g, ".");
 
-  const [statusType, setStatusType] = useState<"unresponsive" | "collecting" | "before">(() => {
+  const [statusType, setStatusType] = useState<
+    "unresponsive" | "collecting" | "before"
+  >(() => {
     if (!boardId) return "unresponsive";
     const saved = localStorage.getItem(`statusType-${boardId}`) as
       | "unresponsive"
@@ -107,6 +143,14 @@ export default function FrmThumbnailBoard({
   const THUMB_W = 592;
   const THUMB_H = 260;
   const canMountThumb = statusType === "collecting" && !!effectivePreviewPath;
+  const safeAdvancedConfig = {
+    ...defaultAdvancedConfig,
+    ...advancedConfig,
+    tailer: { ...defaultAdvancedConfig.tailer, ...(advancedConfig?.tailer || {}) },
+    multiline: { ...defaultAdvancedConfig.multiline, ...(advancedConfig?.multiline || {}) },
+    exporter: { ...defaultAdvancedConfig.exporter, ...(advancedConfig?.exporter || {}) },
+    filter: { ...defaultAdvancedConfig.filter, ...(advancedConfig?.filter || {}) },
+  };
 
   return (
     <div className="flex flex-col w-[640px] h-[372px] p-4 rounded-[8px] bg-[#171717]">
@@ -135,7 +179,9 @@ export default function FrmThumbnailBoard({
               />
             ) : (
               <div className="w-full h-full rounded-[8px] border border-[#2a2a2a] bg-[#111] flex items-center justify-center text-[#888] text-[12px]">
-                {statusType === "unresponsive" ? "에이전트 미응답" : "대시보드 준비 중"}
+                {statusType === "unresponsive"
+                  ? "에이전트 미응답"
+                  : "대시보드 준비 중"}
               </div>
             )}
           </div>
@@ -147,10 +193,13 @@ export default function FrmThumbnailBoard({
                 onClick={() => onOpen?.()}
                 className="font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px] text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition"
               >
-                {boardName || (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
+                {boardName ||
+                  (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
-                <span className="text-[#AEAEAE] font-mono text-[14px]">Edited</span>
+                <span className="text-[#AEAEAE] font-mono text-[14px]">
+                  Edited
+                </span>
                 <span className="text-[#AEAEAE] font-mono text-[14px]">
                   {lastEdited || fallbackDate}
                 </span>
@@ -159,12 +208,20 @@ export default function FrmThumbnailBoard({
 
             <div className="flex items-center gap-2">
               <BoardMenu
-                onRename={() => console.log("보드 이름 바꾸기 실행")}
+                onEditSettings={() =>
+                  onUpdated?.({
+                    id: boardId,
+                    name: boardName || "",
+                    logPath,
+                    advancedConfig: safeAdvancedConfig,
+                    agentId,
+                  })
+                }
                 onDelete={async () => {
                   try {
                     const res = await deleteDashboard(folderId, boardId);
                     console.log("삭제 성공:", res);
-                    onDeleted?.(); 
+                    onDeleted?.();
                   } catch (err) {
                     console.error("삭제 실패:", err);
                   }
@@ -189,11 +246,17 @@ export default function FrmThumbnailBoard({
 }
 
 /* 드롭다운 메뉴 */
-function BoardMenu({ onRename, onDelete }: { onRename?: () => void; onDelete?: () => void }) {
+function BoardMenu({
+  onEditSettings,
+  onDelete,
+}: {
+  onEditSettings?: () => void;
+  onDelete?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const options = ["보드 이름 바꾸기", "보드 삭제"];
+  const options = ["보드 설정", "보드 삭제"];
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -206,7 +269,7 @@ function BoardMenu({ onRename, onDelete }: { onRename?: () => void; onDelete?: (
   }, []);
 
   const handleSelect = (value: string) => {
-    if (value === "보드 이름 바꾸기") onRename?.();
+    if (value === "보드 설정") onEditSettings?.();
     if (value === "보드 삭제") onDelete?.();
     setOpen(false);
   };
@@ -216,7 +279,11 @@ function BoardMenu({ onRename, onDelete }: { onRename?: () => void; onDelete?: (
       <BtnMore onClick={() => setOpen((prev) => !prev)} />
       {open && (
         <div className="absolute right-0 mt-2 z-50">
-          <BtnMoreText options={options} onSelect={handleSelect} onClose={() => setOpen(false)} />
+          <BtnMoreText
+            options={options}
+            onSelect={handleSelect}
+            onClose={() => setOpen(false)}
+          />
         </div>
       )}
     </div>
