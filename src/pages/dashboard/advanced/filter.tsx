@@ -6,7 +6,6 @@ interface FilterSettingsProps {
   value: {
     allowedLevels: string[];
     requiredKeywords: string[];
-    after: string; // ISO datetime string
   };
   onChange: (newValue: FilterSettingsProps["value"]) => void;
 }
@@ -70,22 +69,6 @@ export default function FilterSettings({ value, onChange }: FilterSettingsProps)
             value={value.requiredKeywords.join(", ")}
             onChange={handleKeywordChange}
             placeholder="Exception, DB"
-            className="w-full"
-            align="center"
-          />
-        </div>
-      </div>
-
-      {/* 필터링 시작 시각 */}
-      <div className="flex items-center gap-3">
-        <span className="w-[200px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[SUIT] text-[16px] font-medium leading-[150%]">
-          필터링 시작 시각:
-        </span>
-        <div className="flex-1">
-          <Input48
-            value={value.after}
-            onChange={(e) => onChange({ ...value, after: e.target.value })}
-            placeholder="YYYY-MM-DDTHH:mm:ss"
             className="w-full"
             align="center"
           />
