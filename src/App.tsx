@@ -14,6 +14,7 @@ import { useEffect } from 'react';
 import { useFolderStore } from './utils/folderStore';
 import { getPersonalFolders } from './api/folders';
 import { getTeams, getTeamFolders } from './api/teams';
+import type { Folder, Team } from './utils/type';
 
 // 로그인 후 폴더/팀 초기화 컴포넌트
 function AppInitializer() {
@@ -32,20 +33,43 @@ function AppInitializer() {
         // 팀 목록
         const teams = await getTeams();
 
-        // 각 팀의 폴더 불러오기
+        // 각 팀의 폴더 + 메타데이터 불러오기
         const allTeamFolders = await Promise.all(
           teams.map(async (team: any) => {
             try {
               const res = await getTeamFolders(team.id);
-              if (!res || res.length === 0) return null;
 
-              const folder = res[0];
+              // 폴더가 없는 경우 → team 메타데이터만
+              if (!res || res.length === 0) {
+                return {
+                  id: team.id,
+                  name: team.name,
+                  description: team.description ?? '',
+                  createdAt: team.createdAt ?? null,
+                  updatedAt: team.updatedAt ?? null,
+                  spaceType: 'team' as const,
+                  myRole: team.myRole,
+                  boards: [],
+                } as Team;
+              }
+
+              // 폴더가 있는 경우
+              const rawFolder = res[0];
+              const folder: Folder = {
+                ...rawFolder,
+                spaceType: 'team', // ✅ 필수값 보강
+              };
+
               return {
                 ...folder,
-                teamId: team.id,
-                teamName: team.name,
+                id: team.id,
+                name: team.name,
+                description: team.description ?? folder.description ?? '',
+                createdAt: folder.createdAt ?? team.createdAt ?? null,
+                updatedAt: folder.updatedAt ?? team.updatedAt ?? null,
+                spaceType: 'team',
                 myRole: team.myRole,
-              };
+              } as Team;
             } catch (err) {
               console.error(`팀 폴더 조회 실패 (teamId=${team.id}):`, err);
               return null;
@@ -53,7 +77,7 @@ function AppInitializer() {
           })
         );
 
-        setTeamFolders(() => allTeamFolders.filter(Boolean));
+        setTeamFolders(() => allTeamFolders.filter(Boolean) as Team[]);
       } catch (err) {
         console.error('초기 데이터 불러오기 실패:', err);
       }
