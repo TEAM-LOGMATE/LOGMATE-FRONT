@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Input54 from '../../components/input/54';
 import BtnSign from '../../components/btn/btn-sign';
-import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,6 +13,7 @@ import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { useAuth } from '../../utils/AuthContext';
 import Logo from '../../components/icon/logo';
+import { api } from '../../api/axiosInstance';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -35,14 +35,55 @@ export default function SignupPage() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 이메일 중복 확인 상태
+  const [emailCheckResult, setEmailCheckResult] = useState<'idle' | 'valid' | 'duplicate'>('idle');
+
+  // 이메일 변경 시 중복확인 초기화
+  useEffect(() => {
+    setEmailCheckResult('idle');
+  }, [email]);
+
+  const handleCheckDuplicate = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(trimmedEmail)) {
+      setEmailCheckResult('idle');
+      return;
+    }
+
+    try {
+      const res = await api.get('/api/users/check-email', {
+        params: { email: trimmedEmail },
+      });
+
+      const msg: string = res.data;
+      if (msg.includes('사용 가능')) {
+        setEmailCheckResult('valid');
+      } else if (msg.includes('이미 사용')) {
+        setEmailCheckResult('duplicate');
+      } else {
+        setEmailCheckResult('idle');
+      }
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.response?.data;
+      const text = typeof msg === 'string' ? msg : msg?.message;
+
+      if (text && text.includes('이미 사용')) {
+        setEmailCheckResult('duplicate');
+        return;
+      }
+
+      setErrorMessage('이메일 중복 확인 중 서버 오류가 발생했습니다.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
   // 유효성 검사
   const isFormValid =
     username.trim() !== '' &&
-    email.trim() !== '' &&
-    password.trim() !== '' &&
-    passwordConfirm.trim() !== '' &&
     isValidUsername(username) &&
     isValidEmail(email) &&
+    emailCheckResult === 'valid' &&
     isValidPassword(password) &&
     doPasswordsMatch(password, passwordConfirm);
 
@@ -61,7 +102,7 @@ export default function SignupPage() {
         password,
       });
       setErrorMessage('');
-      navigate('/login'); // 회원가입 성공 → 로그인 화면 이동
+      navigate('/login');
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 400) {
@@ -77,13 +118,11 @@ export default function SignupPage() {
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
     exit: { opacity: 0, y: -30, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
   };
+
+  const disableCheck = !isValidEmail(email);
 
   return (
     <motion.div
@@ -97,11 +136,7 @@ export default function SignupPage() {
         <div className="w-[480px] flex flex-col items-center gap-[40px] flex-shrink-0">
           {/* 로고 + 제목 */}
           <div className="flex flex-col items-center gap-[20px]">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
               <Logo width={24} height={28} />
             </motion.div>
             <h1 className="text-white text-[28px] font-bold leading-[135%] tracking-[-0.4px]">
@@ -139,16 +174,46 @@ export default function SignupPage() {
               <label className="text-[#F2F2F2] text-[14px] font-medium">
                 이메일 <span className="text-[#FF6F6F]">*</span>
               </label>
-              <Input54
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="이메일을 입력하세요"
-              />
-              <span className="min-h-[16px] text-[12px] text-[#FF6F6F]">
+              <div className="flex h-[54px] px-[12px] py-[15px] justify-between items-center self-stretch border border-[#222] bg-[#171717] rounded-[12px]">
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="이메일을 입력하세요"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-transparent text-[#D8D8D8] text-[14px] outline-none flex-1 pr-2"
+                />
+                <button
+                  onClick={handleCheckDuplicate}
+                  type="button"
+                  disabled={disableCheck}
+                  className={`h-[36px] px-[12px] py-[10px] flex justify-center items-center text-[12px] rounded-[4px] border
+                    ${disableCheck
+                      ? 'text-[#6E6E6E] border-[#333] cursor-not-allowed'
+                      : 'text-[#4FE75E] border-[#4FE75E]'
+                    }`}
+                >
+                  중복확인
+                </button>
+              </div>
+              <span
+                className={`min-h-[16px] text-[12px] mt-[4px] ${
+                  !isValidEmail(email) && email.length > 0
+                    ? 'text-[#FF6F6F]'
+                    : emailCheckResult === 'valid'
+                    ? 'text-[#4FE75E]'
+                    : emailCheckResult === 'duplicate'
+                    ? 'text-[#FF6F6F]'
+                    : 'invisible'
+                }`}
+              >
                 {email.length > 0 && !isValidEmail(email)
                   ? '이메일 형식이 올바르지 않습니다.'
-                  : <span className="invisible">유효성 검사 메시지 자리</span>}
+                  : emailCheckResult === 'valid'
+                  ? '사용 가능한 이메일입니다'
+                  : emailCheckResult === 'duplicate'
+                  ? '이미 사용 중인 이메일입니다.'
+                  : 'placeholder'}
               </span>
             </div>
 
@@ -205,7 +270,7 @@ export default function SignupPage() {
               </span>
             </div>
 
-            {/* 계정 만들기 버튼 + 에러 메시지 */}
+            {/* 계정 만들기 버튼 */}
             <div className="w-full flex flex-col items-center gap-2 relative">
               {errorMessage && (
                 <div className="absolute -top-[52px] z-50 animate-fade-in-out [animation-fill-mode:forwards]">
@@ -218,29 +283,14 @@ export default function SignupPage() {
             </div>
           </form>
 
-          {/* SNS 로그인 */}
-          <div className="flex flex-row justify-between items-center gap-[12px] w-full">
-            <BtnSnsLogin type="google">Google 로그인</BtnSnsLogin>
-            <BtnSnsLogin type="github">Github 로그인</BtnSnsLogin>
-          </div>
-
           {/* 하단 링크 */}
-          <div className="flex items-center gap-[14px]">
+          <div className="flex items-center">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
                          text-[#AEAEAE] text-[14px] font-suit cursor-pointer hover:text-white transition"
               onClick={() => navigate('/login')}
             >
               로그인하기
-            </div>
-            <div className="flex items-center h-[16px]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="2" height="17" viewBox="0 0 2 17" fill="none">
-                <path d="M1 0.5L1 16.5" stroke="#888888" />
-              </svg>
-            </div>
-            <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                         text-[#AEAEAE] text-[14px] font-suit" >
-              비밀번호 찾기
             </div>
           </div>
         </div>
