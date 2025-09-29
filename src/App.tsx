@@ -57,7 +57,7 @@ function AppInitializer() {
               const rawFolder = res[0];
               const folder: Folder = {
                 ...rawFolder,
-                spaceType: 'team', // ✅ 필수값 보강
+                spaceType: 'team',
               };
 
               return {
