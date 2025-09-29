@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Input54 from '../../components/input/54';
 import BtnSign from '../../components/btn/btn-sign';
-import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -110,57 +109,60 @@ export default function LoginPage() {
           </h1>
         </motion.div>
 
-        {/* 이메일 */}
-        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
-          <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
-            이메일 <span className="text-[#FF6F6F]">*</span>
-          </label>
-          <Input54
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일을 입력하세요"
-            showIcon={false}
-          />
-        </motion.div>
-
-        {/* 비밀번호 */}
-        <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
-          <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
-            비밀번호 <span className="text-[#FF6F6F]">*</span>
-          </label>
-          <Input54
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호를 입력하세요"
-            done={showPassword}
-            onDone={setShowPassword}
-            showIcon={true}
-          />
-        </motion.div>
-
-        {/* 로그인 버튼 + 에러 토스트 */}
-        <motion.div variants={itemVariants} className="relative w-full flex flex-col items-center mt-[16px]">
-          {errorMessage && (
-            <div className="absolute bottom-[calc(100%+16px)]">
-              <ErrorToast message={errorMessage} trigger={toastTrigger} />
-            </div>
-          )}
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
-            <BtnSign onClick={handleLogin}>로그인</BtnSign>
+        {/* 로그인 폼 */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+          className="flex flex-col items-center gap-[24px] w-full"
+        >
+          {/* 이메일 */}
+          <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
+            <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              이메일 <span className="text-[#FF6F6F]">*</span>
+            </label>
+            <Input54
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="이메일을 입력하세요"
+              showIcon={false}
+            />
           </motion.div>
-        </motion.div>
 
-        {/* SNS 로그인 */}
-        <motion.div variants={itemVariants} className="flex flex-row justify-between items-center gap-[12px] w-full">
-          <BtnSnsLogin type="google">Google</BtnSnsLogin>
-          <BtnSnsLogin type="github">GitHub</BtnSnsLogin>
-        </motion.div>
+          {/* 비밀번호 */}
+          <motion.div variants={itemVariants} className="flex flex-col items-start gap-[12px] w-full">
+            <label className="text-[#F2F2F2] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
+              비밀번호 <span className="text-[#FF6F6F]">*</span>
+            </label>
+            <Input54
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호를 입력하세요"
+              done={showPassword}
+              onDone={setShowPassword}
+              showIcon={true}
+            />
+          </motion.div>
+
+          {/* 로그인 버튼 + 에러 토스트 */}
+          <motion.div variants={itemVariants} className="relative w-full flex flex-col items-center mt-[16px]">
+            {errorMessage && (
+              <div className="absolute bottom-[calc(100%+16px)]">
+                <ErrorToast message={errorMessage} trigger={toastTrigger} />
+              </div>
+            )}
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+              <BtnSign type="submit">로그인</BtnSign>
+            </motion.div>
+          </motion.div>
+        </form>
 
         {/* 하단 링크 */}
         <motion.div variants={itemVariants} className="flex flex-col items-center gap-[60px] w-[480px]">
-          <div className="flex items-center gap-[14px]">
+          <div className="flex items-center">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
                          text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center
@@ -168,15 +170,6 @@ export default function LoginPage() {
               onClick={() => navigate('/signup')}
             >
               새 계정 만들기
-            </div>
-            <div className="flex items-center h-[16px]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="2" height="17" viewBox="0 0 2 17" fill="none">
-                <path d="M1 0.5L1 16.5" stroke="#888888" />
-              </svg>
-            </div>
-            <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                            text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center">
-              비밀번호 찾기
             </div>
           </div>
         </motion.div>

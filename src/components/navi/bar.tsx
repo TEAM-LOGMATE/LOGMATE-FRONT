@@ -38,7 +38,7 @@ export default function Bar({
   const navigate = useNavigate();
   const { folderId: routeFolderId } = useParams<{ folderId: string }>();
 
-  // 전역 스토어에서 folders/teamFolders 가져오기
+  // 전역 스토어
   const { folders, teamFolders } = useFolderStore();
 
   const handleAddSpaceNameG = () => {
@@ -56,8 +56,8 @@ export default function Bar({
   };
 
   const handleFolderClick = (folderId: number | string) => {
-    onSelectPage?.('personal'); // 페이지 상태 갱신
-    onSelectFolder?.(folderId); // 폴더 상태 갱신
+    onSelectPage?.('personal');
+    onSelectFolder?.(folderId);
     navigate(`/personal/${folderId}`, { replace: true });
   };
 

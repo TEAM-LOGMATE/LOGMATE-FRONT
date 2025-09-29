@@ -6,7 +6,7 @@ export default function WebErrorLog() {
   // HTTP 상태 코드 카운트
   const counts: Record<string, number> = {};
   webLogs.forEach((log) => {
-    counts[log.status] = (counts[log.status] || 0) + 1;
+    counts[String(log.status)] = (counts[String(log.status)] || 0) + 1;
   });
 
   const error400 = counts["400"] || 0;

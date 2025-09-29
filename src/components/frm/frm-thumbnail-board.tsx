@@ -1,42 +1,81 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import AgentStatusUnresponsive from "../text/agent-status-unresponse";
 import AgentStatusCollecting from "../text/agent-status-collecting";
 import AgentStatusBefore from "../text/agent-status-before";
-import BtnSetting from "../btn/btn-setting";
+import BtnMore from "../btn/btn-more";
+import BtnMoreText from "../btn/btn-more-text";
 import Thumbnail from "../../pages/dashboard/Thumbnail";
+import { deleteDashboard } from "../../api/dashboard";
 
 interface FrmThumbnailBoardProps {
-  boardId?: number;
+  folderId: number;
+  boardId: number;
   connected?: boolean;
   onAddBoard?: () => void;
   boardName?: string;
   lastEdited?: string;
-  onDelete?: () => void;
   onOpen?: () => void;
   spaceType?: "personal" | "team";
   previewPath?: string;
-  statusType?: "collecting" | "unresponsive" | "before"; // ← 이제는 사실상 무시
+  statusType?: "collecting" | "unresponsive" | "before";
   onChangeStatus?: (newStatus: "collecting" | "unresponsive" | "before") => void;
+  onDeleted?: () => void;
+  logPath?: string;
+  advancedConfig?: any;
+  agentId?: string;
+  onUpdated?: (updated: {
+    id: number;
+    name: string;
+    logPath?: string;
+    advancedConfig?: any;
+    agentId?: string;
+  }) => void;
 }
 
+const defaultAdvancedConfig = {
+  tailer: {
+    readIntervalMs: 1000,
+    metaDataFilePathPrefix: "/tmp/meta",
+  },
+  multiline: {
+    enabled: false,
+    maxLines: 1,
+  },
+  exporter: {
+    compressEnabled: false,
+    retryIntervalSec: 5,
+    maxRetryCount: 3,
+  },
+  filter: {
+    allowedLevels: [],
+    requiredKeywords: [],
+  },
+};
+
 export default function FrmThumbnailBoard({
+  folderId,
   boardId,
   connected = true,
   onAddBoard,
   boardName,
   lastEdited,
-  onDelete,
   onOpen,
   spaceType = "personal",
   previewPath,
   onChangeStatus,
+  onDeleted,
+  logPath,
+  advancedConfig,
+  agentId,
+  onUpdated,
 }: FrmThumbnailBoardProps) {
   const today = new Date();
   const fallbackDate = today.toISOString().slice(0, 10).replace(/-/g, ".");
 
-  // ✅ 초기 상태: localStorage → 없으면 무조건 "unresponsive"
-  const [statusType, setStatusType] = useState<"unresponsive" | "collecting" | "before">(() => {
-    if (boardId == null) return "unresponsive";
+  const [statusType, setStatusType] = useState<
+    "unresponsive" | "collecting" | "before"
+  >(() => {
+    if (!boardId) return "unresponsive";
     const saved = localStorage.getItem(`statusType-${boardId}`) as
       | "unresponsive"
       | "collecting"
@@ -49,9 +88,8 @@ export default function FrmThumbnailBoard({
     return saved;
   });
 
-  // ✅ 상태 변경되면 localStorage에 저장
   useEffect(() => {
-    if (boardId == null) return;
+    if (!boardId) return;
     try {
       localStorage.setItem(`statusType-${boardId}`, statusType);
       window.dispatchEvent(
@@ -60,7 +98,6 @@ export default function FrmThumbnailBoard({
     } catch {}
   }, [statusType, boardId]);
 
-  // 상태 토글
   const handleToggleStatus = () => {
     setStatusType((prev) => {
       const next =
@@ -69,14 +106,13 @@ export default function FrmThumbnailBoard({
           : prev === "collecting"
           ? "before"
           : "unresponsive";
-
       onChangeStatus?.(next);
       return next;
     });
   };
 
-  // 경로 보정 유틸
-  const ensureAbsolute = (p: string) => (/^https?:\/\//i.test(p) ? p : p.startsWith("/") ? p : `/${p}`);
+  const ensureAbsolute = (p: string) =>
+    /^https?:\/\//i.test(p) ? p : p.startsWith("/") ? p : `/${p}`;
   const ensureThumbParam = (p: string) => {
     try {
       if (/^https?:\/\//i.test(p)) {
@@ -95,9 +131,8 @@ export default function FrmThumbnailBoard({
     }
   };
 
-  // previewPath 적용
   const effectivePreviewPath = useMemo(() => {
-    const fallback = boardId != null ? `/dashboard/${boardId}` : undefined;
+    const fallback = boardId ? `/dashboard/${boardId}` : undefined;
     let p = previewPath ?? fallback;
     if (!p) return undefined;
     p = ensureAbsolute(p);
@@ -107,15 +142,25 @@ export default function FrmThumbnailBoard({
 
   const THUMB_W = 592;
   const THUMB_H = 260;
-
   const canMountThumb = statusType === "collecting" && !!effectivePreviewPath;
+  const safeAdvancedConfig = {
+    ...defaultAdvancedConfig,
+    ...advancedConfig,
+    tailer: { ...defaultAdvancedConfig.tailer, ...(advancedConfig?.tailer || {}) },
+    multiline: { ...defaultAdvancedConfig.multiline, ...(advancedConfig?.multiline || {}) },
+    exporter: { ...defaultAdvancedConfig.exporter, ...(advancedConfig?.exporter || {}) },
+    filter: { ...defaultAdvancedConfig.filter, ...(advancedConfig?.filter || {}) },
+  };
 
   return (
     <div className="flex flex-col w-[640px] h-[372px] p-4 rounded-[8px] bg-[#171717]">
       {connected ? (
         <>
           {/* 상단 상태 (토글) */}
-          <div className="w-full flex justify-end cursor-pointer mb-2" onClick={handleToggleStatus}>
+          <div
+            className="w-full flex justify-end cursor-pointer mb-2"
+            onClick={handleToggleStatus}
+          >
             {statusType === "unresponsive" && <AgentStatusUnresponsive />}
             {statusType === "collecting" && <AgentStatusCollecting />}
             {statusType === "before" && <AgentStatusBefore />}
@@ -133,15 +178,10 @@ export default function FrmThumbnailBoard({
                 offsetY={50}
               />
             ) : (
-              <div
-                className="
-                  w-full h-full rounded-[8px]
-                  border border-[#2a2a2a] bg-[#111]
-                  flex items-center justify-center
-                  text-[#888] text-[12px]
-                "
-              >
-                {statusType === "unresponsive" ? "에이전트 미응답" : "대시보드 준비 중"}
+              <div className="w-full h-full rounded-[8px] border border-[#2a2a2a] bg-[#111] flex items-center justify-center text-[#888] text-[12px]">
+                {statusType === "unresponsive"
+                  ? "에이전트 미응답"
+                  : "대시보드 준비 중"}
               </div>
             )}
           </div>
@@ -151,39 +191,99 @@ export default function FrmThumbnailBoard({
             <div className="flex flex-col gap-[2px]">
               <span
                 onClick={() => onOpen?.()}
-                className="
-                  font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px]
-                  text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition
-                "
+                className="font-suit text-[18px] font-bold leading-[140%] tracking-[-0.4px] text-[#D8D8D8] cursor-pointer hover:text-[#F2F2F2] transition"
               >
-                {boardName || (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
+                {boardName ||
+                  (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
-                <span className="font-geist text-[14px] font-light leading-[150%] text-[#AEAEAE]">
+                <span className="text-[#AEAEAE] font-mono text-[14px]">
                   Edited
                 </span>
-                <span className="font-geist-mono text-[14px] font-light leading-[150%] text-[#AEAEAE]">
+                <span className="text-[#AEAEAE] font-mono text-[14px]">
                   {lastEdited || fallbackDate}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <BtnSetting onClick={onDelete} />
+              <BoardMenu
+                onEditSettings={() =>
+                  onUpdated?.({
+                    id: boardId,
+                    name: boardName || "",
+                    logPath,
+                    advancedConfig: safeAdvancedConfig,
+                    agentId,
+                  })
+                }
+                onDelete={async () => {
+                  try {
+                    const res = await deleteDashboard(folderId, boardId);
+                    console.log("삭제 성공:", res);
+                    onDeleted?.();
+                  } catch (err) {
+                    console.error("삭제 실패:", err);
+                  }
+                }}
+              />
             </div>
           </div>
         </>
       ) : (
+        // 새로운 보드 연결하기 슬롯
         <div className="flex flex-1 w-full h-full justify-center items-center">
           <span
             onClick={onAddBoard}
-            className="
-              font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px]
-              text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition
-            "
+            className="font-suit text-[16px] font-medium leading-[150%] tracking-[-0.4px] text-[#888888] cursor-pointer hover:text-[#F2F2F2] transition"
           >
             {spaceType === "team" ? "팀 보드 연결하기 +" : "새로운 보드 연결하기 +"}
           </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* 드롭다운 메뉴 */
+function BoardMenu({
+  onEditSettings,
+  onDelete,
+}: {
+  onEditSettings?: () => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const options = ["보드 설정", "보드 삭제"];
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (value: string) => {
+    if (value === "보드 설정") onEditSettings?.();
+    if (value === "보드 삭제") onDelete?.();
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <BtnMore onClick={() => setOpen((prev) => !prev)} />
+      {open && (
+        <div className="absolute right-0 mt-2 z-50">
+          <BtnMoreText
+            options={options}
+            onSelect={handleSelect}
+            onClose={() => setOpen(false)}
+          />
         </div>
       )}
     </div>

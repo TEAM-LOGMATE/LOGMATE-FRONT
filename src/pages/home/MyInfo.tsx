@@ -6,13 +6,11 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
-import { useFolderStore } from '../../utils/folderStore';
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
   const { user, login, error: authError } = useAuth();
 
-  // 로그인 안 된 상태라면 로그인 페이지로 리다이렉트
   if (!user) return <Navigate to="/login" replace />;
 
   const username = user.username;
@@ -24,7 +22,6 @@ export default function MyInfoPage() {
   const [errorTrigger, setErrorTrigger] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  // 인증 에러 처리
   useEffect(() => {
     if (authError) {
       setErrorMessage(authError);
@@ -32,14 +29,12 @@ export default function MyInfoPage() {
     }
   }, [authError]);
 
-  // 에러 메시지 3초 뒤 자동 사라짐
   useEffect(() => {
     if (!errorMessage) return;
     const t = setTimeout(() => setErrorMessage(null), 3000);
     return () => clearTimeout(t);
   }, [errorMessage]);
 
-  // 비밀번호 확인 후 내 정보 수정 페이지로 이동
   const handleUpdate = async () => {
     const pwd = password.trim();
     if (!pwd) {
@@ -51,7 +46,10 @@ export default function MyInfoPage() {
       setSubmitting(true);
       setErrorMessage(null);
       await login(email.toLowerCase(), pwd);
-      navigate('/edit-info');
+
+      // state + localStorage 모두 저장
+      localStorage.setItem('currentPassword', pwd);
+      navigate('/edit-info', { state: { currentPassword: pwd } });
     } catch {
       setErrorMessage('비밀번호가 올바르지 않습니다.');
       setErrorTrigger((t) => t + 1);
@@ -74,7 +72,6 @@ export default function MyInfoPage() {
         onRemoveTeamFolder={() => {}}
       />
 
-      {/* 메인 컨텐츠에만 애니메이션 적용 */}
       <motion.div
         className="flex flex-1 justify-center items-center px-10"
         initial={{ opacity: 0, y: 20 }}
@@ -86,8 +83,14 @@ export default function MyInfoPage() {
             내 정보
           </h1>
 
-          <div className="flex flex-col gap-[40px] w-full">
-            {/* 계정 이메일 (읽기 전용) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdate(); // 엔터 & 버튼 클릭 모두 처리
+            }}
+            className="flex flex-col gap-[40px] w-full relative"
+          >
+            {/* 계정 이메일 */}
             <div className="flex flex-col gap-[8px]">
               <label className="text-[#D8D8D8] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
                 계정 이메일
@@ -97,7 +100,7 @@ export default function MyInfoPage() {
               </div>
             </div>
 
-            {/* 비밀번호 입력 */}
+            {/* 비밀번호 */}
             <div className="flex flex-col gap-[12px] w-full">
               <label className="text-[#D8D8D8] text-[14px] font-medium leading-[150%] tracking-[-0.4px]">
                 비밀번호 <span className="text-[#D46F6F]">*</span>
@@ -112,19 +115,19 @@ export default function MyInfoPage() {
                 showIcon={true}
               />
             </div>
-          </div>
 
-          {/* 저장 버튼 + 에러 토스트 */}
-          <div className="relative w-full flex flex-col items-center gap-2">
-            {errorMessage && (
-              <div className="absolute -top-[52px]">
-                <ErrorToast message={errorMessage} trigger={errorTrigger} />
-              </div>
-            )}
-            <BtnSign2 onClick={handleUpdate} isActive={canSubmit}>
-              내 정보 수정
-            </BtnSign2>
-          </div>
+            {/* 버튼 + 에러 메시지 */}
+            <div className="relative w-full flex flex-col items-center">
+              {errorMessage && (
+                <div className="absolute -top-[56px] left-1/2 -translate-x-1/2">
+                  <ErrorToast message={errorMessage} trigger={errorTrigger} />
+                </div>
+              )}
+              <BtnSign2 type="submit" isActive={canSubmit}>
+                내 정보 수정
+              </BtnSign2>
+            </div>
+          </form>
         </div>
       </motion.div>
     </div>

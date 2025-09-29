@@ -8,6 +8,7 @@ export interface AppLog {
   level: string;
   logger: string;
   message: string;
+  raw?: string; // UI에서만 사용
 }
 
 export interface WebLog {
@@ -21,97 +22,97 @@ export interface WebLog {
   userAgent: string;
   ip: string;
   aiScore: number;
+  raw?: string; // UI에서만 사용
 }
 
 interface LogState {
   appLogs: AppLog[];
   webLogs: WebLog[];
-  addAppLog: (log: Omit<AppLog, "timestamp">) => void;
-  addWebLog: (log: Omit<WebLog, "timestamp">) => void;
-  reset: () => void;
+  socket: WebSocket | null;
+  addAppLog: (log: AppLog) => void;
+  addWebLog: (log: WebLog) => void;
+  connect: (agentId: string, thNum: string) => void;
+  disconnect: () => void;
 }
-
-// -----------------------------
-// 로그 제너레이터 import
-// -----------------------------
-import { generateAppLog, generateWebLog } from "./mockGenerator";
-
-// -----------------------------
-// 초기 시드 데이터
-// -----------------------------
-const now = new Date();
-
-// 현재 시간 기준 12개
-const currentAppLogs: AppLog[] = Array.from({ length: 12 }, () => ({
-  ...generateAppLog(),
-  timestamp: new Date().toISOString(),
-}));
-const currentWebLogs: WebLog[] = Array.from({ length: 12 }, () => ({
-  ...generateWebLog(),
-  timestamp: new Date().toISOString(),
-}));
-
-// 과거 시간 기준 50개 (1분 간격)
-const pastAppLogs: AppLog[] = Array.from({ length: 50 }, (_, i) => {
-  const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
-  return { ...generateAppLog(), timestamp: pastTime.toISOString() };
-});
-const pastWebLogs: WebLog[] = Array.from({ length: 50 }, (_, i) => {
-  const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
-  return { ...generateWebLog(), timestamp: pastTime.toISOString() };
-});
-
-// 합치기
-const initialAppLogs = [...pastAppLogs, ...currentAppLogs];
-const initialWebLogs = [...pastWebLogs, ...currentWebLogs];
 
 // -----------------------------
 // Zustand Store
 // -----------------------------
-export const useLogStore = create<LogState>((set) => ({
-  appLogs: initialAppLogs,
-  webLogs: initialWebLogs,
+export const useLogStore = create<LogState>((set, get) => ({
+  appLogs: [],
+  webLogs: [],
+  socket: null,
 
   addAppLog: (log) =>
-    set((state) => {
-      const newLog = { ...log, timestamp: new Date().toISOString() };
-      return {
-        appLogs: [newLog, ...state.appLogs], // 🔥 cutoff 필터 제거
-      };
-    }),
+    set((state) => ({
+      appLogs: [log, ...state.appLogs],
+    })),
 
   addWebLog: (log) =>
-    set((state) => {
-      const newLog = { ...log, timestamp: new Date().toISOString() };
-      return {
-        webLogs: [newLog, ...state.webLogs], // 🔥 cutoff 필터 제거
-      };
-    }),
+    set((state) => ({
+      webLogs: [log, ...state.webLogs],
+    })),
 
-  reset: () => {
-    const now = new Date();
+  connect: (agentId, thNum) => {
+    const existing = get().socket;
+    if (existing) {
+      existing.close();
+    }
 
-    const currentAppLogs: AppLog[] = Array.from({ length: 12 }, () => ({
-      ...generateAppLog(),
-      timestamp: new Date().toISOString(),
-    }));
-    const currentWebLogs: WebLog[] = Array.from({ length: 12 }, () => ({
-      ...generateWebLog(),
-      timestamp: new Date().toISOString(),
-    }));
+    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
+    const ws = new WebSocket(`${wsBaseUrl}/ws/logs/${agentId}/${thNum}`);
+    set({ socket: ws });
 
-    const pastAppLogs: AppLog[] = Array.from({ length: 50 }, (_, i) => {
-      const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
-      return { ...generateAppLog(), timestamp: pastTime.toISOString() };
-    });
-    const pastWebLogs: WebLog[] = Array.from({ length: 50 }, (_, i) => {
-      const pastTime = new Date(now.getTime() - (50 - i) * 60 * 1000);
-      return { ...generateWebLog(), timestamp: pastTime.toISOString() };
-    });
+    ws.onopen = () => console.log("WebSocket 연결 성공");
 
-    return {
-      appLogs: [...pastAppLogs, ...currentAppLogs],
-      webLogs: [...pastWebLogs, ...currentWebLogs],
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.logType === "springboot") {
+        set((state) => ({
+          appLogs: [
+            {
+              timestamp: data.log.timestamp,
+              level: data.log.level,
+              logger: data.log.logger,
+              message: data.log.message,
+              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`, 
+            },
+            ...state.appLogs,
+          ],
+        }));
+      } else if (data.logType === "tomcat") {
+        set((state) => ({
+          webLogs: [
+            {
+              timestamp: data.log.timestamp,
+              method: data.log.method,
+              protocol: data.log.protocol,
+              size: data.log.responseSize,
+              path: data.log.url,
+              status: data.log.statusCode,
+              referrer: data.log.referer,
+              userAgent: data.log.userAgent,
+              ip: data.log.ip,
+              aiScore: data.aiScore,
+              raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`,
+            },
+            ...state.webLogs,
+          ],
+        }));
+      }
     };
+
+    ws.onclose = () => console.log("WebSocket 연결 종료");
+    ws.onerror = (err) => console.error("WebSocket 에러:", err);
+  },
+
+  disconnect: () => {
+    const socket = get().socket;
+    if (socket) {
+      socket.close();
+      console.log("🔌 WebSocket 수동 해제");
+      set({ socket: null });
+    }
   },
 }));

@@ -16,6 +16,8 @@ export type ApiTeam = {
   members: ApiMember[];
   createdAt?: string;
   updatedAt?: string;
+  teamFolderId?: number;  
+  myRole?: ApiRole;      
 };
 
 /* ===========================
@@ -49,7 +51,9 @@ export type Folder = {
   }[];
 };
 
-// Team = Folder + UI 멤버
+// Team = Folder + UI 멤버 + 백엔드 전용 속성
 export type Team = Folder & {
   members?: UiMember[];
+  teamFolderId?: number; 
+  myRole?: ApiRole;       
 };

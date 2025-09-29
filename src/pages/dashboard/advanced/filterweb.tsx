@@ -1,22 +1,22 @@
 import Input48 from "../../../components/input/48";
 
-const levels = ["INFO", "WARN", "ERROR", "TRACE", "DEBUG", "FATAL"];
+const methods = ["GET", "POST", "HEAD", "PUT", "DELETE", "OPTIONS", "TRACE"];
 
-interface FilterSettingsProps {
+interface FilterWebProps {
   value: {
-    allowedLevels: string[];
+    allowedMethods: string[];
     requiredKeywords: string[];
   };
-  onChange: (newValue: FilterSettingsProps["value"]) => void;
+  onChange: (newValue: FilterWebProps["value"]) => void;
 }
 
-export default function FilterSettings({ value, onChange }: FilterSettingsProps) {
-  const toggleLevel = (level: string) => {
-    const newLevels = value.allowedLevels.includes(level)
-      ? value.allowedLevels.filter((l) => l !== level)
-      : [...value.allowedLevels, level];
+export default function FilterWeb({ value, onChange }: FilterWebProps) {
+  const toggleMethod = (method: string) => {
+    const newMethods = value.allowedMethods.includes(method)
+      ? value.allowedMethods.filter((m) => m !== method)
+      : [...value.allowedMethods, method];
 
-    onChange({ ...value, allowedLevels: newLevels });
+    onChange({ ...value, allowedMethods: newMethods });
   };
 
   const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,25 +35,27 @@ export default function FilterSettings({ value, onChange }: FilterSettingsProps)
         Filter
       </h3>
 
-      {/* 허용 로그 레벨 */}
+      {/* 허용 메소드 */}
       <div className="flex items-center gap-3">
-        <span className="w-[200px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[SUIT] text-[16px] font-medium leading-[150%]">
-          허용 로그 레벨:
+        <span className="w-[280px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[SUIT] text-[16px] font-medium leading-[150%]">
+          허용 메소드:
         </span>
-        <div className="flex gap-1 flex-wrap">
-          {levels.map((level) => (
+        <div className="flex gap-2 flex-wrap">
+          {methods.map((method) => (
             <button
-              key={level}
+              key={method}
               type="button"
-              onClick={() => toggleLevel(level)}
-              className={`flex h-[44px] px-3 justify-center items-center rounded-[12px] border border-[var(--Gray-600,#353535)] font-[Geist] text-[16px] leading-[150%] whitespace-nowrap
+              onClick={() => toggleMethod(method)}
+              className={`flex h-[44px] min-w-[90px] px-4 justify-center items-center
+                rounded-[12px] border border-[var(--Gray-600,#353535)] 
+                font-[Geist] text-[15px] leading-[150%] whitespace-nowrap
                 ${
-                  value.allowedLevels.includes(level)
+                  value.allowedMethods.includes(method)
                     ? "bg-[var(--Gray-600,#353535)] text-[var(--Alert-Yellow,#D4B66F)]"
                     : "text-[var(--Gray-300,#AEAEAE)]"
                 }`}
             >
-              {level}
+              {method}
             </button>
           ))}
         </div>
@@ -68,7 +70,7 @@ export default function FilterSettings({ value, onChange }: FilterSettingsProps)
           <Input48
             value={value.requiredKeywords.join(", ")}
             onChange={handleKeywordChange}
-            placeholder="Exception, DB"
+            placeholder="GET, POST"
             className="w-full"
             align="center"
           />

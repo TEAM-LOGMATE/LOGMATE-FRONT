@@ -49,6 +49,14 @@ function AnimatedSector({ start, end, radius, color }: any) {
   );
 }
 
+// 문자열 잘라주기
+const truncateLabel = (name: string, value: number, maxLength = 10) => {
+  if (name.length > maxLength) {
+    return `${name.slice(0, maxLength)}... (${value})`;
+  }
+  return `${name} (${value})`;
+};
+
 export default function AppLogger() {
   const { appLogs } = useLogStore();
 
@@ -65,9 +73,14 @@ export default function AppLogger() {
   const total = sorted.reduce((sum, d) => sum + d.value, 0);
   let cumulative = 0;
 
+  // 범례용 데이터 (상위 5개만)
+  const top5 = sorted.slice(0, 5);
+
   return (
-    <div className="w-[530px] h-[303px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
-         onMouseDown={(e) => e.preventDefault()}>
+    <div
+      className="w-[530px] h-[303px] rounded-[12px] bg-[#171717] p-6 flex flex-col"
+      onMouseDown={(e) => e.preventDefault()}
+    >
       <h2 className="text-[24px] font-bold text-[#D8D8D8]">로거별 로그량</h2>
       <p className="mt-1 text-[14px] text-[#AEAEAE]">현재 보드 로거들의 비율</p>
 
@@ -87,7 +100,6 @@ export default function AppLogger() {
             return (
               <AnimatedSector
                 key={entry.name}
-                entry={entry}
                 start={start}
                 end={end}
                 radius={radius}
@@ -99,7 +111,7 @@ export default function AppLogger() {
 
         {/* 범례 */}
         <div className="flex flex-col justify-center ml-20 space-y-2">
-          {sorted.map((entry, i) => (
+          {top5.map((entry, i) => (
             <div key={entry.name} className="flex items-center space-x-2">
               <div
                 style={{
@@ -108,7 +120,7 @@ export default function AppLogger() {
                 }}
               />
               <span className="text-[#AEAEAE] text-sm">
-                {entry.name} ({entry.value})
+                {truncateLabel(entry.name, entry.value, 10)}
               </span>
             </div>
           ))}

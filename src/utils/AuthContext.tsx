@@ -17,7 +17,7 @@ type AuthContextValue = {
   isAuthed: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  signup: (username: string, email: string, password: string) => Promise<void>;
+  signup: (data: { name: string; email: string; password: string }) => Promise<void>;
   setUserUnsafe?: (u: User | null) => void;
   error?: string | null;
 };
@@ -125,14 +125,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
   };
 
-  const signup = async (username: string, email: string, password: string) => {
+  const signup = async (data: { name: string; email: string; password: string }) => {
     setError(null);
     try {
-      const res = await api.post("/api/users/signup", {
-        name: username,
-        email,
-        password,
-      });
+      const res = await api.post("/api/users/signup", data);
+
+      // 응답 유효성 확인
+      if (!res || res.status !== 200 || !res.data?.id) {
+        throw new Error(res.data?.message || "회원가입 실패");
+      }
 
       const newUser: User = {
         id: res.data.id,
@@ -142,9 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(newUser);
       writeUserToStorage(newUser);
 
-      await login(email, password);
-    } catch (err) {
-      setError("회원가입 실패");
+      await login(data.email, data.password);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "회원가입 실패");
       throw err;
     }
   };

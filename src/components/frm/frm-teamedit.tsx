@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Input48 from '../input/48';
 import FrmMemberList from './frm-memberlist';
 import BtnX from '../btn/btn-x';
 import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
+import { getTeamDetail } from '../../api/teams';
+import { useAuth } from '../../utils/AuthContext';
 
 type Role = 'teamAdmin' | 'member' | 'viewer';
 
@@ -15,33 +17,78 @@ type UiMember = {
 };
 
 type FrmTeamEditProps = {
-  initialName: string;
-  initialDescription?: string;
-  initialMembers: UiMember[]; 
-  currentRole: Role;
+  teamId: number;
   onSubmit?: (data: { name: string; description: string; members: UiMember[] }) => void;
   onClose?: () => void;
-  onDelete?: () => void; 
+  onDelete?: () => void;
   onLeaveTeam?: () => void;
 };
 
+function mapApiRoleToUiRole(apiRole: string): Role {
+  switch (apiRole) {
+    case 'ADMIN':
+      return 'teamAdmin';
+    case 'MEMBER':
+      return 'member';
+    case 'VIEWER':
+      return 'viewer';
+    default:
+      return 'viewer';
+  }
+}
+
 export default function FrmTeamEdit({
-  initialName,
-  initialDescription = '',
-  initialMembers,
-  currentRole,
+  teamId,
   onSubmit,
   onClose,
   onDelete,
   onLeaveTeam,
 }: FrmTeamEditProps) {
-  const [teamName, setTeamName] = useState(initialName);
-  const [teamDesc, setTeamDesc] = useState(initialDescription);
+  const { user } = useAuth(); // 로그인 유저 (없으면 null)
 
-  const [members, setMembers] = useState<UiMember[]>(initialMembers);
+  const [loading, setLoading] = useState(true);
+
+  const [teamName, setTeamName] = useState('');
+  const [teamDesc, setTeamDesc] = useState('');
+  const [members, setMembers] = useState<UiMember[]>([]);
+  const [currentRole, setCurrentRole] = useState<Role>('viewer'); // 기본값 viewer
 
   const isAdmin = currentRole === 'teamAdmin';
   const isReadOnly = !isAdmin;
+
+  // 팀 상세조회 API 호출
+  useEffect(() => {
+    async function fetchTeamDetail() {
+      try {
+        const data = await getTeamDetail(teamId);
+
+        setTeamName(data.name);
+        setTeamDesc(data.description ?? '');
+        const mapped = data.members.map((m: any) => ({
+          name: m.name,
+          email: m.email,
+          role: mapApiRoleToUiRole(m.role),
+        }));
+        setMembers(mapped);
+
+        // 내 역할 판단
+        let myRole: Role = 'viewer';
+        if (user) {
+          const me = mapped.find((m) => m.email === user.email);
+          if (me) myRole = me.role;
+        } else {
+          const admin = mapped.find((m) => m.role === 'teamAdmin');
+          if (admin) myRole = 'teamAdmin';
+        }
+        setCurrentRole(myRole);
+      } catch (err) {
+        console.error('팀 상세 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTeamDetail();
+  }, [teamId, user]);
 
   const handleSubmit = () => {
     if (isAdmin) {
@@ -49,14 +96,20 @@ export default function FrmTeamEdit({
     } else {
       if (teamDesc.trim() === '') return;
     }
-
-
     onSubmit?.({ name: teamName, description: teamDesc, members });
   };
 
   const isSaveActive = isAdmin
     ? teamName.trim() !== '' && members.length > 0
     : teamDesc.trim() !== '';
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[200px] text-[#D8D8D8]">
+        팀 정보를 불러오는 중...
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col items-center w-full max-w-[800px] p-[40px] gap-[24px] bg-[#0F0F0F] rounded-[12px]">
@@ -121,15 +174,12 @@ export default function FrmTeamEdit({
                 ];
               });
             }}
-            onRoleChange={
-              isAdmin
-                ? (index, newRole) => {
-                    setMembers((prev) =>
-                      prev.map((m, i) => (i === index ? { ...m, role: newRole } : m))
-                    );
-                  }
-                : undefined
-            }
+            onRoleChange={(index, newRole) => {
+              if (!isAdmin) return; // 관리자 아니면 동작 무시
+              setMembers((prev) =>
+                prev.map((m, i) => (i === index ? { ...m, role: newRole } : m))
+              );
+            }}
             onDeleteClick={
               isAdmin
                 ? (index) => {

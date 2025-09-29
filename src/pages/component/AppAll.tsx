@@ -1,11 +1,12 @@
-import { useLogStore } from  "../../utils/logstore";
+import { useLogStore } from "../../utils/logstore";
+
 export default function AppAll() {
   const logs = useLogStore((s) => s.appLogs);
 
-  // 총 로그 수 (store에 쌓인 개수 기준)
+  // 총 로그 수
   const totalLogs = logs.length;
 
-  // 오늘 로그 수 (단순히 최근 24시간 필터, mock에서는 전체를 오늘로 가정 가능)
+  // 오늘 로그 수
   const todayLogs = logs.filter((log) => {
     const logDate = new Date(log.timestamp);
     const now = new Date();

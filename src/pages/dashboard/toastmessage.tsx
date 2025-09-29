@@ -2,15 +2,17 @@ import { useState } from "react";
 import Input48 from "../../components/input/48";
 
 interface ToastMessageProps {
+  agentId?: string | null;
   onCloseToast?: () => void;
 }
 
-export default function ToastMessage({ onCloseToast }: ToastMessageProps) {
+export default function ToastMessage({ agentId, onCloseToast }: ToastMessageProps) {
   const [showCopyToast, setShowCopyToast] = useState(false);
 
   const handleCopy = async () => {
+    if (!agentId) return;
     try {
-      await navigator.clipboard.writeText("agent001");
+      await navigator.clipboard.writeText(agentId);
       setShowCopyToast(true);
       setTimeout(() => setShowCopyToast(false), 2000); // 2초 후 사라짐
     } catch (err) {
@@ -53,21 +55,14 @@ export default function ToastMessage({ onCloseToast }: ToastMessageProps) {
         아래의 Agent ID를 해당 Agent에 입력해주세요.
       </p>
 
-      {/* Input48 + 커스텀 텍스트 오버레이 */}
+      {/* Input48 + Agent ID 표시 */}
       <div className="relative w-[290px]">
-        <Input48 value="" readOnly onChange={() => {}} align="center" />
-        <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
-          <span className="text-[var(--Brand-Primary,#4FE75E)] font-[Geist] text-[16px] font-normal leading-[150%]">
-            agent-
-          </span>
-          <span className="text-[var(--Brand-Primary,#4FE75E)] font-['Geist_Mono'] text-[16px] font-light leading-[150%]">
-            001
-          </span>
-        </div>
+        <Input48 value={agentId ?? ""} readOnly onChange={() => {}} align="center" />
 
         {/* 오른쪽 아이콘 (클릭 → 복사) */}
         <button
           onClick={handleCopy}
+          disabled={!agentId}
           className="absolute right-2 top-2 w-[24px] h-[24px] flex items-center justify-center bg-transparent border-0 p-0"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">

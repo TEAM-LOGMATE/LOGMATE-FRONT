@@ -1,16 +1,12 @@
-import { useState } from 'react';
-
 interface BtnSortProps {
-  spaceType?: string; // ← 추가
+  spaceType?: string;
+  order: 'newest' | 'oldest';
   onSortChange?: (order: 'newest' | 'oldest') => void;
 }
 
-export default function BtnSort({ onSortChange }: BtnSortProps) {
-  const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
-
+export default function BtnSort({ order, onSortChange }: BtnSortProps) {
   const handleClick = () => {
     const newOrder = order === 'newest' ? 'oldest' : 'newest';
-    setOrder(newOrder);
     onSortChange?.(newOrder);
   };
 
@@ -19,7 +15,7 @@ export default function BtnSort({ onSortChange }: BtnSortProps) {
       onClick={handleClick}
       className="
         inline-flex
-        h-[40px]
+        h-[40px] w-[110px]
         px-[16px] py-[6px]
         justify-center
         items-center

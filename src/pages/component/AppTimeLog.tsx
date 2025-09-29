@@ -8,8 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useLogStore } from "../../utils/logstore"; // 로그 스토어 연결
-import type { AppLog, WebLog } from "../../utils/logstore";
+import { useLogStore } from "../../utils/logstore";
 
 const CustomTick = (props: any) => {
   const { x, y, payload } = props;
@@ -39,59 +38,65 @@ const generateTimeLabels = (count: number, stepMinutes: number) => {
 };
 
 export default function AppTimeLog() {
+  const { appLogs } = useLogStore();
   const [activeRange, setActiveRange] = useState("1h");
-  const [chartData, setChartData] = useState<{ time: string; value: number }[]>([]);
+  const [chartData, setChartData] = useState<{ time: string; value: number }[]>(
+    []
+  );
 
-  // 실제 로그 가져오기
-  const { appLogs, webLogs } = useLogStore();
-
-  const generateData = (range: string) => {
+  // 앱 로그 기반 데이터 생성
+  const generateDataFromLogs = (range: string) => {
     let labels: string[] = [];
 
     if (range === "1h") {
-      labels = generateTimeLabels(12, 5); // 5분 단위 12개
+      labels = generateTimeLabels(12, 5); // 5분 단위
     } else if (range === "6h") {
       labels = generateTimeLabels(12, 30); // 30분 단위
     } else {
       labels = generateTimeLabels(12, 60); // 1시간 단위
     }
 
-    // appLogs + webLogs 합치기
-    const allLogs = [...appLogs, ...webLogs] as (AppLog | WebLog)[];
+    return labels.map((labelTime) => {
+      const [hour, minute] = labelTime.split(":").map(Number);
 
-    // 시간대별 count 계산
-    const counts: Record<string, number> = {};
-    labels.forEach((l) => (counts[l] = 0));
+      const logsAtTime = appLogs.filter((log) => {
+        const logDate = new Date(log.timestamp);
+        return (
+          logDate.getHours() === hour &&
+          Math.floor(
+            logDate.getMinutes() /
+              (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+          ) ===
+            Math.floor(
+              minute / (range === "1h" ? 5 : range === "6h" ? 30 : 60)
+            )
+        );
+      });
 
-    allLogs.forEach((log) => {
-      const t = new Date(log.timestamp);
-      const label = t.toTimeString().slice(0, 5);
-      // 레이블 중 가장 가까운 시간대에 반영
-      const closest = labels.reduce((a, b) =>
-        Math.abs(parseInt(label.replace(":", "")) - parseInt(a.replace(":", ""))) <
-        Math.abs(parseInt(label.replace(":", "")) - parseInt(b.replace(":", "")))
-          ? a
-          : b
-      );
-      counts[closest] = (counts[closest] || 0) + 1;
+      return {
+        time: labelTime,
+        value: logsAtTime.length,
+      };
     });
-
-    return labels.map((t) => ({
-      time: t,
-      value: counts[t] || 0,
-    }));
   };
 
   useEffect(() => {
-    setChartData(generateData(activeRange));
-  }, [activeRange, appLogs, webLogs]);
+    setChartData(generateDataFromLogs(activeRange));
+
+    // 1분마다 최신 데이터 반영
+    const interval = setInterval(() => {
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [activeRange, appLogs]);
 
   return (
     <div className="w-full bg-[#0F0F0F] rounded-lg p-2">
       {/* 제목 + 설명 */}
       <div className="flex items-center gap-3 mb-2 -ml-1">
         <h2 className="text-[24px] font-bold text-[#F2F2F2]">시간대별 로그량</h2>
-        <p className="text-[14px] text-[#AEAEAE]">로그 발생량의 시간대별 변화</p>
+        <p className="text-[14px] text-[#AEAEAE]">앱 로그 발생량의 시간대별 변화</p>
       </div>
 
       {/* 버튼 */}
@@ -100,13 +105,18 @@ export default function AppTimeLog() {
           <button
             key={range}
             onClick={() => setActiveRange(range)}
-            className={`px-4 py-1.5 rounded-[19px] text-[14px] ${
-              activeRange === range
+            className={
+              `px-4 py-1.5 rounded-[19px] text-[14px] ` +
+              (activeRange === range
                 ? "bg-[#4FE75E] text-black"
-                : "bg-[#222] text-[#AEAEAE]"
-            }`}
+                : "bg-[#222] text-[#AEAEAE]")
+            }
           >
-            {range === "1h" ? "1시간 전" : range === "6h" ? "6시간 전" : "12시간 전"}
+            {range === "1h"
+              ? "1시간 전"
+              : range === "6h"
+              ? "6시간 전"
+              : "12시간 전"}
           </button>
         ))}
       </div>
@@ -118,7 +128,11 @@ export default function AppTimeLog() {
             data={chartData}
             margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
           >
-            <CartesianGrid stroke="#292929" strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid
+              stroke="#292929"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
             <XAxis
               dataKey="time"
               interval={0}

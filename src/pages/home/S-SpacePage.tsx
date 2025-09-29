@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -10,12 +10,20 @@ import FrmMakeTeam from '../../components/frm/frm-maketeam';
 import FrmTeamEdit from '../../components/frm/frm-teamedit';
 import DashboardMake from '../dashboard/dashboardmake';
 import { useAuth } from '../../utils/AuthContext';
-import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
+import { getTeams, createTeam, updateTeam, deleteTeam, getTeamFolders } from '../../api/teams';
+import { createDashboard, getDashboards } from '../../api/dashboard';
 import type { Team, UiMember, UiRole, ApiMember, ApiRole } from '../../utils/type';
 import { useFolderStore } from '../../utils/folderStore';
 
 const toApiRole = (role: UiRole): ApiRole =>
   role === 'teamAdmin' ? 'ADMIN' : role === 'member' ? 'MEMBER' : 'VIEWER';
+
+// 날짜 문자열 파싱
+const parseDate = (dateStr?: string) => {
+  if (!dateStr) return 0;
+  const normalized = dateStr.replace(/\./g, '-').replace(' ', 'T');
+  return new Date(normalized).getTime();
+};
 
 export default function S_SpacePage() {
   const { user } = useAuth();
@@ -24,49 +32,97 @@ export default function S_SpacePage() {
   const username = user.username;
   const navigate = useNavigate();
   const { folderId } = useParams<{ folderId: string }>();
-  const { teamFolders: teams, setTeamFolders } = useFolderStore();
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const {
+    teamFolders: teams,
+    setTeamFolders,
+    teamSortOrder,
+    setTeamSortOrder,
+  } = useFolderStore();
+
   const [showMakeTeam, setShowMakeTeam] = useState(false);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [myRole, setMyRole] = useState<UiRole>('viewer');
   const [showDashboardMake, setShowDashboardMake] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 팀 불러오기
+  // 로딩 완료 여부
+  const [loaded, setLoaded] = useState(false);
+
+  // 팀 + 대시보드 불러오기
   useEffect(() => {
     const fetchTeams = async () => {
       try {
         const res = await getTeams();
-        setTeamFolders(res.map((t: any) => ({ ...t, spaceType: 'team' })));
+
+        const teamsWithBoards = await Promise.all(
+          res.map(async (t: any) => {
+            try {
+              const folders = await getTeamFolders(t.id);
+
+              // 폴더에서 createdAt/updatedAt 꺼내오기
+              const folderMeta = folders[0] || {};
+
+              const dashboards = await Promise.all(
+                folders.map(async () => {
+                  try {
+                    const dashRes = await getDashboards(t.id);
+                    return dashRes?.data || [];
+                  } catch {
+                    return [];
+                  }
+                })
+              );
+
+              const allBoards = dashboards.flat();
+              return {
+                ...t,
+                boards: allBoards,
+                spaceType: 'team',
+                createdAt: folderMeta.createdAt,
+                updatedAt: folderMeta.updatedAt,
+              };
+            } catch {
+              return {
+                ...t,
+                boards: [],
+                spaceType: 'team',
+              };
+            }
+          })
+        );
+
+        setTeamFolders(teamsWithBoards);
       } catch (err) {
         console.error('팀 불러오기 실패:', err);
+      } finally {
+        setLoaded(true); // 로딩 끝난 후에만 애니메이션 허용
       }
     };
     fetchTeams();
-  }, [setTeamFolders]);
+  }, [setTeamFolders, teamSortOrder]);
 
-  // 팀 정렬
-  const sortTeams = (data: Team[], order: 'newest' | 'oldest') =>
-    [...data].sort((a, b) => {
-      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
-      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
-      return order === 'newest' ? dateB - dateA : dateA - dateB;
+  // 정렬된 팀 목록
+  const sortedTeams = useMemo(() => {
+    const sorted = [...teams].sort((a, b) => {
+      const aTime = parseDate((a as any).updatedAt || (a as any).createdAt);
+      const bTime = parseDate((b as any).updatedAt || (b as any).createdAt);
+      return teamSortOrder === 'newest' ? bTime - aTime : aTime - bTime;
     });
-
-  useEffect(() => {
-    setTeamFolders((prev) => sortTeams(prev, sortOrder));
-  }, [sortOrder, setTeamFolders]);
-
-  // 팀 추가
-  const handleAddTeam = () => {
-    setShowMakeTeam(true);
-  };
+    return sorted;
+  }, [teams, teamSortOrder]);
 
   // 팀 삭제 (= 팀 나가기)
   const handleDeleteTeam = async (id: string | number) => {
     try {
-      await deleteTeam(Number(id)); // 서버 API 호출
-      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id))); // 상태 갱신
+      await deleteTeam(Number(id));
+      setTeamFolders((prev) => prev.filter((t) => t.id !== Number(id)));
+
+      // 삭제 후 모달 닫기
+      setShowTeamSettings(false);
+      setEditingTeam(null);
     } catch (err) {
       console.error('팀 삭제 실패:', err);
     }
@@ -93,7 +149,16 @@ export default function S_SpacePage() {
 
       setTeamFolders((prev) =>
         prev.map((t) =>
-          t.id === editingTeam.id ? { ...updated, spaceType: 'team' } : t
+          t.id === editingTeam.id
+            ? {
+                ...t,
+                ...data,
+                ...updated,
+                spaceType: 'team',
+                createdAt: updated.createdAt,
+                updatedAt: updated.updatedAt,
+              }
+            : t
         )
       );
       setShowTeamSettings(false);
@@ -103,8 +168,14 @@ export default function S_SpacePage() {
     }
   };
 
+  // 팀 설정 열기
   const openTeamSettings = (team: Team) => {
     setEditingTeam(team);
+
+    const myMember = (team.members || []).find((m: any) => m.email === user.email);
+    const myRole = myMember ? (myMember.role.toLowerCase() as UiRole) : 'viewer';
+    setMyRole(myRole);
+
     setShowTeamSettings(true);
   };
 
@@ -124,7 +195,7 @@ export default function S_SpacePage() {
         username={username}
         activePage="team"
         activeFolderId={folderId || null}
-        onAddTeamFolder={handleAddTeam}
+        onAddTeamFolder={() => setShowMakeTeam(true)}
         onRemoveTeamFolder={handleDeleteTeam}
       />
 
@@ -143,36 +214,44 @@ export default function S_SpacePage() {
         </div>
 
         <div className="flex gap-[12px] mt-[28px]">
-          <BtnSort spaceType="team" onSortChange={(order) => setSortOrder(order)} />
-          <BtnPoint onClick={handleAddTeam}>새 팀 추가 +</BtnPoint>
+          <BtnSort
+            spaceType="team"
+            order={teamSortOrder}
+            onSortChange={setTeamSortOrder}
+          />
+          <BtnPoint onClick={() => setShowMakeTeam(true)}>새 팀 추가 +</BtnPoint>
         </div>
 
         {/* 팀 리스트 */}
         <motion.div
-          layout
           className="grid grid-cols-[repeat(auto-fill,_minmax(371px,_1fr))] gap-x-[0px] gap-y-[48px] mt-[28px] overflow-visible"
         >
-          <AnimatePresence>
-            {teams.map((team) => (
-              <motion.div
-                key={team.id}
-                layout
-                style={{ overflow: 'visible' }}
-                variants={folderVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <FrmFolder
-                  spaceType="team"
-                  name={team.name}
-                  onOpenTeamSettings={() => openTeamSettings(team)}
-                  onLeaveTeam={() => handleDeleteTeam(team.id)} // ✅ 팀 나가기 = 팀 삭제
-                  onClickName={() => navigate(`/team/${team.id}`)}
-                  boards={(team as any).boards || []}
-                />
-              </motion.div>
-            ))}
+          <AnimatePresence initial={false}>
+            {loaded &&
+              sortedTeams.map((team) => (
+                <motion.div
+                  key={team.id}
+                  layout
+                  style={{ overflow: 'visible' }}
+                  variants={folderVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <FrmFolder
+                    spaceType="team"
+                    name={team.name}
+                    onOpenTeamSettings={() => openTeamSettings(team)}
+                    onLeaveTeam={() => handleDeleteTeam(team.id)}
+                    onClickName={() => navigate(`/team/${team.id}`)}
+                    boards={(team as any).boards || []}
+                    onAddBoard={() => {
+                      setSelectedFolderId(Number(team.id));
+                      setShowDashboardMake(true);
+                    }}
+                  />
+                </motion.div>
+              ))}
           </AnimatePresence>
         </motion.div>
       </motion.div>
@@ -198,10 +277,7 @@ export default function S_SpacePage() {
                 onSubmit={async (data) => {
                   try {
                     const apiMembers: ApiMember[] = [
-                      {
-                        email: user.email,
-                        role: 'ADMIN',
-                      },
+                      { email: user.email, role: 'ADMIN' },
                       ...data.members.map((m) => ({
                         email: m.email,
                         role: toApiRole(m.role),
@@ -214,17 +290,29 @@ export default function S_SpacePage() {
                       members: apiMembers,
                     });
 
-                    // ✅ 반드시 newTeam.data 사용
                     setTeamFolders((prev) => [
                       ...prev,
-                      { ...newTeam.data, spaceType: 'team' },
+                      {
+                        ...newTeam.data,
+                        spaceType: 'team',
+                        boards: [],
+                        createdAt: newTeam.data.createdAt,
+                        updatedAt: newTeam.data.updatedAt,
+                      },
                     ]);
                     setShowMakeTeam(false);
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error('팀 생성 실패:', err);
+                    const msg =
+                      err?.response?.data?.message ||
+                      '팀 생성 중 오류가 발생했습니다.';
+                    setErrorMessage(msg);
+                    setTimeout(() => setErrorMessage(null), 3000);
                   }
                 }}
                 onClose={() => setShowMakeTeam(false)}
+                errorMessage={errorMessage}
+                onErrorClear={() => setErrorMessage(null)}
               />
             </motion.div>
           </motion.div>
@@ -246,21 +334,14 @@ export default function S_SpacePage() {
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
               <FrmTeamEdit
-                initialName={editingTeam.name}
-                initialDescription={editingTeam.description || ''}
-                initialMembers={(editingTeam.members || []).map((m: any) => ({
-                  name: m.name ?? '',
-                  email: m.email ?? '',
-                  role: m.role,
-                }))}
-                currentRole="teamAdmin"
+                teamId={editingTeam.id}
                 onSubmit={handleTeamEditSubmit}
                 onClose={() => {
                   setShowTeamSettings(false);
                   setEditingTeam(null);
                 }}
                 onDelete={() => handleDeleteTeam(editingTeam.id)}
-                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)} // ✅ 동일하게 처리
+                onLeaveTeam={() => handleDeleteTeam(editingTeam.id)}
               />
             </motion.div>
           </motion.div>
@@ -274,11 +355,47 @@ export default function S_SpacePage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
+            onClick={() => {
+              setShowDashboardMake(false);
+              setSelectedFolderId(null);
+            }}
           >
-            <DashboardMake
-              onClose={() => setShowDashboardMake(false)}
-              onCreate={() => {}}
-            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DashboardMake
+                folderId={selectedFolderId}
+                onClose={() => {
+                  setShowDashboardMake(false);
+                  setSelectedFolderId(null);
+                }}
+                onCreate={async (board) => {
+                  try {
+                    const res = await createDashboard(selectedFolderId, {
+                      name: board.name,
+                      logPath: board.logPath,
+                    });
+                    setTeamFolders((prev) =>
+                      prev.map((team) =>
+                        team.id === selectedFolderId
+                          ? {
+                              ...team,
+                              boards: [...(team.boards || []), res.data],
+                            }
+                          : team
+                      )
+                    );
+                    setShowDashboardMake(false);
+                  } catch (err) {
+                    console.error('팀 대시보드 생성 실패:', err);
+                  }
+                }}
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

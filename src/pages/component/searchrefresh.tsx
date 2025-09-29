@@ -1,8 +1,15 @@
+import type { ChangeEvent } from "react";
+
 interface SearchRefreshProps {
   onRefresh?: () => void; // 새로고침 클릭 시 실행될 콜백
+  onSearch?: (keyword: string) => void; // 검색어 입력 시 실행될 콜백
 }
 
-export default function SearchRefresh({ onRefresh }: SearchRefreshProps) {
+export default function SearchRefresh({ onRefresh, onSearch }: SearchRefreshProps) {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    onSearch?.(e.target.value);
+  };
+
   return (
     <div className="flex items-center justify-between w-full">
       {/* 왼쪽 그룹: 제목 + 검색창 */}
@@ -43,6 +50,7 @@ export default function SearchRefresh({ onRefresh }: SearchRefreshProps) {
           <input
             type="text"
             placeholder="키워드로 찾기"
+            onChange={handleChange}
             className="
               flex-1 ml-2 bg-transparent outline-none
               text-[#888]

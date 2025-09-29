@@ -8,25 +8,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useLogStore } from "../../utils/logstore"; // 로그 스토어 연결
+import { useLogStore } from "../../utils/logstore";
 
-const CustomTick = (props: any) => {
-  const { x, y, payload } = props;
-  return (
-    <text
-      x={x}
-      y={y + 20}
-      textAnchor="middle"
-      style={{
-        fill: "var(--Gray-300, #AEAEAE)",
-        fontFamily: "Geist Mono",
-        fontSize: "14px",
-        fontWeight: 300,
-      }}
-    >
-      {payload.value}
-    </text>
-  );
+// 커스텀 X축 라벨
+const CustomTick = ({ x, y, payload }: any) => (
+  <text
+    x={x}
+    y={y + 20}
+    textAnchor="middle"
+    style={{
+      fill: "var(--Gray-300, #AEAEAE)",
+      fontFamily: "Geist Mono",
+      fontSize: "14px",
+      fontWeight: 300,
+    }}
+  >
+    {payload.value}
+  </text>
+);
+
+// 시간 라벨 + 구간 범위 생성 (start 기준)
+const generateTimeRanges = (count: number, stepMinutes: number) => {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
+    const end = new Date(start.getTime() + stepMinutes * 60000);
+    return {
+      label: start.toTimeString().slice(0, 5),
+      start,
+      end,
+    };
+  });
 };
 
 export default function AppLogLine() {
@@ -36,21 +48,15 @@ export default function AppLogLine() {
     { time: string; warn: number; error: number; fatal: number }[]
   >([]);
 
-  // 범위별 데이터 생성
-  const generateData = (range: string) => {
-    const now = new Date();
-    let count = 12;
+  // 로그 기반 데이터 생성
+  const generateDataFromLogs = (range: string) => {
     let stepMinutes = 5;
+    if (range === "6h") stepMinutes = 30;
+    else if (range === "12h") stepMinutes = 60;
 
-    if (range === "1h") stepMinutes = 5; // 12칸 = 60분
-    else if (range === "6h") stepMinutes = 30; // 12칸 = 360분
-    else stepMinutes = 60; // 12칸 = 720분
+    const ranges = generateTimeRanges(12, stepMinutes);
 
-    return Array.from({ length: count }, (_, i) => {
-      const start = new Date(now.getTime() - (count - 1 - i) * stepMinutes * 60000);
-      const end = new Date(start.getTime() + stepMinutes * 60000);
-
-      // WARN, ERROR, FATAL 각각 카운트
+    return ranges.map(({ label, start, end }) => {
       const warnCount = appLogs.filter((log) => {
         const t = new Date(log.timestamp);
         return t >= start && t < end && log.level.toUpperCase() === "WARN";
@@ -67,7 +73,7 @@ export default function AppLogLine() {
       }).length;
 
       return {
-        time: start.toTimeString().slice(0, 5),
+        time: label,
         warn: warnCount,
         error: errorCount,
         fatal: fatalCount,
@@ -76,11 +82,12 @@ export default function AppLogLine() {
   };
 
   useEffect(() => {
-    setChartData(generateData(activeRange));
+    setChartData(generateDataFromLogs(activeRange));
 
+    // 1분마다 최신 데이터 반영
     const interval = setInterval(() => {
-      setChartData(generateData(activeRange));
-    }, 5000); // 5초마다 갱신
+      setChartData(generateDataFromLogs(activeRange));
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [activeRange, appLogs]);
@@ -117,10 +124,7 @@ export default function AppLogLine() {
       {/* 차트 */}
       <div className="w-full h-[320px] bg-[#171717] rounded-md p-4">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
-          >
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
             <CartesianGrid stroke="#292929" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="time"
@@ -134,30 +138,9 @@ export default function AppLogLine() {
               contentStyle={{ backgroundColor: "#232323", borderRadius: "6px" }}
               labelStyle={{ color: "#F2F2F2" }}
             />
-            {/* WARN */}
-            <Line
-              type="linear"
-              dataKey="warn"
-              stroke="#FFD058" // 노랑
-              strokeWidth={2}
-              dot={false}
-            />
-            {/* ERROR */}
-            <Line
-              type="linear"
-              dataKey="error"
-              stroke="#FF6969" // 빨강
-              strokeWidth={2}
-              dot={false}
-            />
-            {/* FATAL */}
-            <Line
-              type="linear"
-              dataKey="fatal"
-              stroke="#9B5DE5" // 보라
-              strokeWidth={2}
-              dot={false}
-            />
+            <Line type="linear" dataKey="warn" stroke="#FFD058" strokeWidth={2} dot={false} />
+            <Line type="linear" dataKey="error" stroke="#FF6969" strokeWidth={2} dot={false} />
+            <Line type="linear" dataKey="fatal" stroke="#9B5DE5" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

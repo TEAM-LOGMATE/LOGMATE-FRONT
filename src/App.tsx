@@ -4,12 +4,90 @@ import SignupPage from './pages/signup/SignupPage';
 import PSpacePage from './pages/home/P-SpacePage';
 import MyInfoPage from './pages/home/MyInfo';
 import MyInfoEditPage from './pages/home/MyInfoEdit';
-import { AuthProvider, ProtectedRoute } from './utils/AuthContext';
+import { AuthProvider, ProtectedRoute, useAuth } from './utils/AuthContext';
 import FolderPage from './pages/home/folderpage';
 import S_SpacePage from './pages/home/S-SpacePage';
 import LandingPage from './pages/landingpage/landingpage';
 import TeamPage from './pages/home/teampage';
 import AppDashboard from './pages/dashboard/appdashboard';
+import { useEffect } from 'react';
+import { useFolderStore } from './utils/folderStore';
+import { getPersonalFolders } from './api/folders';
+import { getTeams, getTeamFolders } from './api/teams';
+import type { Folder, Team } from './utils/type';
+
+// 로그인 후 폴더/팀 초기화 컴포넌트
+function AppInitializer() {
+  const { user } = useAuth();
+  const { setFolders, setTeamFolders } = useFolderStore();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const initData = async () => {
+      try {
+        // 개인 폴더
+        const personal = await getPersonalFolders(user.id);
+        setFolders(() => personal);
+
+        // 팀 목록
+        const teams = await getTeams();
+
+        // 각 팀의 폴더 + 메타데이터 불러오기
+        const allTeamFolders = await Promise.all(
+          teams.map(async (team: any) => {
+            try {
+              const res = await getTeamFolders(team.id);
+
+              // 폴더가 없는 경우 → team 메타데이터만
+              if (!res || res.length === 0) {
+                return {
+                  id: team.id,
+                  name: team.name,
+                  description: team.description ?? '',
+                  createdAt: team.createdAt ?? null,
+                  updatedAt: team.updatedAt ?? null,
+                  spaceType: 'team' as const,
+                  myRole: team.myRole,
+                  boards: [],
+                } as Team;
+              }
+
+              // 폴더가 있는 경우
+              const rawFolder = res[0];
+              const folder: Folder = {
+                ...rawFolder,
+                spaceType: 'team',
+              };
+
+              return {
+                ...folder,
+                id: team.id,
+                name: team.name,
+                description: team.description ?? folder.description ?? '',
+                createdAt: folder.createdAt ?? team.createdAt ?? null,
+                updatedAt: folder.updatedAt ?? team.updatedAt ?? null,
+                spaceType: 'team',
+                myRole: team.myRole,
+              } as Team;
+            } catch (err) {
+              console.error(`팀 폴더 조회 실패 (teamId=${team.id}):`, err);
+              return null;
+            }
+          })
+        );
+
+        setTeamFolders(() => allTeamFolders.filter(Boolean) as Team[]);
+      } catch (err) {
+        console.error('초기 데이터 불러오기 실패:', err);
+      }
+    };
+
+    initData();
+  }, [user, setFolders, setTeamFolders]);
+
+  return null;
+}
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -31,7 +109,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 개인 스페이스 폴더 내부 */}
       <Route
         path="/personal/:folderId"
         element={
@@ -40,7 +117,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 개인 스페이스 보드(AppDashboard) */}
       <Route
         path="/personal/:folderId/:boardId"
         element={
@@ -59,7 +135,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 팀 스페이스 폴더 내부 */}
       <Route
         path="/team/:teamId"
         element={
@@ -68,7 +143,6 @@ function AnimatedRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 팀 스페이스 보드(AppDashboard) */}
       <Route
         path="/team/:teamId/:boardId"
         element={
@@ -106,6 +180,8 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* 로그인 후 개인/팀 폴더를 전역 초기화 */}
+        <AppInitializer />
         <AnimatedRoutes />
       </Router>
     </AuthProvider>

@@ -8,7 +8,8 @@ type Role = 'teamAdmin' | 'member' | 'viewer';
 
 type FrmMemberListProps = {
   members: { name: string; email: string; role: Role }[];
-  readOnly?: boolean; // 읽기전용: 역할 변경/삭제만 막음. 초대는 항상 가능.
+  readOnly?: boolean; 
+  hideName?: boolean;
   onMemberAdd?: (email: string) => void;
   onRoleChange?: (index: number, newRole: Role) => void;
   onDeleteClick?: (index: number) => void;
@@ -17,6 +18,7 @@ type FrmMemberListProps = {
 export default function FrmMemberList({
   members,
   readOnly = false,
+  hideName = false,
   onMemberAdd,
   onRoleChange,
   onDeleteClick,
@@ -54,7 +56,7 @@ export default function FrmMemberList({
           <path d="M18 19L22 23" stroke="#AEAEAE" strokeWidth="1.2" />
         </svg>
 
-        {/* 입력 필드 (권한과 무관하게 항상 활성) */}
+        {/* 입력 필드 */}
         <input
           type="text"
           value={emailInput}
@@ -67,10 +69,10 @@ export default function FrmMemberList({
           "
         />
 
-        {/* 초대 링크 (항상 활성) */}
+        {/* 초대 링크 */}
         <BtnInviteLink onClick={() => console.log('링크 복사')} />
 
-        {/* 팀원 추가 (이메일 유효성으로만 활성) */}
+        {/* 팀원 추가 */}
         <BtnAddMember
           onClick={() => {
             if (isValidEmail(emailInput)) {
@@ -82,19 +84,23 @@ export default function FrmMemberList({
         />
       </div>
 
-      {/* 멤버 리스트: 역할 변경/삭제만 권한에 따라 제어 */}
+      {/* 멤버 리스트 */}
       {members.map((member, index) => (
         <FrmMemberLine
           key={index}
-          name={member.name}
+          name={hideName ? '' : member.name} 
           email={member.email}
           role={member.role}
-          readOnly={readOnly}  
-          onRoleChange={readOnly ? undefined : (r) => onRoleChange?.(index, r)}
-          onDeleteClick={readOnly ? undefined : () => onDeleteClick?.(index)}
+          readOnly={readOnly}
+          onRoleChange={(r) => {
+            if (readOnly) return;
+            onRoleChange?.(index, r);
+          }}
+          onDeleteClick={
+            readOnly ? undefined : () => onDeleteClick?.(index)
+          }
         />
       ))}
-
     </div>
   );
 }

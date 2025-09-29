@@ -2,15 +2,18 @@ type ButtonProps = {
   children: React.ReactNode;
   onClick?: () => void;
   isActive?: boolean;
+  type?: "button" | "submit" | "reset";
 };
 
 export default function BtnSign({
   children,
   onClick,
   isActive = true,
+  type = "button",
 }: ButtonProps) {
   return (
     <button
+      type={type}
       onClick={onClick}
       className={`
         flex items-center justify-center
