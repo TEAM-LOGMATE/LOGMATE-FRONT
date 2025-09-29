@@ -10,7 +10,6 @@ import AppAll from "../component/AppAll";
 import AppLevel from "../component/AppLevel";
 import AppLogger from "../component/AppLogger";
 import AppErrorLog from "../component/AppErrorlog";
-import SearchRefresh from "../component/searchrefresh";
 import AppLiveLog from "../component/AppLiveLog";
 import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
@@ -146,11 +145,9 @@ export default function AppDashboard() {
   const board = folder?.boards?.find((b) => String(b.id) === String(boardId));
 
   const [refreshKey, setRefreshKey] = useState(0);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   const spaceType = folder?.spaceType === "team" ? "팀 스페이스" : "개인 스페이스";
-
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-[#0F0F0F] text-white font-suit">
@@ -206,13 +203,9 @@ export default function AppDashboard() {
 
                 {/* 아래 영역 */}
                 <div className="w-full max-w-[1385px] flex flex-col gap-6">
-                  <SearchRefresh
-                    onRefresh={() => setRefreshKey((k) => k + 1)}
-                    onSearch={(kw) => setSearchKeyword(kw)}
-                  />
+                  {/* AppLiveLog는 자체적으로 검색/새로고침 관리 */}
                   <AppLiveLog
                     key={refreshKey}
-                    keyword={searchKeyword}
                     onSelectLog={(log) => setSelectedLog(log)}
                   />
                   <AppLogLine />
