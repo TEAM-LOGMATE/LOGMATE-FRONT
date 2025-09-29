@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Input54 from '../../components/input/54';
 import BtnSign from '../../components/btn/btn-sign';
-import BtnSnsLogin from '../../components/btn/btn-sns-login';
 import ErrorToast from '../../components/text/error-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -161,15 +160,9 @@ export default function LoginPage() {
           </motion.div>
         </form>
 
-        {/* SNS 로그인 */}
-        <motion.div variants={itemVariants} className="flex flex-row justify-between items-center gap-[12px] w-full">
-          <BtnSnsLogin type="google">Google</BtnSnsLogin>
-          <BtnSnsLogin type="github">GitHub</BtnSnsLogin>
-        </motion.div>
-
         {/* 하단 링크 */}
         <motion.div variants={itemVariants} className="flex flex-col items-center gap-[60px] w-[480px]">
-          <div className="flex items-center gap-[14px]">
+          <div className="flex items-center">
             <div
               className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
                          text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center
@@ -177,15 +170,6 @@ export default function LoginPage() {
               onClick={() => navigate('/signup')}
             >
               새 계정 만들기
-            </div>
-            <div className="flex items-center h-[16px]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="2" height="17" viewBox="0 0 2 17" fill="none">
-                <path d="M1 0.5L1 16.5" stroke="#888888" />
-              </svg>
-            </div>
-            <div className="flex justify-center items-center w-[112px] py-[11px] px-[16px] gap-[10px]
-                            text-[#AEAEAE] text-[14px] leading-[130%] font-suit font-normal text-center">
-              비밀번호 찾기
             </div>
           </div>
         </motion.div>
