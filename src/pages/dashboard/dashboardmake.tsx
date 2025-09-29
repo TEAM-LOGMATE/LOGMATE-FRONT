@@ -3,7 +3,6 @@ import Input48 from '../../components/input/48';
 import BtnSmallArrow from '../../components/btn/btn-small-arrow';
 import BtnSign2Small from '../../components/btn/btn-sign-2-small';
 import BtnDropdown from '../../components/btn/btn-dropdown';
-import BtnCheckbox from '../../components/btn/btn-checkbox';
 import AdvancedSettings from './advancedsetting';
 
 export interface DashboardFormData {
@@ -51,6 +50,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
 
+  // Agent ID 상태
   const [useAgentId, setUseAgentId] = useState(false);
   const [agentId, setAgentId] = useState('');
 
@@ -86,7 +86,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
       advancedConfig: advancedConfigs[logType],
       logType,
       timezone,
-      ...(useAgentId ? { agentId } : {}),
+      ...(useAgentId && agentId.trim() ? { agentId } : {}), // 체크박스 켜져있고 값이 있으면 최상위에 포함
     };
 
     onCreate?.(formData);
@@ -205,20 +205,6 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
           </div>
         </div>
 
-        {/* Agent ID 입력 */}
-        <div className="mt-6">
-          <label className="mb-2 flex items-center gap-2">
-            <span className="text-[16px] font-[Geist] font-normal leading-[150%]"
-              style={{ color: 'var(--Alert-Yellow, #D4B66F)' }}>
-              내 Agent ID 입력
-            </span>
-            <BtnCheckbox checked={useAgentId} onToggle={() => setUseAgentId((p) => !p)} />
-          </label>
-          {useAgentId && (
-            <Input48 value={agentId} onChange={(e) => setAgentId(e.target.value)} placeholder="Agent ID를 입력하세요" />
-          )}
-        </div>
-
         {/* 고급 설정 */}
         <div className="mt-4 flex items-center justify-center gap-1">
           <span
@@ -231,8 +217,54 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
             <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
           </div>
         </div>
+
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
+            {/* Agent ID 제목 + 체크박스 */}
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className="font-[Geist]"
+                style={{
+                  color: 'var(--Alert-Yellow, #D4B66F)',
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  lineHeight: '150%',
+                }}
+              >
+                Agent ID
+              </span>
+              <input
+                type="checkbox"
+                checked={useAgentId}
+                onChange={(e) => {
+                  setUseAgentId(e.target.checked);
+                  if (!e.target.checked) setAgentId('');
+                }}
+                className="cursor-pointer accent-[#D4B66F]"
+              />
+            </div>
+
+            {/* Agent ID : 라벨 + Input */}
+            {useAgentId && (
+              <div className="mb-6 flex items-center gap-3">
+                <span
+                  className="w-[200px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[Geist] text-[16px] font-normal leading-[150%]"
+                >
+                  Agent ID :
+                </span>
+                <div className="flex-1">
+                  <Input48
+                    value={agentId}
+                    onChange={(e) => setAgentId(e.target.value)}
+                    placeholder="Agent ID를 입력하세요"
+                    className="w-full"
+                    align="center"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* AdvancedSettings 컴포넌트 */}
             <AdvancedSettings
               key={logType}
               logType={logType}

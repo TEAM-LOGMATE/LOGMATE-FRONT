@@ -5,14 +5,19 @@ import BtnSmallArrow from '../../components/btn/btn-small-arrow';
 import BtnSign2Small from '../../components/btn/btn-sign-2-small';
 import BtnDropdown from '../../components/btn/btn-dropdown';
 import AdvancedSettings, { type AdvancedSettingsProps } from './advancedsetting';
-import { updateDashboard, updateDashboardConfig } from '../../api/dashboard';
+import {
+  updateDashboard,
+  updateDashboardConfig,
+  getDashboards,
+  getDashboardConfigs,
+} from '../../api/dashboard';
 
 interface DashboardEditProps {
   folderId: number;
   boardId: number;
   initialName: string;
   initialLogPath: string;
-  initialAdvancedConfig: any; // 서버에서 내려온 초기값
+  initialAdvancedConfig: any;
   initialAgentId?: string;
   initialLogType?: string;
   initialTimezone?: string;
@@ -23,7 +28,6 @@ interface DashboardEditProps {
 const logTypes = ['springboot', 'tomcat'] as const;
 const timezones = ['Asia/Seoul', 'UTC'];
 
-// logType별 기본값
 const defaultConfigs: Record<
   (typeof logTypes)[number],
   NonNullable<AdvancedSettingsProps['value']>
@@ -32,17 +36,22 @@ const defaultConfigs: Record<
     tailer: { readIntervalMs: 300, metaDataFilePathPrefix: '/spring/logs' },
     multiline: { enabled: false, maxLines: 200 },
     exporter: { compressEnabled: true, retryIntervalSec: 5, maxRetryCount: 3 },
-    filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: ['Exception', 'DB'] },
+    filter: {
+      allowedLevels: ['ERROR', 'WARN'],
+      requiredKeywords: ['Exception', 'DB'],
+    },
   },
   tomcat: {
     tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/tomcat/logs' },
     multiline: { enabled: false, maxLines: 50 },
     exporter: { compressEnabled: false, retryIntervalSec: 10, maxRetryCount: 1 },
-    filter: { allowedMethods: ['GET', 'POST'], requiredKeywords: ['login', 'error'] },
+    filter: {
+      allowedMethods: ['GET', 'POST'],
+      requiredKeywords: ['login', 'error'],
+    },
   },
 };
 
-// 깊은 복사 유틸
 const deepClone = <T,>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
 export default function DashboardEdit({
@@ -66,12 +75,94 @@ export default function DashboardEdit({
   );
   const [timezone, setTimezone] = useState(initialTimezone);
   const [agentId, setAgentId] = useState(initialAgentId);
+  const [useAgentId, setUseAgentId] = useState(!!initialAgentId);
 
   const [isLogTypeOpen, setIsLogTypeOpen] = useState(false);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
 
   const logTypeRef = useRef<HTMLDivElement>(null);
   const timezoneRef = useRef<HTMLDivElement>(null);
+
+  const [advancedConfigs, setAdvancedConfigs] = useState<
+    Record<(typeof logTypes)[number], NonNullable<AdvancedSettingsProps["value"]>>
+  >({
+    springboot: deepClone(defaultConfigs.springboot),
+    tomcat: deepClone(defaultConfigs.tomcat),
+  });
+
+  // 서버에서 기본정보 + 고급설정 불러오기
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        // 기본 정보 조회
+        const dashboardsRes = await getDashboards(folderId);
+        const dashboard = (dashboardsRes.data || []).find(
+          (d: any) => d.id === boardId
+        );
+
+        if (dashboard) {
+          setBoardName(dashboard.name || "");
+          setLogPath(dashboard.logPath || "");
+        }
+
+        // 고급 정보 조회
+        const configsRes = await getDashboardConfigs(folderId);
+        const matched = (configsRes.data || []).find(
+          (c: any) => c.dashboardId === boardId
+        );
+
+        // 대소문자 불일치 대응
+        const rawConfigs =
+          matched?.logPipelineConfigs || matched?.logpipelineConfigs;
+
+        if (rawConfigs) {
+          const configs = Array.isArray(rawConfigs)
+            ? rawConfigs
+            : [rawConfigs];
+
+          configs.forEach((serverConfig: any) => {
+            const typeKey = serverConfig.parser?.type as (typeof logTypes)[number];
+            if (!typeKey) return;
+
+            const normalizedConfig = {
+              ...serverConfig,
+              parserType: serverConfig.parser?.type,
+              parser: {
+                timezone: serverConfig.parser?.config?.timezone ?? "Asia/Seoul",
+              },
+            };
+
+            setAdvancedConfigs((prev) => ({
+              ...prev,
+              [typeKey]: {
+                ...deepClone(defaultConfigs[typeKey]),
+                ...deepClone(normalizedConfig),
+              },
+            }));
+
+            if (serverConfig.parser?.type) {
+              setLogType(serverConfig.parser.type as (typeof logTypes)[number]);
+            }
+            if (serverConfig.parser?.config?.timezone) {
+              setTimezone(serverConfig.parser.config.timezone);
+            }
+          });
+        } else if (initialAdvancedConfig) {
+          setAdvancedConfigs((prev) => ({
+            ...prev,
+            [initialLogType as (typeof logTypes)[number]]: {
+              ...deepClone(defaultConfigs[initialLogType as (typeof logTypes)[number]]),
+              ...deepClone(initialAdvancedConfig),
+            },
+          }));
+        }
+      } catch (err) {
+        console.error("대시보드 기본/고급정보 불러오기 실패:", err);
+      }
+    };
+
+    fetchConfig();
+  }, [folderId, boardId, initialAdvancedConfig, initialLogType]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -86,29 +177,7 @@ export default function DashboardEdit({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // logType별 고급설정 상태
-  const [advancedConfigs, setAdvancedConfigs] = useState<
-    Record<(typeof logTypes)[number], NonNullable<AdvancedSettingsProps['value']>>
-  >({
-    springboot: deepClone(defaultConfigs.springboot),
-    tomcat: deepClone(defaultConfigs.tomcat),
-  });
-
-  // 서버에서 받은 초기 config 반영
-  useEffect(() => {
-    if (initialAdvancedConfig) {
-      setAdvancedConfigs((prev) => ({
-        ...prev,
-        [initialLogType as (typeof logTypes)[number]]: {
-          ...deepClone(defaultConfigs[initialLogType as (typeof logTypes)[number]]),
-          ...deepClone(initialAdvancedConfig),
-        },
-      }));
-    }
-  }, [initialLogType, initialAdvancedConfig]);
-
-  const isFormValid =
-    logPath.trim() !== '' && boardName.trim() !== '' && agentId.trim() !== '';
+  const isFormValid = logPath.trim() !== "" && boardName.trim() !== "";
 
   const handleSave = async () => {
     if (!isFormValid) return;
@@ -120,8 +189,7 @@ export default function DashboardEdit({
 
       const currentConfig = advancedConfigs[logType];
 
-      const body = {
-        agentId,
+      const body: any = {
         targetFilePath: logPath,
         logPipelineConfig: {
           parserType: logType,
@@ -141,9 +209,16 @@ export default function DashboardEdit({
             retryIntervalSec: currentConfig.exporter?.retryIntervalSec ?? 5,
             maxRetryCount: currentConfig.exporter?.maxRetryCount ?? 3,
           },
-          filter: currentConfig.filter ?? { allowedLevels: [], requiredKeywords: [] },
+          filter: currentConfig.filter ?? {
+            allowedLevels: [],
+            requiredKeywords: [],
+          },
         },
       };
+
+      if (useAgentId && agentId.trim()) {
+        body.agentId = agentId;
+      }
 
       const res = await updateDashboardConfig(folderId, boardId, body);
 
@@ -152,7 +227,7 @@ export default function DashboardEdit({
         name: boardName,
         logPath,
         advancedConfig: body.logPipelineConfig,
-        agentId: res.data?.agentId ?? agentId,
+        agentId: res.data?.agentId ?? (useAgentId ? agentId : ''),
       });
 
       onClose?.();
@@ -163,19 +238,14 @@ export default function DashboardEdit({
 
   return (
     <motion.div
-      className="relative flex flex-col items-center
-                 w-[840px] px-0 py-10 gap-6
-                 rounded-[24px] border border-[#353535] bg-[#111]"
+      className="relative flex flex-col items-center w-[840px] px-0 py-10 gap-6 rounded-[24px] border border-[#353535] bg-[#111]"
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 20 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
       onClick={(e) => e.stopPropagation()}
     >
-      <h2
-        className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px]
-                   text-[var(--Gray-100,#F2F2F2)] font-[SUIT]"
-      >
+      <h2 className="text-center text-[28px] font-bold leading-[135%] tracking-[-0.4px] text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
         보드 설정
       </h2>
 
@@ -185,7 +255,9 @@ export default function DashboardEdit({
           <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
             로그 파일 경로
           </span>
-          <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
+          <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">
+            *
+          </span>
         </label>
         <Input48
           value={logPath}
@@ -199,7 +271,9 @@ export default function DashboardEdit({
             <span className="text-[16px] font-medium text-[var(--Gray-200,#D8D8D8)] font-[SUIT]">
               보드 이름
             </span>
-            <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">*</span>
+            <span className="text-[16px] font-medium text-[var(--Alert-Red,#D46F6F)] font-[SUIT]">
+              *
+            </span>
           </label>
           <Input48
             value={boardName}
@@ -218,27 +292,24 @@ export default function DashboardEdit({
               </span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px]
-                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
               onClick={() => setIsLogTypeOpen((prev) => !prev)}
             >
-              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{logType}</span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
+                {logType}
+              </span>
               <BtnDropdown />
             </div>
             {isLogTypeOpen && (
-              <ul
-                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
-                           bg-[var(--Gray-600,#353535)] border border-[#444]"
-              >
+              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {logTypes.map((type) => (
                   <li
                     key={type}
-                    className={`flex h-[48px] items-center px-[20px] cursor-pointer
-                      ${
-                        logType === type
-                          ? 'bg-[#222] text-[var(--Gray-100,#F2F2F2)]'
-                          : 'text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]'
-                      }`}
+                    className={`flex h-[48px] items-center px-[20px] cursor-pointer ${
+                      logType === type
+                        ? "bg-[#222] text-[var(--Gray-100,#F2F2F2)]"
+                        : "text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]"
+                    }`}
                     onClick={() => {
                       setLogType(type);
                       setIsLogTypeOpen(false);
@@ -259,23 +330,20 @@ export default function DashboardEdit({
               </span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px]
-                         rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
               onClick={() => setIsTimezoneOpen((prev) => !prev)}
             >
-              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">{timezone}</span>
+              <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
+                {timezone}
+              </span>
               <BtnDropdown />
             </div>
             {isTimezoneOpen && (
-              <ul
-                className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden
-                           bg-[var(--Gray-600,#353535)] border border-[#444]"
-              >
+              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
                 {timezones.map((tz) => (
                   <li
                     key={tz}
-                    className="flex h-[48px] items-center px-[20px] text-[var(--Gray-100,#F2F2F2)] 
-                               hover:bg-[var(--Gray-500,#535353)] cursor-pointer"
+                    className="flex h-[48px] items-center px-[20px] text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)] cursor-pointer"
                     onClick={() => {
                       setTimezone(tz);
                       setIsTimezoneOpen(false);
@@ -287,23 +355,6 @@ export default function DashboardEdit({
               </ul>
             )}
           </div>
-        </div>
-
-        {/* Agent ID */}
-        <div className="mt-6">
-          <label className="mb-2 flex items-center gap-2">
-            <span
-              className="text-[16px] font-[Geist] font-normal leading-[150%]"
-              style={{ color: 'var(--Alert-Yellow, #D4B66F)' }}
-            >
-              Agent ID (필수)
-            </span>
-          </label>
-          <Input48
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            placeholder="Agent ID를 입력하세요"
-          />
         </div>
 
         {/* 고급 설정 */}
@@ -318,12 +369,53 @@ export default function DashboardEdit({
             className="cursor-pointer hover:opacity-80"
             onClick={() => setIsAdvancedOpen((prev) => !prev)}
           >
-            <BtnSmallArrow direction={isAdvancedOpen ? 'up' : 'down'} />
+            <BtnSmallArrow direction={isAdvancedOpen ? "up" : "down"} />
           </div>
         </div>
 
         {isAdvancedOpen && (
           <div className="mt-4 w-full mx-auto max-h-[300px] overflow-y-auto pr-2">
+            {/* Agent ID */}
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className="font-[Geist]"
+                style={{
+                  color: "var(--Alert-Yellow, #D4B66F)",
+                  fontSize: "16px",
+                  fontWeight: 400,
+                  lineHeight: "150%",
+                }}
+              >
+                Agent ID
+              </span>
+              <input
+                type="checkbox"
+                checked={useAgentId}
+                onChange={(e) => {
+                  setUseAgentId(e.target.checked);
+                  if (!e.target.checked) setAgentId("");
+                }}
+                className="cursor-pointer accent-[#D4B66F]"
+              />
+            </div>
+
+            {useAgentId && (
+              <div className="mb-6 flex items-center gap-3">
+                <span className="w-[200px] whitespace-nowrap text-[var(--Gray-300,#AEAEAE)] font-[Geist] text-[16px] font-normal leading-[150%]">
+                  Agent ID :
+                </span>
+                <div className="flex-1">
+                  <Input48
+                    value={agentId}
+                    onChange={(e) => setAgentId(e.target.value)}
+                    placeholder="Agent ID를 입력하세요"
+                    className="w-full"
+                    align="center"
+                  />
+                </div>
+              </div>
+            )}
+
             <AdvancedSettings
               key={logType}
               logType={logType}

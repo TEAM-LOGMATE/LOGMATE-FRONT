@@ -1,8 +1,8 @@
-import ToastMessage from '../dashboard/toastmessage';
-import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
+import ToastMessage from '../dashboard/toastmessage';
 import Bar from '../../components/navi/bar';
 import BtnBigArrow from '../../components/btn/btn-big-arrow';
 import FrmThumbnailBoard from '../../components/frm/frm-thumbnail-board';
@@ -96,27 +96,21 @@ export default function FolderPage() {
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
+  // 수정된 fetchDashboards
   const fetchDashboards = async () => {
     if (!user || !folderId) return;
     try {
       const dashboards = await getDashboards(Number(folderId));
 
-      const enrichedBoards = await Promise.all(
-        (dashboards.data || []).map(async (d: any) => {
-          let advancedConfig = { ...defaultAdvancedConfig };
-          let agentId = d.agentId;
-
-          return {
-            id: d.id,
-            name: d.name,
-            logPath: d.logPath,
-            lastModified: d.lastModified,
-            status: d.status,
-            agentId,
-            advancedConfig,
-          };
-        })
-      );
+      const enrichedBoards = (dashboards.data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        logPath: d.logPath,
+        lastModified: d.lastModified,
+        status: d.status,
+        agentId: d.agentId,
+        advancedConfig: [defaultAdvancedConfig],
+      }));
 
       setBoards(enrichedBoards);
     } catch (err) {
@@ -222,7 +216,7 @@ export default function FolderPage() {
           lastModified: new Date().toISOString(),
           status: 'before',
           agentId,
-          advancedConfig: configBody.logPipelineConfigs[0],
+          advancedConfig: configBody.logPipelineConfigs,
         },
       ]);
 
@@ -304,7 +298,7 @@ export default function FolderPage() {
                   <FrmThumbnailBoard
                     folderId={Number(folderId)}
                     boardId={board.id}
-                    connected={true}
+                    connected
                     boardName={board.name}
                     logPath={board.logPath}
                     advancedConfig={board.advancedConfig}
@@ -413,8 +407,12 @@ export default function FolderPage() {
                 initialLogPath={editTargetBoard.logPath ?? ''}
                 initialAdvancedConfig={editTargetBoard.advancedConfig}
                 initialAgentId={editTargetBoard.agentId}
-                initialLogType={editTargetBoard.advancedConfig?.parserType ?? 'springboot'}
-                initialTimezone={editTargetBoard.advancedConfig?.parser?.timezone ?? 'Asia/Seoul'}
+                initialLogType={
+                  editTargetBoard.advancedConfig?.[0]?.parserType ?? 'springboot'
+                }
+                initialTimezone={
+                  editTargetBoard.advancedConfig?.[0]?.parser?.timezone ?? 'Asia/Seoul'
+                }
                 onUpdated={handleUpdateBoard}
                 onClose={() => setIsDashboardEditOpen(false)}
               />
@@ -425,7 +423,10 @@ export default function FolderPage() {
 
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <ToastMessage agentId={createdAgentId} onCloseToast={() => setShowToast(false)} />
+          <ToastMessage
+            agentId={createdAgentId}
+            onCloseToast={() => setShowToast(false)}
+          />
         </div>
       )}
     </div>

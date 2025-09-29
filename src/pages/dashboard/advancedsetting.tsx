@@ -35,36 +35,73 @@ export interface AdvancedSettingsProps {
   onChange: (newValue: AdvancedSettingsProps["value"]) => void;
 }
 
-// 기본값 정의
-const defaultConfig = {
-  tailer: {
-    readIntervalMs: 1000,
-    metaDataFilePathPrefix: '/tmp/meta',
+// 기본값 정의 (logType 별)
+const defaultConfigs = {
+  springboot: {
+    tailer: {
+      readIntervalMs: 1000,
+      metaDataFilePathPrefix: '/tmp/meta',
+    },
+    multiline: {
+      enabled: false,
+      maxLines: 1,
+    },
+    exporter: {
+      compressEnabled: false,
+      retryIntervalSec: 5,
+      maxRetryCount: 3,
+    },
+    filter: {
+      allowedLevels: [] as string[],
+      requiredKeywords: [] as string[],
+    } as SpringBootFilter,
   },
-  multiline: {
-    enabled: false,
-    maxLines: 1,
+  tomcat: {
+    tailer: {
+      readIntervalMs: 1000,
+      metaDataFilePathPrefix: '/tmp/meta',
+    },
+    multiline: {
+      enabled: false,
+      maxLines: 1,
+    },
+    exporter: {
+      compressEnabled: false,
+      retryIntervalSec: 5,
+      maxRetryCount: 3,
+    },
+    filter: {
+      allowedMethods: [] as string[],
+      requiredKeywords: [] as string[],
+    } as TomcatFilter,
   },
-  exporter: {
-    compressEnabled: false,
-    retryIntervalSec: 5,
-    maxRetryCount: 3,
-  },
-  filter: {
-    allowedLevels: [],
-    requiredKeywords: [],
-  } as SpringBootFilter,
 };
 
+// filter 정규화 함수 (null/undefined 안전 처리)
+function normalizeFilter(logType: 'springboot' | 'tomcat', filter: any) {
+  if (logType === 'springboot') {
+    return {
+      allowedLevels: filter?.allowedLevels ?? [],
+      requiredKeywords: filter?.requiredKeywords ?? [],
+    } as SpringBootFilter;
+  }
+  return {
+    allowedMethods: filter?.allowedMethods ?? [],
+    requiredKeywords: filter?.requiredKeywords ?? [],
+  } as TomcatFilter;
+}
+
 export default function AdvancedSettings({ logType, value, onChange }: AdvancedSettingsProps) {
-  // 기본값과 병합 (서버에서 내려온 값이 있으면 덮어씀)
+  // logType 별 기본값과 병합
+  const base = defaultConfigs[logType];
+
   const safeValue = {
-    ...defaultConfig,
+    ...base,
     ...value,
-    tailer: { ...defaultConfig.tailer, ...(value?.tailer || {}) },
-    multiline: { ...defaultConfig.multiline, ...(value?.multiline || {}) },
-    exporter: { ...defaultConfig.exporter, ...(value?.exporter || {}) },
-    filter: { ...defaultConfig.filter, ...(value?.filter || {}) },
+    tailer: { ...base.tailer, ...(value?.tailer || {}) },
+    multiline: { ...base.multiline, ...(value?.multiline || {}) },
+    exporter: { ...base.exporter, ...(value?.exporter || {}) },
+    filter: normalizeFilter(logType, value?.filter),
   };
 
   return (
