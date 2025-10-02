@@ -111,7 +111,7 @@ export const useLogStore = create<LogState>((set, get) => ({
     const socket = get().socket;
     if (socket) {
       socket.close();
-      console.log("🔌 WebSocket 수동 해제");
+      console.log("WebSocket 수동 해제");
       set({ socket: null });
     }
   },
