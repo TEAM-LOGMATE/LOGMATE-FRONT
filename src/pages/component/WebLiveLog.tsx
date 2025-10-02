@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import BtnDropdown from "../../components/btn/btn-dropdown";
 import SearchRefresh from "./searchrefresh";
 import { useLogStore } from "../../utils/logstore";
+import { api } from "../../api/axiosInstance";
 
 interface WebLiveLogProps {
   onSelect?: (log: any) => void;
@@ -109,6 +110,34 @@ export default function WebLiveLog({ onSelect }: WebLiveLogProps) {
     if (score >= 60) return "#FFC107"; // 경고
     return "#4CAF50"; // 정상
   };
+
+  // AI Score 80 이상일 때 자동 웹훅 트리거
+  useEffect(() => {
+    if (!webLogs.length) return;
+    const latest = webLogs[webLogs.length - 1];
+    const aiScore = latest?.aiScore;
+
+    if (aiScore >= 80) {
+      const message = `
+🔎 *AI Score 알림*
+시스템에서 **AI Score가 높은 로그**가 감지되었습니다. 확인이 필요합니다.
+
+📂 Path: \`${latest.path || "-"}\`
+📌 Method: \`${latest.method || "-"}\`
+📊 Status: \`${latest.status || "-"}\`
+🌐 IP: \`${latest.ip || "-"}\`
+⚠️ Score: **${aiScore} / 100**
+
+_LogMate AI Security • 로그 검토 권장_
+      `.trim();
+
+      api
+        .post(`/api/webhooks/trigger?message=${encodeURIComponent(message)}`)
+        .catch((err) => {
+          console.error("웹훅 전송 실패:", err);
+        });
+    }
+  }, [webLogs]);
 
   return (
     <div className="w-full">

@@ -6,6 +6,7 @@ import BtnSign2 from '../../components/btn/btn-sign-2';
 import Input54 from '../../components/input/54';
 import ErrorToast from '../../components/text/error-toast';
 import { useAuth } from '../../utils/AuthContext';
+import WebhookManager from './webhook';
 
 export default function MyInfoPage() {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ export default function MyInfoPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleUpdate(); // 엔터 & 버튼 클릭 모두 처리
+              handleUpdate();
             }}
             className="flex flex-col gap-[40px] w-full relative"
           >
@@ -128,6 +129,9 @@ export default function MyInfoPage() {
               </BtnSign2>
             </div>
           </form>
+
+          {/* WebhookManager */}
+          <WebhookManager />
         </div>
       </motion.div>
     </div>
