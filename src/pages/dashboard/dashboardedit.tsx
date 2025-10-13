@@ -11,6 +11,7 @@ import {
   getDashboards,
   getDashboardConfigs,
 } from '../../api/dashboard';
+import { p } from 'framer-motion/client';
 
 interface DashboardEditProps {
   folderId: number;
@@ -114,6 +115,7 @@ export default function DashboardEdit({
         // 대소문자 불일치 대응
         const rawConfigs =
           matched?.logPipelineConfigs || matched?.logpipelineConfigs;
+        const pullerConfig = matched?.pullerConfig || { intervalSec: 5 };  
 
         if (rawConfigs) {
           const configs = Array.isArray(rawConfigs)
@@ -130,6 +132,7 @@ export default function DashboardEdit({
               parser: {
                 timezone: serverConfig.parser?.config?.timezone ?? "Asia/Seoul",
               },
+              puller: pullerConfig,
             };
 
             setAdvancedConfigs((prev) => ({
@@ -214,6 +217,7 @@ export default function DashboardEdit({
             requiredKeywords: [],
           },
         },
+        pullerConfig: currentConfig.puller ?? { intervalSec: 5 }, 
       };
 
       if (useAgentId && agentId.trim()) {
@@ -227,6 +231,7 @@ export default function DashboardEdit({
         name: boardName,
         logPath,
         advancedConfig: body.logPipelineConfig,
+        pullerConfig: body.pullerConfig,
         agentId: res.data?.agentId ?? (useAgentId ? agentId : ''),
       });
 
@@ -423,7 +428,11 @@ export default function DashboardEdit({
               onChange={(v) =>
                 setAdvancedConfigs((prev) => ({
                   ...prev,
-                  [logType]: v!,
+                  [logType]: {
+                    ...prev[logType],
+                    ...v,
+                    pullerConfig: v?.puller ?? prev[logType]?.pullerConfig,
+                  },
                 }))
               }
             />

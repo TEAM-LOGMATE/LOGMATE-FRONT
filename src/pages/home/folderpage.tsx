@@ -26,6 +26,7 @@ interface Board {
   status?: 'collecting' | 'unresponsive' | 'before';
   agentId?: string;
   advancedConfig?: any;
+  pullerConfig?: any; 
 }
 
 interface NewBoard {
@@ -35,6 +36,7 @@ interface NewBoard {
   logType: string;
   timezone: string;
   agentId?: string;
+  puller?: any;
 }
 
 // 날짜 문자열 파싱
@@ -109,7 +111,12 @@ export default function FolderPage() {
         lastModified: d.lastModified,
         status: d.status,
         agentId: d.agentId,
-        advancedConfig: [defaultAdvancedConfig],
+        advancedConfig: [
+          {
+            pullerConfig: d.pullerConfig,
+            ...(d.logPipelineConfigs?.[0] || {}),
+          },
+        ],
       }));
 
       setBoards(enrichedBoards);
@@ -125,7 +132,6 @@ export default function FolderPage() {
 
         const data = await getPersonalFolders(user.id);
 
-        // 정렬 추가 (updatedAt 기준)
         const sorted = [...(data || [])].sort((a, b) => {
           const aDate = parseDate(a.updatedAt);
           const bDate = parseDate(b.updatedAt);
@@ -179,6 +185,7 @@ export default function FolderPage() {
 
       const configBody = {
         agentId: board.agentId || null,
+        puller: board.puller,
         logPipelineConfigs: [
           {
             parserType: board.logType,
@@ -232,7 +239,25 @@ export default function FolderPage() {
   };
 
   const handleUpdateBoard = (updated: Board) => {
-    setBoards((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
+    setBoards((prev) =>
+      prev.map((b) =>
+        b.id === updated.id
+          ? {
+              ...b,
+              ...updated,
+              advancedConfig: [
+                {
+                  ...(updated.advancedConfig || {}),
+                  pullerConfig:
+                    updated.pullerConfig ??
+                    b.advancedConfig?.[0]?.pullerConfig ??
+                    { intervalSec: 5 },
+                },
+              ],
+            }
+          : b
+      )
+    );
   };
 
   return (

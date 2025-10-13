@@ -78,7 +78,24 @@ export default function TeamPage() {
   const fetchDashboards = async (id: number) => {
     try {
       const dashboards = await getDashboards(id);
-      setBoards(dashboards.data || []);
+      const enrichedBoards = (dashboards.data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        logPath: d.logPath,
+        lastEdited: d.lastEdited,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+        status: d.status,
+        agentId: d.agentId,
+        advancedConfig: [
+          {
+            pullerConfig: d.pullerConfig,          
+            ...(d.logPipelineConfigs?.[0] || {}), 
+          },
+        ],
+      }));
+
+      setBoards(enrichedBoards);
     } catch (err) {
       console.error('대시보드 조회 실패:', err);
     }
@@ -130,7 +147,7 @@ export default function TeamPage() {
     })();
   }, [isAuthed, numericTeamId, teamFolders, setTeamFolders]);
 
-  // 초기 로드
+  // 초기 로드 수정
   useEffect(() => {
     if (!isAuthed || !numericTeamId) return;
 
@@ -159,7 +176,24 @@ export default function TeamPage() {
           });
         }
 
-        setBoards(dashboards.data || []);
+        const enrichedBoards = (dashboards.data || []).map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          logPath: d.logPath,
+          lastEdited: d.lastEdited,
+          createdAt: d.createdAt,
+          updatedAt: d.updatedAt,
+          status: d.status,
+          agentId: d.agentId,
+          advancedConfig: [
+            {
+              pullerConfig: d.pullerConfig,
+              ...(d.logPipelineConfigs?.[0] || {}),
+            },
+          ],
+        }));
+
+        setBoards(enrichedBoards);
       } catch (err) {
         console.error('팀/보드 초기 로드 실패:', err);
       } finally {
@@ -183,6 +217,7 @@ export default function TeamPage() {
       // 서버 스펙에 맞게 body 구성
       const configBody = {
         agentId: boardData.agentId ?? null,
+        puller: boardData.advancedConfig.puller,
         logPipelineConfigs: [
           {
             parserType: boardData.logType,

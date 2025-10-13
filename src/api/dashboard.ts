@@ -74,6 +74,7 @@ export const saveDashboardConfig = async (
   dashboardId: number,
   body: {
     agentId: string | null;
+    puller: { intervalSec: number };
     logPipelineConfigs: {
       parserType: string;
       parser: { timezone: string };
@@ -116,6 +117,7 @@ export const updateDashboardConfig = async (
   body: {
     agentId: string;
     targetFilePath: string;
+    puller: { intervalSec: number }; 
     logPipelineConfig: {
       parserType: string;
       parser: { timezone: string };
