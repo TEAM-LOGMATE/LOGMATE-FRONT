@@ -320,7 +320,7 @@ export default function FolderPage() {
                     }}
                     onOpen={() => navigate(`/personal/${folderId}/${board.id}`)}
                     previewPath={`/personal/${folderId}/${board.id}?thumb=1`}
-                    statusType={board.status || 'before'}
+                    dashboardStatus={board.status || '에이전트 미응답'}
                   />
                 </motion.div>
               ))}

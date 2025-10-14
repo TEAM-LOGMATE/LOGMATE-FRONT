@@ -377,7 +377,7 @@ export default function TeamPage() {
                     advancedConfig={b.advancedConfig}
                     agentId={b.agentId}
                     previewPath={`/team/${currentTeam?.id}/${b.id}?thumb=1`}
-                    statusType={b.status || 'before'}
+                    dashboardStatus={b.status || "에이전트 미응답"}
                     lastEdited={b.lastEdited}
                     onOpen={() => navigate(`/team/${currentTeam?.id}/${b.id}`)}
                     onDeleted={() => handleDeleteBoard(b.id)}
