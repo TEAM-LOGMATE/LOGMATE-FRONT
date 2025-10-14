@@ -9,6 +9,7 @@ export interface DashboardFormData {
   name: string;
   logPath: string;
   advancedConfig: any;
+  puller?: { intervalSec: number };
   agentId?: string;
   logType: string;
   timezone: string;
@@ -26,12 +27,14 @@ const timezones = ['Asia/Seoul', 'UTC'];
 // logType별 기본 고급설정
 const defaultConfigs: Record<(typeof logTypes)[number], any> = {
   springboot: {
+    puller: { intervalSec: 5 },
     tailer: { readIntervalMs: 300, metaDataFilePathPrefix: '/spring/logs' },
     multiline: { enabled: false, maxLines: 200 },
     exporter: { compressEnabled: true, retryIntervalSec: 5, maxRetryCount: 3 },
     filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: ['Exception', 'DB'] },
   },
   tomcat: {
+    puller: { intervalSec: 5 },
     tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/tomcat/logs' },
     multiline: { enabled: false, maxLines: 50 },
     exporter: { compressEnabled: false, retryIntervalSec: 10, maxRetryCount: 1 },
@@ -84,6 +87,7 @@ export default function DashboardMake({ folderId, onClose, onCreate }: Dashboard
       name: boardName,
       logPath,
       advancedConfig: advancedConfigs[logType],
+      puller: advancedConfigs[logType].puller,
       logType,
       timezone,
       ...(useAgentId && agentId.trim() ? { agentId } : {}), // 체크박스 켜져있고 값이 있으면 최상위에 포함

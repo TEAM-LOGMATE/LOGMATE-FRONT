@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import BtnDropdown from "../../components/btn/btn-dropdown";
 import SearchRefresh from "./searchrefresh";
 import { useLogStore } from "../../utils/logstore";
+import { api } from "../../api/axiosInstance";
 
 interface WebLiveLogProps {
   onSelect?: (log: any) => void;

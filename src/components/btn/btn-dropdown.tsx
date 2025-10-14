@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 interface BtnDropdownProps {
   options?: string[];
   selected?: string | null;
-  onSelect?: (value: string | null) => void; // null = 선택 해제
+  onSelect?: (value: string | null) => void;
 }
 
 export default function BtnDropdown({
@@ -22,7 +22,6 @@ export default function BtnDropdown({
 
   const handleSelect = (opt: string) => {
     if (selected === opt) {
-      // 같은 값 클릭 → 선택 해제
       onSelect?.(null);
     } else {
       onSelect?.(opt);

@@ -14,9 +14,10 @@ import AppLiveLog from "../component/AppLiveLog";
 import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
 import { getTeams } from "../../api/teams";
-import { getDashboards } from "../../api/dashboard";
+import { getDashboards, getDashboardConfigs } from "../../api/dashboard";
 import { useLogStore } from "../../utils/logstore";
 import AppLogDetailPanel from "./applogdetail";
+import { fetchLogs } from "../../api/log";
 
 export default function AppDashboard() {
   const location = useLocation();
@@ -42,30 +43,22 @@ export default function AppDashboard() {
     }
   }
 
+  // 라우트 파라미터
   const { folderId, boardId, teamId } = useParams<{
     folderId?: string;
     boardId: string;
     teamId?: string;
   }>();
 
-  // WebSocket 연결/해제 관리
   const { connect, disconnect } = useLogStore();
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
+  const [disabledTabs, setDisabledTabs] = useState<("app" | "web")[]>([]);
 
-  useEffect(() => {
-    if (!boardId) return;
-    const threadNo = activeTab === "web" ? "1" : "2";
-    connect("agent-uuid1", threadNo);
-    return () => {
-      disconnect();
-    };
-  }, [boardId, activeTab, connect, disconnect]);
-
-  // 임베드일 때는 user가 null일 수 있음 → fallback
   const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
 
   const [personalFolders, setPersonalFolders] = useState<Folder[]>([]);
   const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
+  const [dashboardConfigs, setDashboardConfigs] = useState<any[]>([]);
 
   // 개인 스페이스 불러오기
   useEffect(() => {
@@ -84,6 +77,7 @@ export default function AppDashboard() {
                 name: db.name,
                 logPath: db.logPath,
                 status: "before" as const,
+                agentId: db.agentId,
               })) || [],
           },
         ]);
@@ -102,6 +96,7 @@ export default function AppDashboard() {
         const withDashboards: Folder[] = await Promise.all(
           teamData.map(async (team: any) => {
             try {
+              // 팀 대시보드는 /api/folders/{team.id}/dashboards
               const dashboards = await getDashboards(team.id);
               return {
                 id: team.id,
@@ -114,6 +109,7 @@ export default function AppDashboard() {
                     name: db.name,
                     logPath: db.logPath,
                     status: "before" as const,
+                    agentId: db.agentId,
                   })) || [],
               };
             } catch {
@@ -141,12 +137,132 @@ export default function AppDashboard() {
   } else if (folderId) {
     folder = personalFolders.find((f: Folder) => String(f.id) === String(folderId));
   }
-
   const board = folder?.boards?.find((b) => String(b.id) === String(boardId));
+  useEffect(() => {
+    const loadConfigs = async () => {
+      try {
+        //팀 페이지면 teamId 개인 페이지면 folderId로 호출
+        let targetFolderId: number | undefined;
+        if (teamId) targetFolderId = Number(teamId);
+        else if (folderId) targetFolderId = Number(folderId);
 
-  const [refreshKey, setRefreshKey] = useState(0);
+        if (!targetFolderId) {
+          console.warn("folderId/teamId 없음");
+          return;
+        }
+
+        const res = await getDashboardConfigs(targetFolderId);
+
+        // logPipelineConfigs 키 정규화
+        const normalized = (res.data || []).map((cfg: any) => ({
+          ...cfg,
+          logPipelineConfigs:
+            cfg.logPipelineConfigs || cfg.logpipelineConfigs || [],
+        }));
+
+        setDashboardConfigs(normalized);
+      } catch (err) {
+        console.error("대시보드 설정 불러오기 실패:", err);
+      }
+    };
+
+    loadConfigs();
+  }, [folderId, teamId]);
+
+  // parserType 기반 탭 자동 선택 + 토글 비활성화
+  useEffect(() => {
+    if (!dashboardConfigs.length) return;
+
+    const matchedConfig = dashboardConfigs.find(
+      (cfg) => String(cfg.dashboardId) === String(boardId)
+    );
+
+    const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+
+    const parserType =
+      pipeline?.parser?.type?.toLowerCase?.() ??
+      pipeline?.parserType?.toLowerCase?.() ??
+      "";
+
+    if (parserType === "springboot") {
+      setDisabledTabs(["web"]);
+      setActiveTab("app");
+    } else if (parserType === "tomcat") {
+      setDisabledTabs(["app"]);
+      setActiveTab("web");
+    } else {
+      setDisabledTabs([]);
+      setActiveTab("app");
+    }
+  }, [boardId, dashboardConfigs]);
+
+  useEffect(() => {
+    if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
+
+    const matchedConfig = dashboardConfigs.find(
+      (cfg) => String(cfg.dashboardId) === String(boardId)
+    );
+    const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+    if (!pipeline) {
+      console.warn("logPipelineConfigs 없음:", matchedConfig);
+      return;
+    }
+
+    const agentId = board.agentId;
+    const thNum = pipeline.thNum;
+    connect(agentId, String(thNum));
+
+    return () => {
+      disconnect();
+    };
+  }, [boardId, board?.agentId, dashboardConfigs, connect, disconnect]);
+
+  useEffect(() => {
+    if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
+
+    const loadLogs = async () => {
+      try {
+        const matchedConfig = dashboardConfigs.find(
+          (cfg) => String(cfg.dashboardId) === String(boardId)
+        );
+        const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+        if (!pipeline) {
+          console.warn("logPipelineConfigs 없음:", matchedConfig);
+          return;
+        }
+
+        const parserType = pipeline?.parser?.type?.toUpperCase?.() ??
+                           pipeline?.parserType?.toUpperCase?.() ?? "";
+        const logType =
+          parserType === "SPRINGBOOT"
+            ? "SPRING_BOOT"
+            : parserType === "TOMCAT"
+            ? "TOMCAT_ACCESS"
+            : "UNKNOWN";
+
+        const params = {
+          agentId: board.agentId ?? "",
+          thNum: pipeline.thNum,
+          logType,
+        };
+
+        const data = await fetchLogs(params);
+
+        const { setWebLogs, setAppLogs } = useLogStore.getState();
+        if (logType === "TOMCAT_ACCESS") setWebLogs(data);
+        else setAppLogs(data);
+
+        console.log(`[LOG SEARCH] ${logType}`, data);
+      } catch (err) {
+        console.error("[ERROR] 로그 조회 실패:", err);
+      }
+    };
+
+    loadLogs();
+  }, [boardId, board?.agentId, dashboardConfigs]);
+
+  const [refreshKey] = useState(0);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
-
   const spaceType = folder?.spaceType === "team" ? "팀 스페이스" : "개인 스페이스";
 
   return (
@@ -181,7 +297,11 @@ export default function AppDashboard() {
             <h1 className="text-[28px] font-bold text-[#F2F2F2] leading-[135%] tracking-[-0.4px]">
               {board.name}
             </h1>
-            <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Toggle
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              disabledTabs={disabledTabs}
+            />
           </div>
         )}
 
@@ -203,7 +323,6 @@ export default function AppDashboard() {
 
                 {/* 아래 영역 */}
                 <div className="w-full max-w-[1385px] flex flex-col gap-6">
-                  {/* AppLiveLog는 자체적으로 검색/새로고침 관리 */}
                   <AppLiveLog
                     key={refreshKey}
                     onSelectLog={(log) => setSelectedLog(log)}

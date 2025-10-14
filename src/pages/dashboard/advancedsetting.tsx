@@ -3,6 +3,7 @@ import MultilineSettings from './advanced/multiline';
 import ExporterSettings from './advanced/exporter';
 import FilterSettings from './advanced/filter';      // Spring Boot용
 import FilterWeb from './advanced/filterweb';        // Tomcat용
+import ConfigurationPuller from './advanced/configurationpuller';
 
 export interface SpringBootFilter {
   allowedLevels: string[];
@@ -17,6 +18,8 @@ export interface TomcatFilter {
 export interface AdvancedSettingsProps {
   logType: 'springboot' | 'tomcat';
   value?: {
+    puller?: { intervalSec: number };
+    pullerConfig?: { intervalSec: number };
     tailer?: {
       readIntervalMs: number;
       metaDataFilePathPrefix: string;
@@ -38,6 +41,7 @@ export interface AdvancedSettingsProps {
 // 기본값 정의 (logType 별)
 const defaultConfigs = {
   springboot: {
+    puller: { intervalSec: 5 },
     tailer: {
       readIntervalMs: 1000,
       metaDataFilePathPrefix: '/tmp/meta',
@@ -57,6 +61,7 @@ const defaultConfigs = {
     } as SpringBootFilter,
   },
   tomcat: {
+    puller: { intervalSec: 5 },
     tailer: {
       readIntervalMs: 1000,
       metaDataFilePathPrefix: '/tmp/meta',
@@ -92,12 +97,17 @@ function normalizeFilter(logType: 'springboot' | 'tomcat', filter: any) {
 }
 
 export default function AdvancedSettings({ logType, value, onChange }: AdvancedSettingsProps) {
-  // logType 별 기본값과 병합
   const base = defaultConfigs[logType];
 
+  // pullerConfig 반영 순서 수정 (서버 값 우선, 사용자 값 최종)
   const safeValue = {
     ...base,
     ...value,
+    puller: {
+      ...base.puller,                   
+      ...(value?.pullerConfig || {}),   
+      ...(value?.puller || {}),        
+    },
     tailer: { ...base.tailer, ...(value?.tailer || {}) },
     multiline: { ...base.multiline, ...(value?.multiline || {}) },
     exporter: { ...base.exporter, ...(value?.exporter || {}) },
@@ -106,6 +116,11 @@ export default function AdvancedSettings({ logType, value, onChange }: AdvancedS
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Puller 설정 */}
+      <ConfigurationPuller
+        value={safeValue.puller}
+        onChange={(puller) => onChange({ ...safeValue, puller,pullerConfig: puller })}
+      />
       <TailerSettings
         value={safeValue.tailer}
         onChange={(tailer) => onChange({ ...safeValue, tailer })}

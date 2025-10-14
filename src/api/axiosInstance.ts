@@ -19,3 +19,18 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+// 로그 스트리밍 서버용 인스턴스 분리 
+export const logApi = axios.create({
+  baseURL: import.meta.env.VITE_WS_BASE_URL.replace("ws://", "http://"), // ws → http 변환
+  withCredentials: false,
+});
+
+//  토큰 첨부
+logApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});

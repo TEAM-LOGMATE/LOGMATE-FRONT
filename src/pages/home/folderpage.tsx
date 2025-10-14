@@ -15,6 +15,7 @@ import {
   getDashboards,
   createDashboard,
   saveDashboardConfig,
+  getDashboardConfigs,
 } from '../../api/dashboard';
 import { useFolderStore } from '../../utils/folderStore';
 
@@ -26,6 +27,7 @@ interface Board {
   status?: 'collecting' | 'unresponsive' | 'before';
   agentId?: string;
   advancedConfig?: any;
+  pullerConfig?: any;
 }
 
 interface NewBoard {
@@ -35,33 +37,13 @@ interface NewBoard {
   logType: string;
   timezone: string;
   agentId?: string;
+  puller?: any;
 }
 
 // 날짜 문자열 파싱
 const parseDate = (dateStr: string) => {
   const normalized = dateStr.replace(/\./g, '-').replace(' ', 'T');
   return new Date(normalized);
-};
-
-// advancedConfig 기본값
-const defaultAdvancedConfig = {
-  tailer: {
-    readIntervalMs: 1000,
-    metaDataFilePathPrefix: '/tmp/meta',
-  },
-  multiline: {
-    enabled: false,
-    maxLines: 1,
-  },
-  exporter: {
-    compressEnabled: false,
-    retryIntervalSec: 5,
-    maxRetryCount: 3,
-  },
-  filter: {
-    allowedLevels: [],
-    requiredKeywords: [],
-  },
 };
 
 export default function FolderPage() {
@@ -88,31 +70,49 @@ export default function FolderPage() {
 
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: 'easeOut' },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
     exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } },
   };
 
-  // 수정된 fetchDashboards
+  // 폴더 단위로 순서 보장된 대시보드 + 고급설정 로드
   const fetchDashboards = async () => {
     if (!user || !folderId) return;
     try {
-      const dashboards = await getDashboards(Number(folderId));
+      // 대시보드 목록 먼저 가져오기
+      const dashboardsRes = await getDashboards(Number(folderId));
+      const boardsData = dashboardsRes.data || [];
 
-      const enrichedBoards = (dashboards.data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        logPath: d.logPath,
-        lastModified: d.lastModified,
-        status: d.status,
-        agentId: d.agentId,
-        advancedConfig: [defaultAdvancedConfig],
-      }));
+      // 기본 정보 세팅
+      setBoards(
+        boardsData.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          logPath: d.logPath,
+          lastModified: d.lastModified,
+          status: d.status,
+          agentId: d.agentId,
+          pullerConfig: null,
+          advancedConfig: [],
+        }))
+      );
 
-      setBoards(enrichedBoards);
+      // 목록 로드가 끝난 뒤, 폴더 단위 고급정보 조회
+      const advRes = await getDashboardConfigs(Number(folderId));
+      const advList = advRes?.data || [];
+
+      // 대시보드별 매칭
+      setBoards((prev) =>
+        prev.map((b) => {
+          const advItem = advList.find((a: any) => a.dashboardId === b.id);
+          return advItem
+            ? {
+                ...b,
+                pullerConfig: advItem.pullerConfig ?? null,
+                advancedConfig: advItem.logPipelineConfigs ?? [],
+              }
+            : b;
+        })
+      );
     } catch (err) {
       console.error('대시보드 조회 실패:', err);
     }
@@ -124,8 +124,6 @@ export default function FolderPage() {
         if (!user || !folderId) return;
 
         const data = await getPersonalFolders(user.id);
-
-        // 정렬 추가 (updatedAt 기준)
         const sorted = [...(data || [])].sort((a, b) => {
           const aDate = parseDate(a.updatedAt);
           const bDate = parseDate(b.updatedAt);
@@ -157,16 +155,11 @@ export default function FolderPage() {
 
   useEffect(() => {
     if (!loading && folders.length > 0 && folderId && !currentFolder) {
-      if (window.location.pathname !== '/personal') {
-        navigate('/personal');
-      }
+      if (window.location.pathname !== '/personal') navigate('/personal');
     }
   }, [loading, folders, folderId, currentFolder, navigate]);
 
-  if (!folderId || !currentFolder) {
-    return null;
-  }
-
+  if (!folderId || !currentFolder) return null;
   const handleAddBoard = async (board: NewBoard) => {
     try {
       const created = await createDashboard(Number(folderId), {
@@ -179,6 +172,7 @@ export default function FolderPage() {
 
       const configBody = {
         agentId: board.agentId || null,
+        puller: board.puller,
         logPipelineConfigs: [
           {
             parserType: board.logType,
@@ -232,7 +226,25 @@ export default function FolderPage() {
   };
 
   const handleUpdateBoard = (updated: Board) => {
-    setBoards((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
+    setBoards((prev) =>
+      prev.map((b) =>
+        b.id === updated.id
+          ? {
+              ...b,
+              ...updated,
+              advancedConfig: [
+                {
+                  ...(updated.advancedConfig || {}),
+                  pullerConfig:
+                    updated.pullerConfig ??
+                    b.advancedConfig?.[0]?.pullerConfig ??
+                    { intervalSec: 5 },
+                },
+              ],
+            }
+          : b
+      )
+    );
   };
 
   return (
@@ -250,9 +262,7 @@ export default function FolderPage() {
         onRemoveFolder={() => setFolders((prev) => prev.slice(0, -1))}
         activePage="personal"
         activeFolderId={folderId ? Number(folderId) : null}
-        onSelectPage={(page) => {
-          if (page) setActivePage(page);
-        }}
+        onSelectPage={(page) => page && setActivePage(page)}
         onSelectFolder={(id) => {
           setActivePage('personal');
           navigate(`/personal/${id}`, { replace: true });
@@ -315,26 +325,22 @@ export default function FolderPage() {
                 </motion.div>
               ))}
 
-            {!loading && (
-              <AnimatePresence>
-                {boards.length < 4 && (
-                  <motion.div
-                    key="add-slot"
-                    layout
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <FrmThumbnailBoard
-                      folderId={Number(folderId)}
-                      boardId={0}
-                      connected={false}
-                      onAddBoard={() => setIsDashboardMakeOpen(true)}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {!loading && boards.length < 4 && (
+              <motion.div
+                key="add-slot"
+                layout
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <FrmThumbnailBoard
+                  folderId={Number(folderId)}
+                  boardId={0}
+                  connected={false}
+                  onAddBoard={() => setIsDashboardMakeOpen(true)}
+                />
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
@@ -423,10 +429,7 @@ export default function FolderPage() {
 
       {showToast && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <ToastMessage
-            agentId={createdAgentId}
-            onCloseToast={() => setShowToast(false)}
-          />
+          <ToastMessage agentId={createdAgentId} onCloseToast={() => setShowToast(false)} />
         </div>
       )}
     </div>

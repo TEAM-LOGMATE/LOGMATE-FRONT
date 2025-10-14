@@ -11,6 +11,7 @@ import {
   getDashboards,
   getDashboardConfigs,
 } from '../../api/dashboard';
+import { p } from 'framer-motion/client';
 
 interface DashboardEditProps {
   folderId: number;
@@ -114,6 +115,7 @@ export default function DashboardEdit({
         // 대소문자 불일치 대응
         const rawConfigs =
           matched?.logPipelineConfigs || matched?.logpipelineConfigs;
+        const pullerConfig = matched?.pullerConfig || { intervalSec: 5 };  
 
         if (rawConfigs) {
           const configs = Array.isArray(rawConfigs)
@@ -130,6 +132,7 @@ export default function DashboardEdit({
               parser: {
                 timezone: serverConfig.parser?.config?.timezone ?? "Asia/Seoul",
               },
+              puller: pullerConfig,
             };
 
             setAdvancedConfigs((prev) => ({
@@ -214,6 +217,7 @@ export default function DashboardEdit({
             requiredKeywords: [],
           },
         },
+        puller: { intervalSec: currentConfig.puller?.intervalSec ?? 5 }
       };
 
       if (useAgentId && agentId.trim()) {
@@ -227,6 +231,7 @@ export default function DashboardEdit({
         name: boardName,
         logPath,
         advancedConfig: body.logPipelineConfig,
+        pullerConfig: body.pullerConfig,
         agentId: res.data?.agentId ?? (useAgentId ? agentId : ''),
       });
 
@@ -292,34 +297,13 @@ export default function DashboardEdit({
               </span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
-              onClick={() => setIsLogTypeOpen((prev) => !prev)}
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)]"
+              style={{ cursor: "default" }}
             >
               <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
                 {logType}
               </span>
-              <BtnDropdown />
             </div>
-            {isLogTypeOpen && (
-              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
-                {logTypes.map((type) => (
-                  <li
-                    key={type}
-                    className={`flex h-[48px] items-center px-[20px] cursor-pointer ${
-                      logType === type
-                        ? "bg-[#222] text-[var(--Gray-100,#F2F2F2)]"
-                        : "text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]"
-                    }`}
-                    onClick={() => {
-                      setLogType(type);
-                      setIsLogTypeOpen(false);
-                    }}
-                  >
-                    {type}
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* 타임존 */}
@@ -423,7 +407,11 @@ export default function DashboardEdit({
               onChange={(v) =>
                 setAdvancedConfigs((prev) => ({
                   ...prev,
-                  [logType]: v!,
+                  [logType]: {
+                    ...prev[logType],
+                    ...v,
+                    pullerConfig: v?.puller ?? prev[logType]?.pullerConfig,
+                  },
                 }))
               }
             />

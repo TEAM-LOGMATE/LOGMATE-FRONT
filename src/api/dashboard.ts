@@ -24,7 +24,7 @@ export const getDashboards = async (folderId: number) => {
   return res.data;
 };
 
-// ✅ 대시보드 고급정보 조회 (특정 폴더의 모든 대시보드 configs)
+// 대시보드 고급정보 조회 (특정 폴더의 모든 대시보드 configs)
 export const getDashboardConfigs = async (folderId: number) => {
   const token = localStorage.getItem("access_token");
   const res = await api.get(`/api/folders/${folderId}/dashboards/configs`, {
@@ -74,6 +74,7 @@ export const saveDashboardConfig = async (
   dashboardId: number,
   body: {
     agentId: string | null;
+    puller: { intervalSec: number };
     logPipelineConfigs: {
       parserType: string;
       parser: { timezone: string };
@@ -116,6 +117,7 @@ export const updateDashboardConfig = async (
   body: {
     agentId: string;
     targetFilePath: string;
+    puller: { intervalSec: number }; 
     logPipelineConfig: {
       parserType: string;
       parser: { timezone: string };
