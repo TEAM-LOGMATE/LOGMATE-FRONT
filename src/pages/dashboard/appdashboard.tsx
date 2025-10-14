@@ -43,15 +43,16 @@ export default function AppDashboard() {
     }
   }
 
+  // 라우트 파라미터
   const { folderId, boardId, teamId } = useParams<{
     folderId?: string;
     boardId: string;
     teamId?: string;
   }>();
 
-  // Zustand store
   const { connect, disconnect } = useLogStore();
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
+  const [disabledTabs, setDisabledTabs] = useState<("app" | "web")[]>([]);
 
   const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
 
@@ -95,6 +96,7 @@ export default function AppDashboard() {
         const withDashboards: Folder[] = await Promise.all(
           teamData.map(async (team: any) => {
             try {
+              // 팀 대시보드는 /api/folders/{team.id}/dashboards
               const dashboards = await getDashboards(team.id);
               return {
                 id: team.id,
@@ -138,16 +140,61 @@ export default function AppDashboard() {
   const board = folder?.boards?.find((b) => String(b.id) === String(boardId));
   useEffect(() => {
     const loadConfigs = async () => {
-      if (!folderId) return;
       try {
-        const res = await getDashboardConfigs(Number(folderId));
-        setDashboardConfigs(res.data || []);
+        //팀 페이지면 teamId 개인 페이지면 folderId로 호출
+        let targetFolderId: number | undefined;
+        if (teamId) targetFolderId = Number(teamId);
+        else if (folderId) targetFolderId = Number(folderId);
+
+        if (!targetFolderId) {
+          console.warn("folderId/teamId 없음");
+          return;
+        }
+
+        const res = await getDashboardConfigs(targetFolderId);
+
+        // logPipelineConfigs 키 정규화
+        const normalized = (res.data || []).map((cfg: any) => ({
+          ...cfg,
+          logPipelineConfigs:
+            cfg.logPipelineConfigs || cfg.logpipelineConfigs || [],
+        }));
+
+        setDashboardConfigs(normalized);
       } catch (err) {
         console.error("대시보드 설정 불러오기 실패:", err);
       }
     };
+
     loadConfigs();
-  }, [folderId]);
+  }, [folderId, teamId]);
+
+  // parserType 기반 탭 자동 선택 + 토글 비활성화
+  useEffect(() => {
+    if (!dashboardConfigs.length) return;
+
+    const matchedConfig = dashboardConfigs.find(
+      (cfg) => String(cfg.dashboardId) === String(boardId)
+    );
+
+    const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+
+    const parserType =
+      pipeline?.parser?.type?.toLowerCase?.() ??
+      pipeline?.parserType?.toLowerCase?.() ??
+      "";
+
+    if (parserType === "springboot") {
+      setDisabledTabs(["web"]);
+      setActiveTab("app");
+    } else if (parserType === "tomcat") {
+      setDisabledTabs(["app"]);
+      setActiveTab("web");
+    } else {
+      setDisabledTabs([]);
+      setActiveTab("app");
+    }
+  }, [boardId, dashboardConfigs]);
 
   useEffect(() => {
     if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
@@ -175,8 +222,6 @@ export default function AppDashboard() {
 
     const loadLogs = async () => {
       try {
-        const agentId = board.agentId;
-
         const matchedConfig = dashboardConfigs.find(
           (cfg) => String(cfg.dashboardId) === String(boardId)
         );
@@ -186,7 +231,8 @@ export default function AppDashboard() {
           return;
         }
 
-        const parserType = pipeline.parser?.type?.toUpperCase() ?? "";
+        const parserType = pipeline?.parser?.type?.toUpperCase?.() ??
+                           pipeline?.parserType?.toUpperCase?.() ?? "";
         const logType =
           parserType === "SPRINGBOOT"
             ? "SPRING_BOOT"
@@ -215,9 +261,8 @@ export default function AppDashboard() {
     loadLogs();
   }, [boardId, board?.agentId, dashboardConfigs]);
 
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey] = useState(0);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
-
   const spaceType = folder?.spaceType === "team" ? "팀 스페이스" : "개인 스페이스";
 
   return (
@@ -252,7 +297,11 @@ export default function AppDashboard() {
             <h1 className="text-[28px] font-bold text-[#F2F2F2] leading-[135%] tracking-[-0.4px]">
               {board.name}
             </h1>
-            <Toggle activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Toggle
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              disabledTabs={disabledTabs}
+            />
           </div>
         )}
 
