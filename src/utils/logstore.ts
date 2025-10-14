@@ -29,6 +29,8 @@ interface LogState {
   appLogs: AppLog[];
   webLogs: WebLog[];
   socket: WebSocket | null;
+  setAppLogs: (logs: AppLog[]) => void;
+  setWebLogs: (logs: WebLog[]) => void;
   addAppLog: (log: AppLog) => void;
   addWebLog: (log: WebLog) => void;
   connect: (agentId: string, thNum: string) => void;
@@ -42,6 +44,8 @@ export const useLogStore = create<LogState>((set, get) => ({
   appLogs: [],
   webLogs: [],
   socket: null,
+  setAppLogs: (logs) => set({ appLogs: logs }),
+  setWebLogs: (logs) => set({ webLogs: logs }),
 
   addAppLog: (log) =>
     set((state) => ({
@@ -68,7 +72,7 @@ export const useLogStore = create<LogState>((set, get) => ({
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.logType === "springboot") {
+      if (data.logType === "SPRING_BOOT") {
         set((state) => ({
           appLogs: [
             {
@@ -76,29 +80,56 @@ export const useLogStore = create<LogState>((set, get) => ({
               level: data.log.level,
               logger: data.log.logger,
               message: data.log.message,
-              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`, 
+              raw: `[${data.log.timestamp}] ${data.log.level} ${data.log.logger} - ${data.log.message}`,
             },
             ...state.appLogs,
           ],
         }));
-      } else if (data.logType === "tomcat") {
+      } else if (data.logType === "TOMCAT_ACCESS") {
+        const log = {
+          timestamp: data.log.timestamp,
+          method: data.log.method,
+          protocol: data.log.protocol,
+          size: data.log.responseSize,
+          path: data.log.url,
+          status: data.log.statusCode,
+          referrer: data.log.referer,
+          userAgent: data.log.userAgent,
+          ip: data.log.ip,
+          aiScore: data.aiScore,
+          raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`,
+        };
+
+        // AI Score 80 이상 시 자동 웹훅 트리거
+        if (log.aiScore >= 80) {
+          const message = `
+🔎 *AI Score 알림*
+시스템에서 **AI Score가 높은 로그**가 감지되었습니다. 확인이 필요합니다.
+
+📂 Path: \`${log.path || "-"}\`
+📌 Method: \`${log.method || "-"}\`
+📊 Status: \`${log.status || "-"}\`
+🌐 IP: \`${log.ip || "-"}\`
+⚠️ Score: **${log.aiScore} / 100**
+
+_LogMate AI Security • 로그 검토 권장_
+          `.trim();
+
+          import("../api/axiosInstance").then(({ api }) => {
+            api
+              .post(
+                `/api/webhooks/trigger?message=${encodeURIComponent(message)}`
+              )
+              .then(() =>
+                console.log("🚨 웹훅 트리거 전송됨 (AI Score >= 80)")
+              )
+              .catch((err) =>
+                console.error("웹훅 전송 실패:", err?.response || err)
+              );
+          });
+        }
         set((state) => ({
-          webLogs: [
-            {
-              timestamp: data.log.timestamp,
-              method: data.log.method,
-              protocol: data.log.protocol,
-              size: data.log.responseSize,
-              path: data.log.url,
-              status: data.log.statusCode,
-              referrer: data.log.referer,
-              userAgent: data.log.userAgent,
-              ip: data.log.ip,
-              aiScore: data.aiScore,
-              raw: `${data.log.ip} - - [${data.log.timestamp}] "${data.log.method} ${data.log.url} ${data.log.protocol}" ${data.log.statusCode} ${data.log.responseSize} "${data.log.referer}" "${data.log.userAgent}"`,
-            },
-            ...state.webLogs,
-          ],
+          webLogs: [log, ...state.webLogs],
         }));
       }
     };
