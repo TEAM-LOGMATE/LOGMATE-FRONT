@@ -118,8 +118,15 @@ export default function FrmThumbnailBoard({
   };
   */
 
-  const ensureAbsolute = (p: string) =>
-    /^https?:\/\//i.test(p) ? p : p.startsWith("/") ? p : `/${p}`;
+  const ensureAbsolute = (p: string) => {
+    if (/^https?:\/\//i.test(p)) return p;
+    if (p.startsWith("/personal/") || p.startsWith("/team/")) {
+      return `${window.location.origin}#/thumb${p}`;
+    }
+    if (p.startsWith("/")) return `${window.location.origin}${p}`;
+    return `/${p}`;
+  };
+
   const ensureThumbParam = (p: string) => {
     try {
       if (/^https?:\/\//i.test(p)) {
