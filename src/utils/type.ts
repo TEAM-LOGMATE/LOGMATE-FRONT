@@ -48,6 +48,7 @@ export type Folder = {
     logPath?: string;
     lastEdited?: string;
     status?: 'collecting' | 'unresponsive' | 'before';
+    agentId?: string; 
   }[];
 };
 

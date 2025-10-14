@@ -14,9 +14,10 @@ import AppLiveLog from "../component/AppLiveLog";
 import AppLogLine from "../component/AppLogLine";
 import AppTimeLog from "../component/AppTimeLog";
 import { getTeams } from "../../api/teams";
-import { getDashboards } from "../../api/dashboard";
+import { getDashboards, getDashboardConfigs } from "../../api/dashboard";
 import { useLogStore } from "../../utils/logstore";
 import AppLogDetailPanel from "./applogdetail";
+import { fetchLogs } from "../../api/log";
 
 export default function AppDashboard() {
   const location = useLocation();
@@ -48,24 +49,15 @@ export default function AppDashboard() {
     teamId?: string;
   }>();
 
-  // WebSocket 연결/해제 관리
+  // Zustand store
   const { connect, disconnect } = useLogStore();
   const [activeTab, setActiveTab] = useState<"app" | "web">("app");
 
-  useEffect(() => {
-    if (!boardId) return;
-    const threadNo = activeTab === "web" ? "1" : "2";
-    connect("agent-uuid1", threadNo);
-    return () => {
-      disconnect();
-    };
-  }, [boardId, activeTab, connect, disconnect]);
-
-  // 임베드일 때는 user가 null일 수 있음 → fallback
   const username = user?.username ?? localStorage.getItem("username") ?? "사용자";
 
   const [personalFolders, setPersonalFolders] = useState<Folder[]>([]);
   const [teamFolders, setTeamFolders] = useState<Folder[]>([]);
+  const [dashboardConfigs, setDashboardConfigs] = useState<any[]>([]);
 
   // 개인 스페이스 불러오기
   useEffect(() => {
@@ -84,6 +76,7 @@ export default function AppDashboard() {
                 name: db.name,
                 logPath: db.logPath,
                 status: "before" as const,
+                agentId: db.agentId,
               })) || [],
           },
         ]);
@@ -114,6 +107,7 @@ export default function AppDashboard() {
                     name: db.name,
                     logPath: db.logPath,
                     status: "before" as const,
+                    agentId: db.agentId,
                   })) || [],
               };
             } catch {
@@ -141,8 +135,85 @@ export default function AppDashboard() {
   } else if (folderId) {
     folder = personalFolders.find((f: Folder) => String(f.id) === String(folderId));
   }
-
   const board = folder?.boards?.find((b) => String(b.id) === String(boardId));
+  useEffect(() => {
+    const loadConfigs = async () => {
+      if (!folderId) return;
+      try {
+        const res = await getDashboardConfigs(Number(folderId));
+        setDashboardConfigs(res.data || []);
+      } catch (err) {
+        console.error("대시보드 설정 불러오기 실패:", err);
+      }
+    };
+    loadConfigs();
+  }, [folderId]);
+
+  useEffect(() => {
+    if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
+
+    const matchedConfig = dashboardConfigs.find(
+      (cfg) => String(cfg.dashboardId) === String(boardId)
+    );
+    const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+    if (!pipeline) {
+      console.warn("logPipelineConfigs 없음:", matchedConfig);
+      return;
+    }
+
+    const agentId = board.agentId;
+    const thNum = pipeline.thNum;
+    connect(agentId, String(thNum));
+
+    return () => {
+      disconnect();
+    };
+  }, [boardId, board?.agentId, dashboardConfigs, connect, disconnect]);
+
+  useEffect(() => {
+    if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
+
+    const loadLogs = async () => {
+      try {
+        const agentId = board.agentId;
+
+        const matchedConfig = dashboardConfigs.find(
+          (cfg) => String(cfg.dashboardId) === String(boardId)
+        );
+        const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+        if (!pipeline) {
+          console.warn("logPipelineConfigs 없음:", matchedConfig);
+          return;
+        }
+
+        const parserType = pipeline.parser?.type?.toUpperCase() ?? "";
+        const logType =
+          parserType === "SPRINGBOOT"
+            ? "SPRING_BOOT"
+            : parserType === "TOMCAT"
+            ? "TOMCAT_ACCESS"
+            : "UNKNOWN";
+
+        const params = {
+          agentId: board.agentId ?? "",
+          thNum: pipeline.thNum,
+          logType,
+        };
+
+        const data = await fetchLogs(params);
+
+        const { setWebLogs, setAppLogs } = useLogStore.getState();
+        if (logType === "TOMCAT_ACCESS") setWebLogs(data);
+        else setAppLogs(data);
+
+        console.log(`[LOG SEARCH] ${logType}`, data);
+      } catch (err) {
+        console.error("[ERROR] 로그 조회 실패:", err);
+      }
+    };
+
+    loadLogs();
+  }, [boardId, board?.agentId, dashboardConfigs]);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
@@ -203,7 +274,6 @@ export default function AppDashboard() {
 
                 {/* 아래 영역 */}
                 <div className="w-full max-w-[1385px] flex flex-col gap-6">
-                  {/* AppLiveLog는 자체적으로 검색/새로고침 관리 */}
                   <AppLiveLog
                     key={refreshKey}
                     onSelectLog={(log) => setSelectedLog(log)}
