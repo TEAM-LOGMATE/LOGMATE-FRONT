@@ -20,9 +20,12 @@ import type { Folder, Team } from './utils/type';
 function AppInitializer() {
   const { user } = useAuth();
   const { setFolders, setTeamFolders } = useFolderStore();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!user) return;
+    const publicPaths = ['/', '/login', '/signup'];
+    const ispublic = publicPaths.includes(location.pathname);
+    if (!user || ispublic) return;
 
     const initData = async () => {
       try {
