@@ -17,6 +17,7 @@ import {
   deleteDashboard,
   saveDashboardConfig,
   updateDashboard,
+  getDashboardConfigs,
 } from '../../api/dashboard';
 import { getTeamFolders, createTeam, getTeams } from '../../api/teams';
 import { useFolderStore } from '../../utils/folderStore';
@@ -185,15 +186,25 @@ export default function TeamPage() {
           updatedAt: d.updatedAt,
           status: d.status,
           agentId: d.agentId,
-          advancedConfig: [
-            {
-              pullerConfig: d.pullerConfig,
-              ...(d.logPipelineConfigs?.[0] || {}),
-            },
-          ],
         }));
+        const configsRes = await getDashboardConfigs(numericTeamId);
+        const configs = configsRes?.data || [];
+        const mergedBoards = enrichedBoards.map((board: Board) => {
+          const found = configs.find((c: any) => c.dashboardId === board.id);
+          return {
+            ...board,
+            advancedConfig: found
+              ? [
+                  {
+                    pullerConfig: found.pullerConfig,
+                    ...(found.logPipelineConfigs?.[0] || {}),
+                  },
+                ]
+              : [],
+          };
+        });
 
-        setBoards(enrichedBoards);
+        setBoards(mergedBoards);
       } catch (err) {
         console.error('팀/보드 초기 로드 실패:', err);
       } finally {
