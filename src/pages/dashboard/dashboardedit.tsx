@@ -217,7 +217,7 @@ export default function DashboardEdit({
             requiredKeywords: [],
           },
         },
-        pullerConfig: currentConfig.puller ?? { intervalSec: 5 }, 
+        puller: { intervalSec: currentConfig.puller?.intervalSec ?? 5 }
       };
 
       if (useAgentId && agentId.trim()) {
