@@ -297,34 +297,13 @@ export default function DashboardEdit({
               </span>
             </label>
             <div
-              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)] cursor-pointer"
-              onClick={() => setIsLogTypeOpen((prev) => !prev)}
+              className="flex items-center justify-between h-[48px] px-[20px] pr-[12px] py-[11px] rounded-[12px] bg-[var(--Gray-700,#222)]"
+              style={{ cursor: "default" }}
             >
               <span className="text-[var(--Gray-100,#F2F2F2)] font-[SUIT]">
                 {logType}
               </span>
-              <BtnDropdown />
             </div>
-            {isLogTypeOpen && (
-              <ul className="absolute z-10 mt-0.5 w-full rounded-[12px] overflow-hidden bg-[var(--Gray-600,#353535)] border border-[#444]">
-                {logTypes.map((type) => (
-                  <li
-                    key={type}
-                    className={`flex h-[48px] items-center px-[20px] cursor-pointer ${
-                      logType === type
-                        ? "bg-[#222] text-[var(--Gray-100,#F2F2F2)]"
-                        : "text-[var(--Gray-100,#F2F2F2)] hover:bg-[var(--Gray-500,#535353)]"
-                    }`}
-                    onClick={() => {
-                      setLogType(type);
-                      setIsLogTypeOpen(false);
-                    }}
-                  >
-                    {type}
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* 타임존 */}
