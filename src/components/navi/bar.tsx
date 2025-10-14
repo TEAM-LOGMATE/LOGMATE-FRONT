@@ -34,7 +34,7 @@ export default function Bar({
 }: BarProps) {
   const [isOpenG, setIsOpenG] = useState(true);
   const [isOpenS, setIsOpenS] = useState(true);
-
+  const [clickLocked, setClickLocked] = useState(false);
   const navigate = useNavigate();
   const { folderId: routeFolderId } = useParams<{ folderId: string }>();
 
@@ -56,15 +56,25 @@ export default function Bar({
   };
 
   const handleFolderClick = (folderId: number | string) => {
+    if (clickLocked) return;
+    setClickLocked(true);
+
     onSelectPage?.('personal');
     onSelectFolder?.(folderId);
-    navigate(`/personal/${folderId}`, { replace: true });
+    navigate(`/personal/${folderId}`);
+
+    setTimeout(() => setClickLocked(false), 500);
   };
 
   const handleTeamFolderClick = (folderId: number | string) => {
+    if (clickLocked) return;
+    setClickLocked(true);
+
     onSelectPage?.('team');
     onSelectFolder?.(folderId);
     navigate(`/team/${folderId}`, { replace: true });
+
+    setTimeout(() => setClickLocked(false), 500);
   };
 
   return (

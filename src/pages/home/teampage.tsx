@@ -66,6 +66,13 @@ export default function TeamPage() {
   const [isDashboardEditOpen, setIsDashboardEditOpen] = useState(false);
   const [editTargetBoard, setEditTargetBoard] = useState<Board | null>(null);
 
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
   const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -311,7 +318,7 @@ export default function TeamPage() {
         }}
       />
 
-      <div className="flex flex-col flex-1 p-6 gap-6">
+      <div className="flex flex-col flex-1 p-6 gap-6 overflow-hidden">
         {/* 상단 제목 */}
         <motion.div
           className="flex flex-col gap-2"
@@ -370,7 +377,7 @@ export default function TeamPage() {
                     advancedConfig={b.advancedConfig}
                     agentId={b.agentId}
                     previewPath={`/team/${currentTeam?.id}/${b.id}?thumb=1`}
-                    statusType={b.status || 'before'}
+                    dashboardStatus={b.status || "에이전트 미응답"}
                     lastEdited={b.lastEdited}
                     onOpen={() => navigate(`/team/${currentTeam?.id}/${b.id}`)}
                     onDeleted={() => handleDeleteBoard(b.id)}

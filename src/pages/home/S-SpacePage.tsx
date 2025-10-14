@@ -50,7 +50,13 @@ export default function S_SpacePage() {
 
   // 로딩 완료 여부
   const [loaded, setLoaded] = useState(false);
-
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
   // 팀 + 대시보드 불러오기
   useEffect(() => {
     const fetchTeams = async () => {
@@ -204,7 +210,7 @@ export default function S_SpacePage() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -30 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col flex-1 px-10 pt-10"
+        className="flex flex-col flex-1 px-10 pt-10 overflow-hidden"
       >
         <div className="relative flex items-start w-fit">
           <h1 className="text-[28px] font-bold text-[#F2F2F2]">팀 스페이스</h1>

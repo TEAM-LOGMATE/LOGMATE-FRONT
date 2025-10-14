@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import AgentStatusUnresponsive from "../text/agent-status-unresponse";
 import AgentStatusCollecting from "../text/agent-status-collecting";
-import AgentStatusBefore from "../text/agent-status-before";
 import BtnMore from "../btn/btn-more";
 import BtnMoreText from "../btn/btn-more-text";
 import Thumbnail from "../../pages/dashboard/Thumbnail";
@@ -17,8 +16,8 @@ interface FrmThumbnailBoardProps {
   onOpen?: () => void;
   spaceType?: "personal" | "team";
   previewPath?: string;
-  statusType?: "collecting" | "unresponsive" | "before";
-  onChangeStatus?: (newStatus: "collecting" | "unresponsive" | "before") => void;
+  dashboardStatus?: string;
+  onChangeStatus?: (newStatus: "collecting" | "unresponsive") => void;
   onDeleted?: () => void;
   logPath?: string;
   advancedConfig?: any;
@@ -62,6 +61,7 @@ export default function FrmThumbnailBoard({
   onOpen,
   spaceType = "personal",
   previewPath,
+  dashboardStatus,
   onChangeStatus,
   onDeleted,
   logPath,
@@ -72,14 +72,11 @@ export default function FrmThumbnailBoard({
   const today = new Date();
   const fallbackDate = today.toISOString().slice(0, 10).replace(/-/g, ".");
 
-  const [statusType, setStatusType] = useState<
-    "unresponsive" | "collecting" | "before"
-  >(() => {
+  const [statusType, setStatusType] = useState<"unresponsive" | "collecting">(() => {
     if (!boardId) return "unresponsive";
     const saved = localStorage.getItem(`statusType-${boardId}`) as
       | "unresponsive"
       | "collecting"
-      | "before"
       | null;
     if (!saved) {
       localStorage.setItem(`statusType-${boardId}`, "unresponsive");
@@ -87,6 +84,18 @@ export default function FrmThumbnailBoard({
     }
     return saved;
   });
+
+  // 서버 응답에 따라 상태 자동 설정
+  useEffect(() => {
+    if (!boardId || !dashboardStatus) return;
+
+    const newStatus = dashboardStatus.includes("미응답")
+      ? "unresponsive"
+      : "collecting";
+
+    setStatusType(newStatus);
+    localStorage.setItem(`statusType-${boardId}`, newStatus);
+  }, [dashboardStatus, boardId]);
 
   useEffect(() => {
     if (!boardId) return;
@@ -98,21 +107,26 @@ export default function FrmThumbnailBoard({
     } catch {}
   }, [statusType, boardId]);
 
+  // 수동 토글 (테스트용)
+  /*
   const handleToggleStatus = () => {
     setStatusType((prev) => {
-      const next =
-        prev === "unresponsive"
-          ? "collecting"
-          : prev === "collecting"
-          ? "before"
-          : "unresponsive";
+      const next = prev === "unresponsive" ? "collecting" : "unresponsive";
       onChangeStatus?.(next);
       return next;
     });
   };
+  */
 
-  const ensureAbsolute = (p: string) =>
-    /^https?:\/\//i.test(p) ? p : p.startsWith("/") ? p : `/${p}`;
+  const ensureAbsolute = (p: string) => {
+    if (/^https?:\/\//i.test(p)) return p;
+    if (p.startsWith("/personal/") || p.startsWith("/team/")) {
+      return `${window.location.origin}#/thumb${p}`;
+    }
+    if (p.startsWith("/")) return `${window.location.origin}${p}`;
+    return `/${p}`;
+  };
+
   const ensureThumbParam = (p: string) => {
     try {
       if (/^https?:\/\//i.test(p)) {
@@ -156,14 +170,10 @@ export default function FrmThumbnailBoard({
     <div className="flex flex-col w-[640px] h-[372px] p-4 rounded-[8px] bg-[#171717]">
       {connected ? (
         <>
-          {/* 상단 상태 (토글) */}
-          <div
-            className="w-full flex justify-end cursor-pointer mb-2"
-            onClick={handleToggleStatus}
-          >
+          {/* 상단 상태 */}
+          <div className="w-full flex justify-end mb-2">
             {statusType === "unresponsive" && <AgentStatusUnresponsive />}
             {statusType === "collecting" && <AgentStatusCollecting />}
-            {statusType === "before" && <AgentStatusBefore />}
           </div>
 
           {/* 중앙: 썸네일 */}
@@ -179,9 +189,7 @@ export default function FrmThumbnailBoard({
               />
             ) : (
               <div className="w-full h-full rounded-[8px] border border-[#2a2a2a] bg-[#111] flex items-center justify-center text-[#888] text-[12px]">
-                {statusType === "unresponsive"
-                  ? "에이전트 미응답"
-                  : "대시보드 준비 중"}
+                {statusType === "unresponsive" ? "에이전트 미응답" : "대시보드 준비 중"}
               </div>
             )}
           </div>
@@ -197,9 +205,7 @@ export default function FrmThumbnailBoard({
                   (spaceType === "team" ? "팀 보드" : "모니터링 보드 A")}
               </span>
               <div className="flex gap-[4px]">
-                <span className="text-[#AEAEAE] font-mono text-[14px]">
-                  Edited
-                </span>
+                <span className="text-[#AEAEAE] font-mono text-[14px]">Edited</span>
                 <span className="text-[#AEAEAE] font-mono text-[14px]">
                   {lastEdited || fallbackDate}
                 </span>

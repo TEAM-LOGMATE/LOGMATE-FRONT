@@ -10,7 +10,7 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
 
   // 로그인/회원가입 API는 토큰 필요 없음
-  const skipAuthUrls = ["/users/login", "/users/signup"];
+  const skipAuthUrls = ["/users/login", "/users/signup", "/users/check-email"];
   const shouldSkip = skipAuthUrls.some((url) => config.url?.includes(url));
 
   if (token && !shouldSkip) {

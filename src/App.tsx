@@ -20,9 +20,12 @@ import type { Folder, Team } from './utils/type';
 function AppInitializer() {
   const { user } = useAuth();
   const { setFolders, setTeamFolders } = useFolderStore();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!user) return;
+    const publicPaths = ['/', '/login', '/signup'];
+    const ispublic = publicPaths.includes(location.pathname);
+    if (!user || ispublic) return;
 
     const initData = async () => {
       try {
@@ -40,51 +43,41 @@ function AppInitializer() {
               const res = await getTeamFolders(team.id);
 
               // 폴더가 없는 경우 → team 메타데이터만
-              if (!res || res.length === 0) {
-                return {
-                  id: team.id,
-                  name: team.name,
-                  description: team.description ?? '',
-                  createdAt: team.createdAt ?? null,
-                  updatedAt: team.updatedAt ?? null,
-                  spaceType: 'team' as const,
-                  myRole: team.myRole,
-                  boards: [],
-                } as Team;
-              }
-
-              // 폴더가 있는 경우
-              const rawFolder = res[0];
-              const folder: Folder = {
-                ...rawFolder,
-                spaceType: 'team',
-              };
-
+            if (!res || res.length === 0) {
               return {
-                ...folder,
                 id: team.id,
                 name: team.name,
-                description: team.description ?? folder.description ?? '',
-                createdAt: folder.createdAt ?? team.createdAt ?? null,
-                updatedAt: folder.updatedAt ?? team.updatedAt ?? null,
-                spaceType: 'team',
+                description: team.description ?? '',
+                spaceType: 'team' as const,
                 myRole: team.myRole,
+                boards: [],
               } as Team;
-            } catch (err) {
-              console.error(`팀 폴더 조회 실패 (teamId=${team.id}):`, err);
-              return null;
             }
-          })
-        );
 
-        setTeamFolders(() => allTeamFolders.filter(Boolean) as Team[]);
-      } catch (err) {
-        console.error('초기 데이터 불러오기 실패:', err);
-      }
-    };
+            const folder = res[0];
+            return {
+              ...folder,
+              id: team.id,
+              name: team.name,
+              description: team.description ?? '',
+              spaceType: 'team',
+              myRole: team.myRole,
+            } as Team;
+          } catch (err) {
+            console.error(`팀 폴더 조회 실패 (teamId=${team.id}):`, err);
+            return null;
+          }
+        })
+      );
 
-    initData();
-  }, [user, setFolders, setTeamFolders]);
+      setTeamFolders(() => allTeamFolders.filter(Boolean) as Team[]);
+    } catch (err) {
+      console.error('초기 데이터 불러오기 실패:', err);
+    }
+  };
+
+  initData();
+}, [user, location.pathname, setFolders, setTeamFolders]);
 
   return null;
 }
