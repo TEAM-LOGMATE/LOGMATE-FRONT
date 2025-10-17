@@ -159,13 +159,14 @@ export default function LandingPage() {
             <BtnDownload
               label="Agent 다운로드"
               onClick={() => {
-                const link = document.createElement("a");
-                link.href = "/TailMate-1.0.0.jar"; 
-                link.download = "TailMate-1.0.0.jar";
-                link.click();
+                window.open(
+                  "https://github.com/TEAM-LOGMATE/LOGMATE-AGENT/wiki/Agent-Download-Guide",
+                  "_blank"
+                );
               }}
             />
           </motion.div>
+
 
             </div>
           </motion.div>
