@@ -279,7 +279,7 @@ export default function FrmFolder({
                   options={
                     mode === 'personal'
                       ? ['폴더 이름 바꾸기', '폴더 삭제']
-                      : ['팀설정 변경', '팀 나가기']
+                      : ['팀설정 변경']
                   }
                   selected=""
                   onSelect={(option) => {
