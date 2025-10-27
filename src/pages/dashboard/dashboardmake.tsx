@@ -31,7 +31,7 @@ const defaultConfigs: Record<(typeof logTypes)[number], any> = {
     tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/spring/logs' },
     multiline: { enabled: false, maxLines: 200 },
     exporter: { compressEnabled: true, retryIntervalSec: 2, maxRetryCount: 3 },
-    filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: ['Exception', 'DB'] },
+    filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: [''] },
   },
   tomcat: {
     puller: { intervalSec: 15 },
