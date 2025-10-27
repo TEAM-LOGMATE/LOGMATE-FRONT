@@ -27,17 +27,17 @@ const timezones = ['Asia/Seoul', 'UTC'];
 // logType별 기본 고급설정
 const defaultConfigs: Record<(typeof logTypes)[number], any> = {
   springboot: {
-    puller: { intervalSec: 5 },
-    tailer: { readIntervalMs: 300, metaDataFilePathPrefix: '/spring/logs' },
+    puller: { intervalSec: 15 },
+    tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/spring/logs' },
     multiline: { enabled: false, maxLines: 200 },
-    exporter: { compressEnabled: true, retryIntervalSec: 5, maxRetryCount: 3 },
+    exporter: { compressEnabled: true, retryIntervalSec: 2, maxRetryCount: 3 },
     filter: { allowedLevels: ['ERROR', 'WARN'], requiredKeywords: ['Exception', 'DB'] },
   },
   tomcat: {
-    puller: { intervalSec: 5 },
+    puller: { intervalSec: 15 },
     tailer: { readIntervalMs: 500, metaDataFilePathPrefix: '/tomcat/logs' },
     multiline: { enabled: false, maxLines: 50 },
-    exporter: { compressEnabled: false, retryIntervalSec: 10, maxRetryCount: 1 },
+    exporter: { compressEnabled: false, retryIntervalSec: 2, maxRetryCount: 1 },
     filter: { allowedMethods: ['GET', 'POST'], requiredKeywords: ['login', 'error'] },
   },
 };
