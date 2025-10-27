@@ -111,6 +111,7 @@ export default function FolderPage() {
                 ...b,
                 pullerConfig: advItem.pullerConfig ?? null,
                 advancedConfig: advItem.logPipelineConfigs ?? [],
+                status: advItem.dashboardStatus ?? b.status,
               }
             : b;
         })

@@ -200,6 +200,7 @@ export default function TeamPage() {
           const found = configs.find((c: any) => c.dashboardId === board.id);
           return {
             ...board,
+            status: found?.dashboardStatus ?? board.status ?? "에이전트 미응답",
             advancedConfig: found
               ? [
                   {
