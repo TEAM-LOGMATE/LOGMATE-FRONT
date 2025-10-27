@@ -94,11 +94,20 @@ export default function FrmTeamEdit({
   const handleSubmit = () => {
     if (isAdmin) {
       if (!teamName.trim() || members.length === 0) return;
+
+      // 관리자 최소 1명 확인
+      const hasAdmin = members.some((m) => m.role === 'teamAdmin');
+      if (!hasAdmin) {
+        setErrorMsg('팀에는 최소 한 명의 관리자가 필요합니다.');
+        return;
+      }
     } else {
       if (teamDesc.trim() === '') return;
     }
+
     onSubmit?.({ name: teamName, description: teamDesc, members });
   };
+
 
   const isSaveActive = isAdmin
     ? teamName.trim() !== '' && members.length > 0
@@ -233,12 +242,13 @@ export default function FrmTeamEdit({
             height: '28px',
             flexDirection: 'column',
             justifyContent: 'center',
-            cursor: 'pointer',
+            cursor: isAdmin ? 'pointer' : 'default',
             textAlign: 'center',
           }}
-          onClick={isAdmin ? onDelete : onLeaveTeam}
+          onClick={isAdmin ? onDelete : undefined}
         >
-          {isAdmin ? '팀 삭제하기' : '팀 나가기'}
+          {/* 팀 나가기 API 생성시 추가할 예정 */}
+          {isAdmin ? '팀 삭제하기' : ''} 
         </div>
       </div>
     </div>
