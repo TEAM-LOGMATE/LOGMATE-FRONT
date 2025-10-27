@@ -6,6 +6,7 @@ import BtnSign2Small from '../btn/btn-sign-2-small';
 import { isValidEmail } from '../../utils/validate';
 import { getTeamDetail } from '../../api/teams';
 import { useAuth } from '../../utils/AuthContext';
+import ErrorToast from '../text/error-toast';
 
 type Role = 'teamAdmin' | 'member' | 'viewer';
 
@@ -44,19 +45,19 @@ export default function FrmTeamEdit({
   onDelete,
   onLeaveTeam,
 }: FrmTeamEditProps) {
-  const { user } = useAuth(); // 로그인 유저 (없으면 null)
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
-
   const [teamName, setTeamName] = useState('');
   const [teamDesc, setTeamDesc] = useState('');
   const [members, setMembers] = useState<UiMember[]>([]);
-  const [currentRole, setCurrentRole] = useState<Role>('viewer'); // 기본값 viewer
+  const [currentRole, setCurrentRole] = useState<Role>('viewer');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const isAdmin = currentRole === 'teamAdmin';
   const isReadOnly = !isAdmin;
 
-  // 팀 상세조회 API 호출
+  // 팀 상세조회
   useEffect(() => {
     async function fetchTeamDetail() {
       try {
@@ -113,6 +114,18 @@ export default function FrmTeamEdit({
 
   return (
     <div className="relative flex flex-col items-center w-full max-w-[800px] p-[40px] gap-[24px] bg-[#0F0F0F] rounded-[12px]">
+      {/* 에러 토스트 */}
+      {errorMsg && (
+        <div className="absolute bottom-[32px] left-1/2 -translate-x-1/2 z-50 ">
+          <ErrorToast
+            message={errorMsg}
+            autoHideMs={2000}
+            onClose={() => setErrorMsg('')}
+          />
+        </div>
+      )}
+
+
       {/* 닫기 버튼 */}
       <div className="absolute top-[16px] right-[16px]">
         <BtnX onClick={onClose} />
@@ -166,16 +179,12 @@ export default function FrmTeamEdit({
                 if (prev.some((m) => m.email === trimmed)) return prev;
                 return [
                   ...prev,
-                  {
-                    name: '팀원명',
-                    email: trimmed,
-                    role: 'member',
-                  },
+                  { name: '새 팀원', email: trimmed, role: 'member' },
                 ];
               });
             }}
             onRoleChange={(index, newRole) => {
-              if (!isAdmin) return; // 관리자 아니면 동작 무시
+              if (!isAdmin) return;
               setMembers((prev) =>
                 prev.map((m, i) => (i === index ? { ...m, role: newRole } : m))
               );
@@ -183,7 +192,15 @@ export default function FrmTeamEdit({
             onDeleteClick={
               isAdmin
                 ? (index) => {
-                    setMembers((prev) => prev.filter((_, i) => i !== index));
+                    setMembers((prev) => {
+                      const target = prev[index];
+                      if (user && target.email === user.email) {
+                        setErrorMsg('자기 자신은 삭제할 수 없습니다.'); 
+                        setTimeout(() => setErrorMsg(''), 2000);
+                        return prev;
+                      }
+                      return prev.filter((_, i) => i !== index);
+                    });
                   }
                 : undefined
             }
