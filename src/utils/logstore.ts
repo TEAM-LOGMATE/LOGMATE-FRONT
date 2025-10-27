@@ -101,7 +101,7 @@ export const useLogStore = create<LogState>((set, get) => ({
         };
 
         // AI Score 80 이상 시 자동 웹훅 트리거
-        if (log.aiScore >= 80) {
+        if (log.aiScore >= 70) {
           const message = `
 🔎 *AI Score 알림*
 시스템에서 **AI Score가 높은 로그**가 감지되었습니다. 확인이 필요합니다.
