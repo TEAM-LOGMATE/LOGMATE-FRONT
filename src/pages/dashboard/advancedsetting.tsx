@@ -41,9 +41,9 @@ export interface AdvancedSettingsProps {
 // 기본값 정의 (logType 별)
 const defaultConfigs = {
   springboot: {
-    puller: { intervalSec: 5 },
+    puller: { intervalSec: 15 },
     tailer: {
-      readIntervalMs: 1000,
+      readIntervalMs: 500,
       metaDataFilePathPrefix: '/tmp/meta',
     },
     multiline: {
@@ -52,7 +52,7 @@ const defaultConfigs = {
     },
     exporter: {
       compressEnabled: false,
-      retryIntervalSec: 5,
+      retryIntervalSec: 2,
       maxRetryCount: 3,
     },
     filter: {
@@ -61,9 +61,9 @@ const defaultConfigs = {
     } as SpringBootFilter,
   },
   tomcat: {
-    puller: { intervalSec: 5 },
+    puller: { intervalSec: 15 },
     tailer: {
-      readIntervalMs: 1000,
+      readIntervalMs: 500,
       metaDataFilePathPrefix: '/tmp/meta',
     },
     multiline: {

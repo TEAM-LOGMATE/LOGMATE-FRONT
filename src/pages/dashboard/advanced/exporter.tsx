@@ -12,14 +12,22 @@ interface ExporterSettingsProps {
 }
 
 export default function ExporterSettings({ value, onChange }: ExporterSettingsProps) {
+  const MIN_RETRY_INTERVAL_SEC = 2;
   // 핸들러: retryIntervalSec
   const increaseRetry = () =>
     onChange({ ...value, retryIntervalSec: value.retryIntervalSec + 1 });
-  const decreaseRetry = () =>
+  const decreaseRetry = () =>{
+    const next = value.retryIntervalSec - 1;
     onChange({
       ...value,
-      retryIntervalSec: value.retryIntervalSec > 1 ? value.retryIntervalSec - 1 : 0,
+      retryIntervalSec: Math.max(next, MIN_RETRY_INTERVAL_SEC),
     });
+  };
+  const handleRetryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = Number(e.target.value);
+    const valid = isNaN(raw) ? MIN_RETRY_INTERVAL_SEC : Math.max(raw, MIN_RETRY_INTERVAL_SEC);
+    onChange({ ...value, retryIntervalSec: valid });
+  }
 
   // 핸들러: maxRetryCount
   const increaseMaxRetry = () =>
@@ -63,10 +71,10 @@ export default function ExporterSettings({ value, onChange }: ExporterSettingsPr
         </span>
         <div className="relative flex-1 h-[48px]">
           <Input48
+            type="number"
+            min={MIN_RETRY_INTERVAL_SEC}
             value={String(value.retryIntervalSec)}
-            onChange={(e) =>
-              onChange({ ...value, retryIntervalSec: Number(e.target.value) || 0 })
-            }
+            onChange={handleRetryChange}
             align="center"
           />
           <div className="absolute left-2 top-1/2 -translate-y-1/2">

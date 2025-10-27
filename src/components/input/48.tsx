@@ -8,7 +8,10 @@ interface Input48Props {
   readOnly?: boolean;
   width?: string;
   className?: string;
-  align?: 'left' | 'center' | 'right';  
+  align?: 'left' | 'center' | 'right';
+  type?: string
+  max?: number;
+  min?: number;  
 }
 
 export default function Input48({
@@ -20,6 +23,8 @@ export default function Input48({
   readOnly = false,
   width = 'w-full',
   align = 'left',  
+  type = 'text',
+  min, max,
 }: Input48Props) {
   const [isDone, setIsDone] = useState(false);
   const locked = disabled || readOnly;
@@ -52,7 +57,9 @@ export default function Input48({
       style={{ color: textColor }}
     >
       <input
-        type="text"
+        type={type}
+        min={min}
+        max={max}
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}

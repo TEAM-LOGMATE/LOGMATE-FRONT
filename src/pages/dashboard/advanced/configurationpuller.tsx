@@ -10,6 +10,7 @@ interface ConfigurationPullerProps {
 }
 
 export default function ConfigurationPuller({ value, onChange }: ConfigurationPullerProps) {
+  const MIN_INTERVAL_SEC = 15;
   const handleIncrease = () => {
     onChange({
       ...value,
@@ -21,7 +22,7 @@ export default function ConfigurationPuller({ value, onChange }: ConfigurationPu
     const next = value.intervalSec - 1;
     onChange({
       ...value,
-      intervalSec: next > 0 ? next : 0, // 0초 이하 방지
+      intervalSec: Math.max(next, MIN_INTERVAL_SEC), // 0초 이하 방지
     });
   };
 
@@ -48,6 +49,8 @@ export default function ConfigurationPuller({ value, onChange }: ConfigurationPu
 
         <div className="relative flex-1 h-[48px]">
           <Input48
+            type="number"
+            min={MIN_INTERVAL_SEC}
             value={String(value.intervalSec)}
             onChange={(e) =>
               onChange({ ...value, intervalSec: Number(e.target.value) || 0 })

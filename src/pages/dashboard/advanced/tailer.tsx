@@ -11,6 +11,7 @@ interface TailerSettingsProps {
 }
 
 export default function TailerSettings({ value, onChange }: TailerSettingsProps) {
+  const MIN_READ_INTERVAL_MS = 500;
   const handleIncrease = () => {
     onChange({
       ...value,
@@ -22,7 +23,7 @@ export default function TailerSettings({ value, onChange }: TailerSettingsProps)
     const next = value.readIntervalMs - 100;
     onChange({
       ...value,
-      readIntervalMs: next > 0 ? next : 0,
+      readIntervalMs: Math.max(next, MIN_READ_INTERVAL_MS),
     });
   };
 
@@ -49,10 +50,10 @@ export default function TailerSettings({ value, onChange }: TailerSettingsProps)
 
         <div className="relative flex-1 h-[48px]">
           <Input48
+            type="number"
+            min={MIN_READ_INTERVAL_MS}
             value={String(value.readIntervalMs)}
-            onChange={(e) =>
-              onChange({ ...value, readIntervalMs: Number(e.target.value) || 0 })
-            }
+            onChange={handleIncrease}
             placeholder="1000"
             align="center"
           />
