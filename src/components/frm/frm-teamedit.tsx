@@ -91,22 +91,24 @@ export default function FrmTeamEdit({
     fetchTeamDetail();
   }, [teamId, user]);
 
-  const handleSubmit = () => {
-    if (isAdmin) {
+    const handleSubmit = () => {
+      // 비관리자는 저장 불가
+      if (!isAdmin) {
+        setErrorMsg('팀 변경은 관리자만 가능합니다.');
+        return;
+      }
+
       if (!teamName.trim() || members.length === 0) return;
 
-      // 관리자 최소 1명 확인
+      //관리자 최소 1명 확인
       const hasAdmin = members.some((m) => m.role === 'teamAdmin');
       if (!hasAdmin) {
         setErrorMsg('팀에는 최소 한 명의 관리자가 필요합니다.');
         return;
       }
-    } else {
-      if (teamDesc.trim() === '') return;
-    }
+      onSubmit?.({ name: teamName, description: teamDesc, members });
+    };
 
-    onSubmit?.({ name: teamName, description: teamDesc, members });
-  };
 
 
   const isSaveActive = isAdmin
