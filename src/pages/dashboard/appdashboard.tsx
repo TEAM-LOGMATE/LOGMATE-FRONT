@@ -217,49 +217,47 @@ export default function AppDashboard() {
     };
   }, [boardId, board?.agentId, dashboardConfigs, connect, disconnect]);
 
-  useEffect(() => {
-    if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
+useEffect(() => {
+  if (!boardId || !board?.agentId || dashboardConfigs.length === 0) return;
 
-    const loadLogs = async () => {
-      try {
-        const matchedConfig = dashboardConfigs.find(
-          (cfg) => String(cfg.dashboardId) === String(boardId)
-        );
-        const pipeline = matchedConfig?.logPipelineConfigs?.[0];
-        if (!pipeline) {
-          console.warn("logPipelineConfigs 없음:", matchedConfig);
-          return;
-        }
+  const matchedConfig = dashboardConfigs.find(
+    (cfg) => String(cfg.dashboardId) === String(boardId)
+  );
+  const pipeline = matchedConfig?.logPipelineConfigs?.[0];
+  if (!pipeline) return;
 
-        const parserType = pipeline?.parser?.type?.toUpperCase?.() ??
-                           pipeline?.parserType?.toUpperCase?.() ?? "";
-        const logType =
-          parserType === "SPRINGBOOT"
-            ? "SPRING_BOOT"
-            : parserType === "TOMCAT"
-            ? "TOMCAT_ACCESS"
-            : "UNKNOWN";
+  const agentId = board.agentId;
+  const thNum = pipeline.thNum;
 
-        const params = {
-          agentId: board.agentId ?? "",
-          thNum: pipeline.thNum,
-          logType,
-        };
+  const fetchAllLogs = async () => {
+    try {
+      const springParams = {
+        agentId,
+        thNum,
+        logType: "SPRING_BOOT",
+      };
+      const springLogs = await fetchLogs(springParams);
+      useLogStore.getState().setAppLogs(springLogs);
+      const webParams = {
+        agentId,
+        thNum,
+        logType: "TOMCAT_ACCESS",
+      };
+      const webLogs = await fetchLogs(webParams);
+      useLogStore.getState().setWebLogs(webLogs);
 
-        const data = await fetchLogs(params);
+      console.log("두 로그 모두 조회 완료", {
+        appLogs: springLogs.length,
+        webLogs: webLogs.length,
+      });
+    } catch (err) {
+      console.error("로그 조회 실패:", err);
+    }
+  };
 
-        const { setWebLogs, setAppLogs } = useLogStore.getState();
-        if (logType === "TOMCAT_ACCESS") setWebLogs(data);
-        else setAppLogs(data);
+  fetchAllLogs();
+}, [boardId, board?.agentId, dashboardConfigs]);
 
-        console.log(`[LOG SEARCH] ${logType}`, data);
-      } catch (err) {
-        console.error("[ERROR] 로그 조회 실패:", err);
-      }
-    };
-
-    loadLogs();
-  }, [boardId, board?.agentId, dashboardConfigs]);
 
   const [refreshKey] = useState(0);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
