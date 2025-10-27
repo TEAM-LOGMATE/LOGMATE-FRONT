@@ -68,7 +68,7 @@ export default function FilterSettings({ value, onChange }: FilterSettingsProps)
           <Input48
             value={value.requiredKeywords.join(", ")}
             onChange={handleKeywordChange}
-            placeholder="Exception, DB"
+            placeholder=""
             className="w-full"
             align="center"
           />

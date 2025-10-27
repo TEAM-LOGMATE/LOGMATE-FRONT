@@ -39,7 +39,7 @@ const defaultConfigs: Record<
     exporter: { compressEnabled: true, retryIntervalSec: 5, maxRetryCount: 3 },
     filter: {
       allowedLevels: ['ERROR', 'WARN'],
-      requiredKeywords: ['Exception', 'DB'],
+      requiredKeywords: [''],
     },
   },
   tomcat: {
