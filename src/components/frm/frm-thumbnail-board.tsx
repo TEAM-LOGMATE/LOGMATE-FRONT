@@ -120,32 +120,43 @@ export default function FrmThumbnailBoard({
   };
   */
 
-  const ensureAbsolute = (p: string) => {
-    if (/^https?:\/\//i.test(p)) return p;
-    if (p.startsWith("/personal/") || p.startsWith("/team/")) {
-      return `${window.location.origin}#/thumb${p}`;
-    }
-    if (p.startsWith("/")) return `${window.location.origin}${p}`;
-    return `/${p}`;
-  };
+const ensureAbsolute = (p: string) => {
+  if (/^https?:\/\//i.test(p)) return p;
+  if (p.startsWith("/personal/") || p.startsWith("/team/")) {
+    return `${window.location.origin}${p}`;
+  }
+  if (p.startsWith("/")) return `${window.location.origin}${p}`;
+  return `/${p}`;
+};
 
-  const ensureThumbParam = (p: string) => {
-    try {
-      if (/^https?:\/\//i.test(p)) {
-        const url = new URL(p);
-        if (!url.searchParams.has("thumb")) url.searchParams.set("thumb", "1");
-        return url.toString();
-      } else {
-        const [path, qs = ""] = p.split("?");
+
+const ensureThumbParam = (p: string) => {
+  try {
+    if (/^https?:\/\//i.test(p)) {
+      const [base, hash] = p.split("#");
+      if (hash) {
+        const [path, qs = ""] = hash.split("?");
         const sp = new URLSearchParams(qs);
         if (!sp.has("thumb")) sp.set("thumb", "1");
-        const qsStr = sp.toString();
-        return `${path}${qsStr ? `?${qsStr}` : ""}`;
+        return `${base}#${path}?${sp.toString()}`; 
       }
-    } catch {
-      return p;
+
+      // 해시가 없으면 기존 로직 그대로
+      const url = new URL(p);
+      if (!url.searchParams.has("thumb")) url.searchParams.set("thumb", "1");
+      return url.toString();
+    } else {
+      const [path, qs = ""] = p.split("?");
+      const sp = new URLSearchParams(qs);
+      if (!sp.has("thumb")) sp.set("thumb", "1");
+      const qsStr = sp.toString();
+      return `${path}${qsStr ? `?${qsStr}` : ""}`;
     }
-  };
+  } catch {
+    return p;
+  }
+};
+
 
   const effectivePreviewPath = useMemo(() => {
     const fallback = boardId ? `/dashboard/${boardId}` : undefined;
