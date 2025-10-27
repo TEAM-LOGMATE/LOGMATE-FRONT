@@ -80,6 +80,7 @@ export default function FolderPage() {
     try {
       // 대시보드 목록 먼저 가져오기
       const dashboardsRes = await getDashboards(Number(folderId));
+      console.log('[getDashboards 응답]', dashboardsRes);
       const boardsData = dashboardsRes.data || [];
 
       // 기본 정보 세팅
@@ -98,6 +99,7 @@ export default function FolderPage() {
 
       // 목록 로드가 끝난 뒤, 폴더 단위 고급정보 조회
       const advRes = await getDashboardConfigs(Number(folderId));
+      console.log('[getDashboardConfigs 응답]', advRes);
       const advList = advRes?.data || [];
 
       // 대시보드별 매칭
@@ -124,6 +126,7 @@ export default function FolderPage() {
         if (!user || !folderId) return;
 
         const data = await getPersonalFolders(user.id);
+        console.log('[getPersonalFolders 응답]', data);
         const sorted = [...(data || [])].sort((a, b) => {
           const aDate = parseDate(a.updatedAt);
           const bDate = parseDate(b.updatedAt);
@@ -166,6 +169,7 @@ export default function FolderPage() {
         name: board.name,
         logPath: board.logPath,
       });
+      console.log('[createDashboard 응답]', created);
 
       const dashboardId = created?.data?.id;
       if (!dashboardId) throw new Error('대시보드 ID를 가져오지 못했습니다.');
@@ -198,6 +202,7 @@ export default function FolderPage() {
       };
 
       const configRes = await saveDashboardConfig(Number(folderId), dashboardId, configBody);
+      console.log('[saveDashboardConfig 응답]', configRes);
       const agentId = configRes?.data?.agentId;
       setCreatedAgentId(agentId);
 
@@ -222,10 +227,12 @@ export default function FolderPage() {
   };
 
   const handleDeleteBoard = (boardId: number) => {
+    console.log('[deleteDashboard 요청] boardId:', boardId);
     setBoards((prev) => prev.filter((b) => b.id !== boardId));
   };
 
   const handleUpdateBoard = (updated: Board) => {
+    console.log('[대시보드 업데이트 요청]', updated);
     setBoards((prev) =>
       prev.map((b) =>
         b.id === updated.id
