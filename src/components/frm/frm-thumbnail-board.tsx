@@ -88,10 +88,12 @@ export default function FrmThumbnailBoard({
   // 서버 응답에 따라 상태 자동 설정
   useEffect(() => {
     if (!boardId || !dashboardStatus) return;
+    console.log("대시보드 상태", dashboardStatus)
+    let newStatus: "unresponsive" | "collecting";
 
-    const newStatus = dashboardStatus.includes("미응답")
-      ? "unresponsive"
-      : "collecting";
+    if (dashboardStatus.includes("미응답")) newStatus = "unresponsive";
+    else if (dashboardStatus.includes("수집")) newStatus = "collecting";
+    else newStatus = "unresponsive"; // "before" 등 예상치 못한 값은 기본 미응답 처리
 
     setStatusType(newStatus);
     localStorage.setItem(`statusType-${boardId}`, newStatus);
@@ -157,6 +159,7 @@ export default function FrmThumbnailBoard({
   const THUMB_W = 592;
   const THUMB_H = 260;
   const canMountThumb = statusType === "collecting" && !!effectivePreviewPath;
+  console.log("🧱 boardId:", boardId, "statusType:", statusType, "canMountThumb:", canMountThumb, "previewPath:", effectivePreviewPath);
   const safeAdvancedConfig = {
     ...defaultAdvancedConfig,
     ...advancedConfig,
