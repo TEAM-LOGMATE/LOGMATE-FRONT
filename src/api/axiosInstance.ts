@@ -22,7 +22,7 @@ api.interceptors.request.use((config) => {
 
 // 로그 스트리밍 서버용 인스턴스 분리 
 export const logApi = axios.create({
-  baseURL: import.meta.env.VITE_WS_BASE_URL.replace("ws://", "http://"), // ws → http 변환
+  baseURL: import.meta.env.VITE_WS_BASE_URL.replace("wss://", "https://"), // ws → http 변환
   withCredentials: false,
 });
 
