@@ -23,6 +23,10 @@ export interface WebLog {
   ip: string;
   aiScore: number;
   raw?: string; // UI에서만 사용
+  url?: string;
+  statusCode?: number;
+  responseSize?: number;
+  referer?: string;
 }
 
 interface LogState {

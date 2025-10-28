@@ -67,10 +67,20 @@ export default function WebLiveLog({ onSelect }: WebLiveLogProps) {
         : [],
     [webLogs]
   );
+  // --- API 응답 key → 프론트 key 매핑 ---
+  const normalizedLogs = useMemo(() => {
+    return webLogs.map((log) => ({
+      ...log,
+      path: log.path ?? log.url ?? "",              // url → path
+      status: log.status ?? log.statusCode ?? "",   // statusCode → status
+      size: log.size ?? log.responseSize ?? "",     // responseSize → size
+      referrer: log.referrer ?? log.referer ?? "",  // referer → referrer
+    }));
+  }, [webLogs]);
 
   // --- 필터링 로직 ---
   const filteredLogs = useMemo(() => {
-    return webLogs.filter((log) => {
+    return normalizedLogs.filter((log) => { 
       const matchesKeyword =
         keyword.trim() === "" ||
         Object.values(log).some((value) =>
@@ -79,8 +89,7 @@ export default function WebLiveLog({ onSelect }: WebLiveLogProps) {
 
       const matchesMethod = !methodFilter || log.method === methodFilter;
       const matchesProtocol = !protocolFilter || log.protocol === protocolFilter;
-      const matchesStatus =
-        !statusFilter || String(log.status) === statusFilter;
+      const matchesStatus = !statusFilter || String(log.status) === statusFilter;
       const matchesUA = !uaFilter || log.userAgent === uaFilter;
 
       return (
@@ -91,7 +100,8 @@ export default function WebLiveLog({ onSelect }: WebLiveLogProps) {
         matchesUA
       );
     });
-  }, [webLogs, keyword, methodFilter, protocolFilter, statusFilter, uaFilter]);
+  }, [normalizedLogs, keyword, methodFilter, protocolFilter, statusFilter, uaFilter]);
+
 
   // --- 정렬 (Timestamp 전용) ---
   const visibleLogs = useMemo(() => {
